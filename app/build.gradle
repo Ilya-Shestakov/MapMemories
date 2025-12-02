@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace 'com.example.mapmemories'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.example.mapmemories"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    // Основные библиотеки Android
+    implementation libs.appcompat.v161
+    implementation libs.material.v1120
+    implementation libs.constraintlayout.v214
+
+    // ViewPager2 для онбординга
+    implementation libs.viewpager2
+
+    // Firebase BOM (Bill of Materials) - УБЕРИ ДУБЛИКАТ
+    // implementation platform('com.google.firebase:firebase-bom:32.8.1')  ← УДАЛИ ЭТУ СТРОКУ
+
+    implementation platform(libs.firebase.bom)
+    // Firebase зависимости
+    implementation libs.firebase.auth
+    implementation libs.firebase.analytics
+
+    // Тестирование
+    testImplementation libs.junit
+    androidTestImplementation libs.junit.v115
+    androidTestImplementation libs.espresso.core.v351
+}

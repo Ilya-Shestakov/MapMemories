@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "921635874226",
+    "project_id": "mapmemories-ccd21",
+    "storage_bucket": "mapmemories-ccd21.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:921635874226:android:2cefdfa663cf56b57a30ab",
+        "android_client_info": {
+          "package_name": "com.example.mapmemories"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfz_aUboEklsgApCv7JH3oKI9_koD5Zk4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

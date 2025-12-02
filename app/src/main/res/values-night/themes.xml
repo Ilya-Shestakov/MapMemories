@@ -1,0 +1,17 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Базовый стиль приложения -->
+    <style name="Theme.MapMemories" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Основной темно-синий фон -->
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        <item name="android:navigationBarColor">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/primary_dark</item>
+        <!-- Акцентный оранжевый для кнопок, выделения и т.д. -->
+        <item name="colorPrimary">@color/accent_coral</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Цвета текста -->
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textColorSecondary">@color/light_gray</item>
+        <!-- Шрифт (нужно будет положить файлы .ttf в res/font/) -->
+        <item name="fontFamily">@font/inter</item>
+    </style>
+</resources>

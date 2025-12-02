@@ -1,0 +1,50 @@
+<resources>
+    <string name="app_name">MapMemories</string>
+
+    <string name="onboarding_title_1">Сохраняй места</string>
+    <string name="onboarding_desc_1">Отмечай на карте моменты, которые хочешь запомнить</string>
+
+    <string name="onboarding_title_2">Исследуй без интернета</string>
+    <string name="onboarding_desc_2">Скачивай карты регионов для путешествий в глуши</string>
+
+    <string name="onboarding_title_3">Делись открытиями</string>
+    <string name="onboarding_desc_3">Публикуй свои находки и смотри, где были другие</string>
+
+    <string name="skip">Пропустить</string>
+    <string name="next">Далее</string>
+    <string name="start">Начать</string>
+    <string name="email">Email</string>
+    <string name="пароль">Пароль</string>
+    <string name="забыли_пароль">Забыли пароль?</string>
+    <string name="войти">Войти</string>
+    <string name="продолжить_через_гугл">Продолжить через Google</string>
+
+    <string name="login_slogan">Твоя жизнь на карте</string>
+    <string name="email_hint">Email</string>
+    <string name="password_hint">Пароль</string>
+    <string name="confirm_password_hint">Подтвердите пароль</string>
+    <string name="username_hint">Имя пользователя</string>
+    <string name="login_button">Войти</string>
+    <string name="register_button">Зарегистрироваться</string>
+    <string name="create_account_button">Создать аккаунт</string>
+    <string name="forgot_password">Забыли пароль?</string>
+    <string name="or">или</string>
+    <string name="continue_with_google">Продолжить через Google</string>
+    <string name="no_account">Ещё нет аккаунта?</string>
+    <string name="have_account">Уже есть аккаунт?</string>
+    <string name="registration_title">Регистрация</string>
+
+    <string name="error_email_required">Введите email</string>
+    <string name="error_invalid_email">Некорректный email</string>
+    <string name="error_password_required">Введите пароль</string>
+    <string name="error_password_length">Пароль должен быть минимум 6 символов</string>
+    <string name="error_password_complexity">Должен содержать буквы и цифры</string>
+    <string name="error_username_required">Введите имя пользователя</string>
+    <string name="error_username_length">Минимум 3 символа</string>
+    <string name="error_password_mismatch">Пароли не совпадают</string>
+
+    <string name="password_requirements">• Минимум 6 символов\n• Содержать буквы и цифры</string>
+
+    <string name="default_web_client_id" translatable="false">764825824124-8q51ikca1nnsc89su984e3m9muk924op.apps.googleusercontent.com</string>
+
+</resources>

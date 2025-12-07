@@ -36,23 +36,30 @@ android {
 
 dependencies {
     // Основные библиотеки Android
-    implementation libs.appcompat.v161
-    implementation libs.material.v1120
-    implementation libs.constraintlayout.v214
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
 
-    // ViewPager2 для онбординга
-    implementation libs.viewpager2
+    // Firebase
+    implementation platform('com.google.firebase:firebase-bom:32.8.1')  // Используй эту версию
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-analytics'
 
-    // Firebase BOM (Bill of Materials) - УБЕРИ ДУБЛИКАТ
-    // implementation platform('com.google.firebase:firebase-bom:32.8.1')  ← УДАЛИ ЭТУ СТРОКУ
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
-    implementation platform(libs.firebase.bom)
-    // Firebase зависимости
-    implementation libs.firebase.auth
-    implementation libs.firebase.analytics
 
-    // Тестирование
-    testImplementation libs.junit
-    androidTestImplementation libs.junit.v115
-    androidTestImplementation libs.espresso.core.v351
+    // MapLibre (карты)
+    implementation 'org.maplibre.gl:android-sdk:10.4.0'
+    implementation 'org.maplibre.gl:android-plugin-offline:10.4.0'
+    implementation 'org.maplibre.gl:android-plugin-annotation-v9:10.4.0'
+
+    // Location services
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
+
+    // Permissions
+    implementation 'com.karumi:dexter:6.2.3'
+
 }

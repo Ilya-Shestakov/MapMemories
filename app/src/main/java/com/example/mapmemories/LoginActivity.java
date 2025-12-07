@@ -122,18 +122,22 @@ public class LoginActivity extends AppCompatActivity {
         // Валидация email
         if (TextUtils.isEmpty(email)) {
             emailInputLayout.setError("Введите email");
+            VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
             hasError = true;
         } else if (!isValidEmail(email)) {
             emailInputLayout.setError("Некорректный email");
+            VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
             hasError = true;
         }
 
         // Валидация пароля
         if (TextUtils.isEmpty(password)) {
             passwordInputLayout.setError("Введите пароль");
+            VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
             hasError = true;
         } else if (password.length() < 6) {
             passwordInputLayout.setError("Пароль должен быть минимум 6 символов");
+            VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
             hasError = true;
         }
 
@@ -153,6 +157,9 @@ public class LoginActivity extends AppCompatActivity {
                                             "Добро пожаловать!",
                                             Toast.LENGTH_SHORT).show();
                                     startActivity(new Intent(LoginActivity.this, MainActivity.class));
+
+                                    VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.SUCCESS, -1);
+
                                     finish();
                                 }
                             } else {
@@ -163,6 +170,9 @@ public class LoginActivity extends AppCompatActivity {
                                 String errorMessage = "Ошибка входа";
                                 if (exception != null) {
                                     errorMessage = exception.getMessage();
+
+                                    VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
+
                                     Log.e("LOGIN", "Error details: " + exception.getClass().getName());
                                     Log.e("LOGIN", "Error message: " + exception.getMessage());
                                 }
@@ -175,6 +185,7 @@ public class LoginActivity extends AppCompatActivity {
                 showLoading(false);
                 Log.e("LOGIN", "Exception in login", e);
                 Toast.makeText(this, "Ошибка: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                VibratorHelper.vibratePattern(this, VibratorHelper.Patterns.ERROR, -1);
             }
         }
     }

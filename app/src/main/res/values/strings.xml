@@ -46,5 +46,6 @@
     <string name="password_requirements">• Минимум 6 символов\n• Содержать буквы и цифры</string>
 
     <string name="default_web_client_id" translatable="false">764825824124-8q51ikca1nnsc89su984e3m9muk924op.apps.googleusercontent.com</string>
+    <string name="профиль">Профиль</string>
 
 </resources>

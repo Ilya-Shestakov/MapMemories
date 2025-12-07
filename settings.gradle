@@ -8,10 +8,9 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        google()
+        google()  // ДОЛЖНО БЫТЬ ПЕРВЫМ!
         mavenCentral()
     }
 }
-
 rootProject.name = "MapMemories"
 include ':app'

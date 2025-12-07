@@ -2,50 +2,157 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/primary_dark"
-    android:padding="16dp">
+    android:background="@color/primary"
+    tools:context=".MainActivity">
 
-    <!-- Заголовок -->
-    <TextView
-        android:id="@+id/welcomeTextView"
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="0dp"
+        android:layout_height="56dp"
+        android:background="@color/primary"
+        android:minHeight="?attr/actionBarSize"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingHorizontal="16dp">
+
+            <ImageView
+                android:id="@+id/profileButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_profile_placeholder"
+                android:background="@drawable/circle_background"
+                android:contentDescription="@string/профиль"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:padding="8dp"
+                app:tint="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/appTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="MapMemories"
+                android:textColor="@color/text_primary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/logoutButton"
+                app:layout_constraintStart_toEndOf="@id/profileButton"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageView
+                android:id="@+id/logoutButton"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_logout"
+                android:contentDescription="Выйти"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="@color/offline_indicator" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/viewPager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/surface_dark"
+        app:layout_constraintBottom_toTopOf="@id/bottomIndicator"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/topAppBar" />
+
+    <LinearLayout
+        android:id="@+id/bottomIndicator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Добро пожаловать в MapMemories!"
-        android:textColor="@color/white"
-        android:textSize="24sp"
-        android:textStyle="bold"
+        android:orientation="horizontal"
         android:gravity="center"
+        android:paddingVertical="16dp"
+        android:paddingHorizontal="32dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="32dp" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <!-- Подсказка -->
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Главный экран с картой появится здесь"
-        android:textColor="@color/light_gray"
-        android:textSize="16sp"
-        android:layout_marginTop="32dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/welcomeTextView" />
+        <LinearLayout
+            android:id="@+id/onlineContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
 
-    <!-- Кнопка выхода -->
-    <Button
-        android:id="@+id/logoutButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Выйти"
-        android:backgroundTint="@color/accent_coral"
-        android:textColor="@color/white"
-        android:layout_marginTop="32dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+            <TextView
+                android:id="@+id/onlineIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="●"
+                android:textSize="20sp"
+                android:textColor="@color/online_indicator" />
+
+            <TextView
+                android:id="@+id/onlineText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Онлайн"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+        <View
+            android:layout_width="24dp"
+            android:layout_height="1dp" />
+
+        <LinearLayout
+            android:id="@+id/offlineContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:padding="12dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?attr/selectableItemBackground">
+
+            <TextView
+                android:id="@+id/offlineIndicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="●"
+                android:textSize="20sp"
+                android:textColor="@color/offline_indicator" />
+
+            <TextView
+                android:id="@+id/offlineText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Оффлайн"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginStart="8dp" />
+
+        </LinearLayout>
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

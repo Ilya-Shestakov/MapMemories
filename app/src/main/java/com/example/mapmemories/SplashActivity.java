@@ -1,9 +1,9 @@
 package com.example.mapmemories;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
-import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.ScaleAnimation;
@@ -23,11 +23,13 @@ public class SplashActivity extends AppCompatActivity {
         ImageView rippleCircle2 = findViewById(R.id.rippleCircle2);
         TextView appNameTextView = findViewById(R.id.appNameTextView);
 
+        // Простая вибрация при запуске
+        VibratorHelper.vibrate(this, 50);
+
         // Анимация появления лого
         Animation fadeIn = AnimationUtils.loadAnimation(this, R.anim.fade_in);
         logoImageView.startAnimation(fadeIn);
 
-        // Эффект ряби 1
         ScaleAnimation ripple1 = new ScaleAnimation(
                 0.5f, 1.5f,
                 0.5f, 1.5f,
@@ -38,7 +40,6 @@ public class SplashActivity extends AppCompatActivity {
         ripple1.setRepeatCount(Animation.INFINITE);
         ripple1.setRepeatMode(Animation.RESTART);
 
-        // Эффект ряби 2 (с задержкой)
         ScaleAnimation ripple2 = new ScaleAnimation(
                 0.5f, 1.5f,
                 0.5f, 1.5f,
@@ -53,23 +54,28 @@ public class SplashActivity extends AppCompatActivity {
         rippleCircle1.startAnimation(ripple1);
         rippleCircle2.startAnimation(ripple2);
 
-        // Постепенно показываем круги
+        // Постепенно показываем круги с вибрацией
         new Handler().postDelayed(() -> {
             rippleCircle1.animate().alpha(0.3f).setDuration(500).start();
+
         }, 200);
 
         new Handler().postDelayed(() -> {
             rippleCircle2.animate().alpha(0.3f).setDuration(500).start();
         }, 400);
 
-        // Показываем текст
+        // Показываем текст с вибрацией
         new Handler().postDelayed(() -> {
             appNameTextView.animate().alpha(1f).setDuration(500).start();
+
         }, 1000);
 
-        // Переход через 3 секунды
         new Handler().postDelayed(() -> {
             startActivity(new Intent(SplashActivity.this, OnboardingActivity.class));
+
+            VibratorHelper.vibrate(this, 100, 100);
+            VibratorHelper.vibrate(this, 100, 200);
+
             finish();
         }, 1500);
     }

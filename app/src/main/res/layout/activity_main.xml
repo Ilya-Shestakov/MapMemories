@@ -23,7 +23,7 @@
             android:layout_height="match_parent"
             android:paddingHorizontal="16dp">
 
-            <ImageView
+            <ImageButton
                 android:id="@+id/profileButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"

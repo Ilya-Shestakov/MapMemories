@@ -3,23 +3,25 @@ package com.example.mapmemories;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
-import com.google.android.material.tabs.TabLayoutMediator;
+
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.osmdroid.config.Configuration;
 
 public class MainActivity extends AppCompatActivity {
 
     private ViewPager2 viewPager;
     private TextView onlineIndicator, offlineIndicator, onlineText, offlineText;
-    private ImageView profileButton, logoutButton;
+    private ImageView logoutButton;
+    private ImageButton profileButton;
     private LinearLayout onlineContainer, offlineContainer;
     private FirebaseAuth mAuth;
 
@@ -30,11 +32,16 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mAuth = FirebaseAuth.getInstance();
-        checkCurrentUser();
+        Configuration.getInstance().load(this,
+                androidx.preference.PreferenceManager.getDefaultSharedPreferences(this));
 
+        mAuth = FirebaseAuth.getInstance();
+
+        checkCurrentUser();
         initViews();
+
         setupViewPager();
+
         setupClickListeners();
         updateUserInfo();
     }
@@ -66,12 +73,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupViewPager() {
-        List<BaseFragment> fragments = new ArrayList<>();
-        fragments.add(new OnlineFragment());
-        fragments.add(new OfflineFragment());
-
-        viewPagerAdapter = new ViewPagerAdapter(this, fragments);
+        viewPagerAdapter = new ViewPagerAdapter(this);
         viewPager.setAdapter(viewPagerAdapter);
+
+        viewPager.setUserInputEnabled(false);
 
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
@@ -102,19 +107,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        // Кнопка профиля
-        profileButton.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 50);
-            Toast.makeText(this, "Профиль (в разработке)", Toast.LENGTH_SHORT).show();
+        profileButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                VibratorHelper.vibrate(MainActivity.this, 50);
+                Intent intent = new Intent(MainActivity.this, Profile.class);
+                startActivity(intent);
+                finish();
+            }
         });
 
-        // Кнопка выхода
         logoutButton.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 100);
             showLogoutConfirmation();
         });
 
-        // Клик по индикатору онлайн
         onlineContainer.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
             viewPager.setCurrentItem(0, true);
@@ -168,4 +175,7 @@ public class MainActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+
+
+
 }

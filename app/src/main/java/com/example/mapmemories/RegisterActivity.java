@@ -14,6 +14,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -157,12 +158,12 @@ public class RegisterActivity extends AppCompatActivity {
             // Регистрация в Firebase
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, task -> {
+                        // ... внутри mAuth.createUserWithEmailAndPassword ...
                         if (task.isSuccessful()) {
-                            // Регистрация успешна
                             FirebaseUser firebaseUser = mAuth.getCurrentUser();
 
                             if (firebaseUser != null) {
-                                // Обновляем displayName в Firebase Auth
+                                // 1. Обновляем имя в Auth (как было)
                                 com.google.firebase.auth.UserProfileChangeRequest profileUpdates =
                                         new com.google.firebase.auth.UserProfileChangeRequest.Builder()
                                                 .setDisplayName(username)
@@ -171,45 +172,46 @@ public class RegisterActivity extends AppCompatActivity {
                                 firebaseUser.updateProfile(profileUpdates)
                                         .addOnCompleteListener(profileTask -> {
                                             if (profileTask.isSuccessful()) {
-                                                Toast.makeText(RegisterActivity.this,
-                                                        "Регистрация успешна!",
-                                                        Toast.LENGTH_SHORT).show();
 
-                                                // Переход на главный экран
-                                                startActivity(new Intent(RegisterActivity.this, MainActivity.class));
-                                                finish();
+                                                // --- НАЧАЛО ДОБАВЛЕННОГО КОДА ---
+
+                                                // 2. Создаем структуру данных для базы
+                                                java.util.Map<String, Object> userMap = new java.util.HashMap<>();
+                                                userMap.put("username", username);
+                                                userMap.put("email", email);
+                                                userMap.put("phone", ""); // Изначально пусто
+                                                userMap.put("about", "Привет! Я новый пользователь."); // Дефолтный текст
+                                                userMap.put("profileImageUrl", "");
+                                                userMap.put("joinDate", System.currentTimeMillis());
+                                                userMap.put("memoriesCount", 0);
+                                                userMap.put("placesCount", 0);
+                                                userMap.put("likesCount", 0);
+
+                                                // 3. Сохраняем в Realtime Database
+                                                FirebaseDatabase.getInstance().getReference("users")
+                                                        .child(firebaseUser.getUid())
+                                                        .setValue(userMap)
+                                                        .addOnCompleteListener(dbTask -> {
+                                                            showLoading(false); // Скрываем загрузку
+                                                            if (dbTask.isSuccessful()) {
+                                                                Toast.makeText(RegisterActivity.this, "Регистрация успешна!", Toast.LENGTH_SHORT).show();
+                                                                startActivity(new Intent(RegisterActivity.this, MainActivity.class)); // Или Profile.class
+                                                                finish();
+                                                            } else {
+                                                                Toast.makeText(RegisterActivity.this, "Ошибка создания профиля в БД", Toast.LENGTH_SHORT).show();
+                                                            }
+                                                        });
+
+                                                // --- КОНЕЦ ДОБАВЛЕННОГО КОДА ---
+
                                             } else {
                                                 showLoading(false);
-                                                Toast.makeText(RegisterActivity.this,
-                                                        "Ошибка сохранения имени",
-                                                        Toast.LENGTH_SHORT).show();
+                                                Toast.makeText(RegisterActivity.this, "Ошибка сохранения имени", Toast.LENGTH_SHORT).show();
                                             }
                                         });
                             }
-
-                        } else {
-                            // Ошибка регистрации
-                            showLoading(false);
-                            String errorMessage = "Ошибка регистрации";
-
-                            if (task.getException() != null) {
-                                String exceptionMessage = task.getException().getMessage();
-                                if (exceptionMessage != null) {
-                                    if (exceptionMessage.contains("email address is already in use")) {
-                                        errorMessage = "Этот email уже используется";
-                                    } else if (exceptionMessage.contains("network error")) {
-                                        errorMessage = "Проверьте подключение к интернету";
-                                    } else if (exceptionMessage.contains("invalid email")) {
-                                        errorMessage = "Некорректный email";
-                                    } else if (exceptionMessage.contains("password is weak")) {
-                                        errorMessage = "Пароль слишком слабый";
-                                    }
-                                }
-                            }
-
-                            Toast.makeText(this, errorMessage,
-                                    Toast.LENGTH_LONG).show();
                         }
+// ...
                     });
         } else {
             showLoading(false);
@@ -235,6 +237,7 @@ public class RegisterActivity extends AppCompatActivity {
             backButton.setEnabled(true);
         }
     }
+
 
     @Override
     public void onBackPressed() {

@@ -1,20 +1,25 @@
 package com.example.mapmemories;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.view.LayoutInflater;
+import android.preference.PreferenceManager; // Для конфигурации OSM
+import android.view.MenuItem; // Для кнопки назад
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import androidx.annotation.NonNull;
+
+import androidx.annotation.NonNull; // Обычно не нужен для onCreate, но оставим
 import androidx.appcompat.app.AlertDialog;
-import androidx.fragment.app.Fragment;
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton; // ← ИЗМЕНИЛ
+import androidx.appcompat.app.AppCompatActivity; // Вместо Fragment
+
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
 import org.osmdroid.api.IMapController;
 import org.osmdroid.config.Configuration;
 import org.osmdroid.tileprovider.tilesource.XYTileSource;
@@ -24,6 +29,7 @@ import org.osmdroid.views.MapView;
 import org.osmdroid.views.overlay.ScaleBarOverlay;
 import org.osmdroid.views.overlay.compass.CompassOverlay;
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -32,35 +38,51 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OfflineFragment extends Fragment {
+public class Setting extends AppCompatActivity { // Наследуемся от Activity
 
     private MapView mapView;
-    private FloatingActionButton fabAddMemory;
-    private ExtendedFloatingActionButton fabDownloadMap; // ← ИЗМЕНИЛ ТИП
-    private FloatingActionButton fabMyLocation;
+    private ExtendedFloatingActionButton fabDownloadMap;
 
     // Для скачивания карт
     private ProgressDialog downloadProgress;
     private DownloadMapTask downloadTask;
-
+    private ImageButton btnClose;
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_offline_new, container, false);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-        // Находим элементы (ПРАВИЛЬНЫЕ ТИПЫ)
-        mapView = view.findViewById(R.id.mapView);
-        fabAddMemory = view.findViewById(R.id.fabAddMemory);
-        fabDownloadMap = view.findViewById(R.id.fabDownloadMap); // ExtendedFAB
-        fabMyLocation = view.findViewById(R.id.fabMyLocation);
+        // ВАЖНО: Инициализация конфигурации OSMDroid перед загрузкой layout
+        Configuration.getInstance().load(getApplicationContext(),
+                PreferenceManager.getDefaultSharedPreferences(getApplicationContext()));
+
+        setContentView(R.layout.activity_setting);
+
+        // Включаем кнопку "Назад" в Toolbar (если он есть)
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("Настройки карты");
+        }
+
+        // Находим элементы
+        mapView = findViewById(R.id.mapView);
+        btnClose = findViewById(R.id.btnClose);
+        fabDownloadMap = findViewById(R.id.fabDownloadMap);
 
         // Настройка карты
         setupMap();
 
         // Настройка кликов
         setupClickListeners();
+    }
 
-        return view;
+    // Обработка нажатия кнопки "Назад" в тулбаре
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish(); // Закрыть активити
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void setupMap() {
@@ -82,10 +104,10 @@ public class OfflineFragment extends Fragment {
         mapController.setZoom(12.0);
         mapController.setCenter(new GeoPoint(59.9343, 30.3351));
 
-        // Добавляем компас
+        // Добавляем компас. Context здесь 'this'
         CompassOverlay compassOverlay = new CompassOverlay(
-                getContext(),
-                new InternalCompassOrientationProvider(getContext()),
+                this,
+                new InternalCompassOrientationProvider(this),
                 mapView
         );
         compassOverlay.enableCompass();
@@ -97,68 +119,57 @@ public class OfflineFragment extends Fragment {
     }
 
     private void setupClickListeners() {
-        // Кнопка добавления воспоминания
-        fabAddMemory.setOnClickListener(v -> {
-            GeoPoint center = (GeoPoint) mapView.getMapCenter();
-            showAddMemoryDialog(center.getLatitude(), center.getLongitude());
-        });
-
-        // Кнопка скачать карту (ExtendedFAB)
         fabDownloadMap.setOnClickListener(v -> {
             showDownloadMapDialog();
         });
-
-        // Кнопка "Моё местоположение"
-        fabMyLocation.setOnClickListener(v -> {
-            mapView.getController().animateTo(new GeoPoint(59.9343, 30.3351));
-            mapView.getController().setZoom(15.0);
+        btnClose.setOnClickListener(v -> {
+            startActivity(new Intent(this, MainActivity.class));
+            finish();
         });
+
     }
 
     private void showAddMemoryDialog(double lat, double lon) {
         String message = String.format("Добавить воспоминание:\nШирота: %.6f\nДолгота: %.6f",
                 lat, lon);
-
-        Toast.makeText(getContext(), message, Toast.LENGTH_SHORT).show();
+        // getContext() заменяем на SettingActivity.this
+        Toast.makeText(Setting.this, message, Toast.LENGTH_SHORT).show();
     }
 
     private void showDownloadMapDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        // getContext() -> this
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Скачать карту региона");
 
-        // Создаем кастомный layout для диалога
-        LinearLayout layout = new LinearLayout(getContext());
+        LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
 
-        // Поле для названия региона
-        TextView nameLabel = new TextView(getContext());
+        TextView nameLabel = new TextView(this);
         nameLabel.setText("Название региона:");
         layout.addView(nameLabel);
 
-        EditText nameInput = new EditText(getContext());
+        EditText nameInput = new EditText(this);
         nameInput.setHint("Например: Центр СПб");
         layout.addView(nameInput);
 
-        // Выбор zoom уровней
-        TextView zoomLabel = new TextView(getContext());
+        TextView zoomLabel = new TextView(this);
         zoomLabel.setText("\nУровни детализации (zoom):");
         layout.addView(zoomLabel);
 
-        EditText minZoomInput = new EditText(getContext());
+        EditText minZoomInput = new EditText(this);
         minZoomInput.setHint("Минимальный zoom (например: 10)");
         layout.addView(minZoomInput);
 
-        EditText maxZoomInput = new EditText(getContext());
+        EditText maxZoomInput = new EditText(this);
         maxZoomInput.setHint("Максимальный zoom (например: 15)");
         layout.addView(maxZoomInput);
 
-        // Радиус скачивания
-        TextView radiusLabel = new TextView(getContext());
+        TextView radiusLabel = new TextView(this);
         radiusLabel.setText("\nРадиус скачивания (км):");
         layout.addView(radiusLabel);
 
-        EditText radiusInput = new EditText(getContext());
+        EditText radiusInput = new EditText(this);
         radiusInput.setHint("Например: 5");
         layout.addView(radiusInput);
 
@@ -172,7 +183,7 @@ public class OfflineFragment extends Fragment {
 
             if (regionName.isEmpty() || minZoomStr.isEmpty() ||
                     maxZoomStr.isEmpty() || radiusStr.isEmpty()) {
-                Toast.makeText(getContext(), "Заполните все поля", Toast.LENGTH_SHORT).show();
+                Toast.makeText(Setting.this, "Заполните все поля", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -182,12 +193,10 @@ public class OfflineFragment extends Fragment {
                 double radiusKm = Double.parseDouble(radiusStr);
 
                 GeoPoint center = (GeoPoint) mapView.getMapCenter();
-
-                // Начинаем скачивание
                 downloadMapRegion(regionName, center, minZoom, maxZoom, radiusKm);
 
             } catch (NumberFormatException e) {
-                Toast.makeText(getContext(), "Некорректные числа", Toast.LENGTH_SHORT).show();
+                Toast.makeText(Setting.this, "Некорректные числа", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -198,8 +207,7 @@ public class OfflineFragment extends Fragment {
     private void downloadMapRegion(String regionName, GeoPoint center,
                                    int minZoom, int maxZoom, double radiusKm) {
 
-        // Показываем прогресс
-        downloadProgress = new ProgressDialog(getContext());
+        downloadProgress = new ProgressDialog(this);
         downloadProgress.setTitle("Скачивание карты");
         downloadProgress.setMessage("Подготовка...");
         downloadProgress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
@@ -207,12 +215,11 @@ public class OfflineFragment extends Fragment {
         downloadProgress.setCancelable(false);
         downloadProgress.show();
 
-        // Запускаем фоновую задачу
         downloadTask = new DownloadMapTask(regionName, center, minZoom, maxZoom, radiusKm);
         downloadTask.execute();
     }
 
-    // Фоновая задача для скачивания карт
+    // Внутренний класс AsyncTask остается почти без изменений
     private class DownloadMapTask extends AsyncTask<Void, Integer, String> {
 
         private String regionName;
@@ -233,19 +240,17 @@ public class OfflineFragment extends Fragment {
         @Override
         protected String doInBackground(Void... voids) {
             try {
-                // Рассчитываем bounding box по радиусу
                 BoundingBox bbox = calculateBoundingBox(center, radiusKm);
 
-                // Создаём директорию для тайлов
+                // getContext().getExternalFilesDir -> getExternalFilesDir (метод Activity)
                 File tilesDir = new File(
-                        getContext().getExternalFilesDir(null),
+                        getExternalFilesDir(null),
                         "osmdroid/tiles/" + regionName.replace(" ", "_")
                 );
                 if (!tilesDir.exists()) {
                     tilesDir.mkdirs();
                 }
 
-                // Скачиваем тайлы для каждого zoom уровня
                 int totalTiles = calculateTotalTiles(bbox, minZoom, maxZoom);
                 int downloaded = 0;
 
@@ -259,17 +264,14 @@ public class OfflineFragment extends Fragment {
                             return "Отменено пользователем";
                         }
 
-                        // URL тайла OpenStreetMap
                         String url = String.format(
                                 "https://a.tile.openstreetmap.org/%d/%d/%d.png",
                                 zoom, tile.x, tile.y
                         );
 
-                        // Скачиваем тайл
                         byte[] tileData = downloadTile(url);
 
                         if (tileData != null) {
-                            // Сохраняем в файл
                             File zoomDir = new File(tilesDir, String.valueOf(zoom));
                             if (!zoomDir.exists()) {
                                 zoomDir.mkdirs();
@@ -289,15 +291,10 @@ public class OfflineFragment extends Fragment {
 
                         downloaded++;
                         publishProgress(downloaded, totalTiles);
-
-                        // Небольшая пауза чтобы не грузить сервер
                         Thread.sleep(50);
                     }
                 }
-
-                // Сохраняем метаданные региона
                 saveRegionMetadata(regionName, center, minZoom, maxZoom, radiusKm, totalTiles, tilesDir.getAbsolutePath());
-
                 return "Успешно скачано " + totalTiles + " тайлов";
 
             } catch (Exception e) {
@@ -310,7 +307,6 @@ public class OfflineFragment extends Fragment {
             if (downloadProgress != null && values.length >= 2) {
                 int current = values[0];
                 int total = values[1];
-
                 downloadProgress.setProgress(current);
                 downloadProgress.setMax(total);
                 downloadProgress.setMessage(
@@ -326,17 +322,14 @@ public class OfflineFragment extends Fragment {
                 downloadProgress = null;
             }
 
-            Toast.makeText(getContext(), result, Toast.LENGTH_LONG).show();
-
-            // После скачивания переключаемся на оффлайн-режим
+            // getContext() -> SettingActivity.this
+            Toast.makeText(Setting.this, result, Toast.LENGTH_LONG).show();
             enableOfflineMode();
         }
     }
 
     private BoundingBox calculateBoundingBox(GeoPoint center, double radiusKm) {
-        // 1 градус широты ≈ 111 км
         double latDelta = radiusKm / 111.0;
-        // 1 градус долготы зависит от широты
         double lonDelta = radiusKm / (111.0 * Math.cos(Math.toRadians(center.getLatitude())));
 
         double minLat = center.getLatitude() - latDelta;
@@ -349,24 +342,19 @@ public class OfflineFragment extends Fragment {
 
     private int calculateTotalTiles(BoundingBox bbox, int minZoom, int maxZoom) {
         int total = 0;
-
         for (int zoom = minZoom; zoom <= maxZoom; zoom++) {
-            // Координаты тайлов для bounding box
             int[] tile1 = getTileNumber(bbox.getLatNorth(), bbox.getLonWest(), zoom);
             int[] tile2 = getTileNumber(bbox.getLatSouth(), bbox.getLonEast(), zoom);
 
             int tilesX = Math.abs(tile2[0] - tile1[0]) + 1;
             int tilesY = Math.abs(tile2[1] - tile1[1]) + 1;
-
             total += tilesX * tilesY;
         }
-
         return total;
     }
 
     private List<TileCoordinates> getTilesForZoom(BoundingBox bbox, int zoom) {
         List<TileCoordinates> tiles = new ArrayList<>();
-
         int[] tile1 = getTileNumber(bbox.getLatNorth(), bbox.getLonWest(), zoom);
         int[] tile2 = getTileNumber(bbox.getLatSouth(), bbox.getLonEast(), zoom);
 
@@ -380,7 +368,6 @@ public class OfflineFragment extends Fragment {
                 tiles.add(new TileCoordinates(x, y));
             }
         }
-
         return tiles;
     }
 
@@ -389,7 +376,6 @@ public class OfflineFragment extends Fragment {
         int ytile = (int) Math.floor(
                 (1 - Math.log(Math.tan(Math.toRadians(lat)) + 1 / Math.cos(Math.toRadians(lat))) / Math.PI) / 2 * (1 << zoom)
         );
-
         return new int[]{xtile, ytile};
     }
 
@@ -410,21 +396,18 @@ public class OfflineFragment extends Fragment {
                 while ((bytesRead = inputStream.read(buffer)) != -1) {
                     output.write(buffer, 0, bytesRead);
                 }
-
                 inputStream.close();
                 return output.toByteArray();
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return null;
     }
 
     private void saveRegionMetadata(String name, GeoPoint center,
                                     int minZoom, int maxZoom,
                                     double radiusKm, int tileCount, String path) {
-        // Сохраняем в SharedPreferences или SQLite
         android.util.Log.d("MapDownload",
                 String.format("Регион: %s, Центр: %.4f,%.4f, Zoom: %d-%d, Тайлов: %d, Путь: %s",
                         name, center.getLatitude(), center.getLongitude(),
@@ -432,13 +415,11 @@ public class OfflineFragment extends Fragment {
     }
 
     private void enableOfflineMode() {
-        // Переключаем карту на использование локального кеша
-        Toast.makeText(getContext(),
-                "Карта готова к оффлайн использованию", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Карта готова к оффлайн использованию", Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public void onResume() {
+    protected void onResume() { // public -> protected в Activity
         super.onResume();
         if (mapView != null) {
             mapView.onResume();
@@ -446,25 +427,28 @@ public class OfflineFragment extends Fragment {
     }
 
     @Override
-    public void onPause() {
+    protected void onPause() { // public -> protected в Activity
         super.onPause();
         if (mapView != null) {
             mapView.onPause();
         }
-
-        // Отменяем скачивание если оно идет
         if (downloadTask != null && !downloadTask.isCancelled()) {
             downloadTask.cancel(true);
         }
     }
 
-    // Вспомогательный класс для координат тайла
     private static class TileCoordinates {
         int x, y;
-
         TileCoordinates(int x, int y) {
             this.x = x;
             this.y = y;
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
     }
 }

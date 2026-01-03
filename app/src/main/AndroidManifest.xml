@@ -25,9 +25,14 @@
         android:theme="@style/Theme.MapMemories"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".Profile"
+            android:name=".Setting"
             android:exported="false" />
-        <!-- Конфиг OSMDroid -->
+        <activity
+            android:name=".CreatePostActivity"
+            android:exported="false" />
+        <activity
+            android:name=".Profile"
+            android:exported="false" /> <!-- Конфиг OSMDroid -->
         <meta-data
             android:name="osmdroid.basePath"
             android:value="/osmdroid" />

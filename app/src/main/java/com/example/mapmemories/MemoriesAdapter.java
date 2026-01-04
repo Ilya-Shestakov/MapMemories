@@ -12,6 +12,9 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.resource.bitmap.CenterCrop;
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
+import com.bumptech.glide.request.RequestOptions;
 
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +38,7 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        // Убедись, что layout item_memory_privat_card существует и в нем есть нужные ID
         View view = LayoutInflater.from(context).inflate(R.layout.item_memory_privat_card, parent, false);
         return new ViewHolder(view);
     }
@@ -49,9 +53,11 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
         if (post.getMediaUrl() != null && !post.getMediaUrl().isEmpty()) {
             Glide.with(context)
                     .load(post.getMediaUrl())
+                    .apply(new RequestOptions().transform(new CenterCrop(), new RoundedCorners(16)))
                     .placeholder(R.drawable.ic_profile_placeholder)
-                    .centerCrop()
                     .into(holder.image);
+        } else {
+            holder.image.setImageResource(R.drawable.ic_profile_placeholder);
         }
 
         // Иконка видео
@@ -61,19 +67,21 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
             holder.videoIcon.setVisibility(View.GONE);
         }
 
+        // Логика приватности (Теперь работает корректно благодаря Post.java)
         if (post.isPublic()) {
-            holder.privacyIcon.setImageResource(R.drawable.ic_public);
+            holder.privacyIcon.setImageResource(R.drawable.ic_public); // Иконка открытого замка/глобуса
         } else {
-            holder.privacyIcon.setImageResource(R.drawable.ic_lock);
+            holder.privacyIcon.setImageResource(R.drawable.ic_lock);   // Иконка закрытого замка
         }
 
-        // 2. Логика Координат
+        // Координаты
         String coords = String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude());
         holder.coordinatesText.setText(coords);
 
-        // Клик по координатам (заглушка)
+        // Клик по координатам
         holder.coordinatesLayout.setOnClickListener(v -> {
-            Toast.makeText(context, "Открыть карту: " + coords, Toast.LENGTH_SHORT).show();
+            // Здесь можно добавить открытие карты
+            Toast.makeText(context, "Координаты: " + coords, Toast.LENGTH_SHORT).show();
         });
 
         // Клик по всей карточке

@@ -4,54 +4,59 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/primary_dark">
+    android:background="@color/primary">
 
-    <!-- Круги для эффекта ряби -->
-    <ImageView
-        android:id="@+id/rippleCircle1"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:src="@drawable/ripple_circle"
-        android:alpha="0"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <ImageView
-        android:id="@+id/rippleCircle2"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:src="@drawable/ripple_circle"
-        android:alpha="0"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <!-- Основной логотип -->
-    <ImageView
-        android:id="@+id/logoImageView"
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:src="@drawable/ic_logo"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
+    <!-- Текст названия (сразу под логотипом) -->
     <TextView
         android:id="@+id/appNameTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="MapMemories"
-        android:textColor="@color/white"
-        android:textSize="28sp"
+        android:textColor="@color/text_primary"
+        android:textSize="32sp"
         android:textStyle="bold"
         android:alpha="0"
+        android:layout_marginTop="24dp"
+        app:layout_constraintTop_toBottomOf="@id/logoImageView"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Круги для эффекта ударной волны (Shockwave) -->
+    <!-- Они должны быть по центру логотипа -->
+    <ImageView
+        android:id="@+id/rippleCircle1"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/circle_background"
+        android:alpha="0"
+        app:tint="@color/accent"
+        app:layout_constraintBottom_toBottomOf="@id/logoImageView"
+        app:layout_constraintEnd_toEndOf="@id/logoImageView"
+        app:layout_constraintStart_toStartOf="@id/logoImageView"
+        app:layout_constraintTop_toTopOf="@id/logoImageView" />
+
+    <ImageView
+        android:id="@+id/rippleCircle2"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/circle_background"
+        android:alpha="0"
+        app:tint="@color/online_indicator"
+        app:layout_constraintBottom_toBottomOf="@id/logoImageView"
+        app:layout_constraintEnd_toEndOf="@id/logoImageView"
+        app:layout_constraintStart_toStartOf="@id/logoImageView"
+        app:layout_constraintTop_toTopOf="@id/logoImageView" />
+
+    <!-- Логотип (поверх кругов) -->
+    <ImageView
+        android:id="@+id/logoImageView"
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@drawable/logo"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/logoImageView"
-        android:layout_marginTop="16dp" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.45" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

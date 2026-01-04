@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary"
+    android:id="@+id/rootLayout"
     tools:context=".CreatePostActivity">
 
     <androidx.appcompat.widget.Toolbar
@@ -179,43 +180,60 @@
                     app:tint="@color/text_secondary" />
             </LinearLayout>
 
-            <LinearLayout
+            <androidx.cardview.widget.CardView
+                android:id="@+id/btnPrivacyToggle"
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                android:minHeight="40dp"
-                android:orientation="horizontal"
-                android:layout_marginTop="20dp"
-                android:layout_marginBottom="10dp"
-                android:gravity="center"
-                >
+                android:layout_height="60dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="24dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="30dp"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@color/surface_dark">
 
-                <TextView
-                    android:paddingEnd="15dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Локально"
-                    android:textSize="20dp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_secondary"
-                    />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="20dp">
 
-                <Switch
-                    android:id="@+id/switchBar"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    />
+                    <ImageView
+                        android:id="@+id/ivPrivacyIcon"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_lock"
+                        app:tint="@color/text_secondary" />
 
-                <TextView
-                    android:paddingStart="15dp"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Публично"
-                    android:textSize="20dp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_secondary"
-                    />
+                    <TextView
+                        android:id="@+id/tvPrivacyText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:text="Приватно (только я)"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
 
-            </LinearLayout>
+                    <!-- Стрелочка или индикатор смены -->
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"/>
+
+                    <ImageView
+                        android:id="@+id/ivPrivacyStateIndicator"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_refresh"
+                        android:alpha="0.5"
+                        app:tint="@color/text_secondary"/>
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSavePost"

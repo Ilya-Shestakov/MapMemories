@@ -7,6 +7,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
+import android.transition.AutoTransition;
+import android.transition.TransitionManager;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
@@ -19,12 +21,15 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager; // Важный импорт
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -36,7 +41,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList; // Важный импорт
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -56,6 +61,9 @@ public class Profile extends AppCompatActivity {
     private Cloudinary cloudinary;
 
     // UI элементы
+    private ConstraintLayout rootLayout; // Корневой контейнер
+    private MaterialCardView infoCard, memoriesCard, headerCard;
+
     private ImageView profileImage;
     private TextView usernameText, emailText, phoneText, aboutText, joinDateText;
     private TextView memoriesCount, placesCount, likesCount;
@@ -71,6 +79,9 @@ public class Profile extends AppCompatActivity {
     private MemoriesAdapter memoriesAdapter;
     private List<Post> myPostList;
 
+    // Состояние развернутости блока воспоминаний
+    private boolean isMemoriesExpanded = false;
+
     // Лаунчер для выбора фото из галереи
     private ActivityResultLauncher<Intent> imagePickerLauncher;
 
@@ -79,26 +90,19 @@ public class Profile extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
 
-        // 1. Инициализация Firebase
         mAuth = FirebaseAuth.getInstance();
         currentUser = mAuth.getCurrentUser();
 
         if (currentUser == null) {
-            return; // Или перенаправить на экран входа
+            return;
         }
 
         userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid());
 
-        // 2. Инициализация Cloudinary
         initCloudinary();
-
-        // 3. Инициализация списка (ИСПРАВЛЕНИЕ ВЫЛЕТА)
         myPostList = new ArrayList<>();
-
-        // 4. Настройка лаунчера
         setupImagePicker();
 
-        // UI
         initViews();
         setupClickListeners();
 
@@ -107,12 +111,19 @@ public class Profile extends AppCompatActivity {
     }
 
     private void initCloudinary() {
+
+
+
+        /// ***Cloudinary***
+
+
         Map<String, String> config = new HashMap<>();
         config.put("cloud_name", "dvbjhturp");
         config.put("api_key", "149561293632228");
         config.put("api_secret", "U8ZmnwKrLwBxmLbBPMM5CxvEYdU");
         cloudinary = new Cloudinary(config);
     }
+
 
     private void setupImagePicker() {
         imagePickerLauncher = registerForActivityResult(
@@ -129,6 +140,12 @@ public class Profile extends AppCompatActivity {
     }
 
     private void initViews() {
+        // Находим основные контейнеры для анимации
+        rootLayout = findViewById(R.id.rootLayout);
+        headerCard = findViewById(R.id.headerCard);
+        infoCard = findViewById(R.id.infoCard);
+        memoriesCard = findViewById(R.id.memoriesCard);
+
         buttonBack = findViewById(R.id.buttonBack);
         profileImage = findViewById(R.id.profileImage);
         usernameText = findViewById(R.id.usernameText);
@@ -154,17 +171,57 @@ public class Profile extends AppCompatActivity {
     private void setupClickListeners() {
         buttonBack.setOnClickListener(v -> Close());
 
-        editPhoneButton.setOnClickListener(v -> showEditDialog("phone", "Изменить телефон", phoneText.getText().toString(), InputType.TYPE_CLASS_PHONE));
-        editAboutButton.setOnClickListener(v -> showEditDialog("about", "О себе", aboutText.getText().toString(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE));
-        editProfileFab.setOnClickListener(v -> showEditDialog("username", "Изменить имя", usernameText.getText().toString(), InputType.TYPE_CLASS_TEXT));
+        editPhoneButton.setOnClickListener(v ->
+                DialogHelper.showInput(this, "Изменить телефон", phoneText.getText().toString(),
+                        InputType.TYPE_CLASS_PHONE, R.drawable.ic_phone,
+                        newValue -> updateUserField("phone", newValue)));
+
+        editAboutButton.setOnClickListener(v ->
+                DialogHelper.showInput(this, "О себе", aboutText.getText().toString(),
+                        InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, R.drawable.ic_info,
+                        newValue -> updateUserField("about", newValue)));
+
+        editProfileFab.setOnClickListener(v ->
+                DialogHelper.showInput(this, "Изменить имя", usernameText.getText().toString(),
+                        InputType.TYPE_CLASS_TEXT, R.drawable.ic_edit,
+                        newValue -> updateUserField("username", newValue)));
 
         profileImage.setOnClickListener(v -> changeProfileImage());
 
-        viewAllMemories.setOnClickListener(v -> {
-            Intent intent = new Intent(Profile.this, AllMemoriesActivity.class);
-            startActivity(intent);
-        });
 
+        viewAllMemories.setOnClickListener(v -> toggleMemoriesState());
+    }
+
+    private void toggleMemoriesState() {
+        isMemoriesExpanded = !isMemoriesExpanded;
+
+        ConstraintSet constraintSet = new ConstraintSet();
+        constraintSet.clone(rootLayout);
+
+        AutoTransition transition = new AutoTransition();
+        transition.setDuration(500);
+        TransitionManager.beginDelayedTransition(rootLayout, transition);
+
+        if (isMemoriesExpanded) {
+
+            infoCard.setVisibility(View.GONE);
+            editProfileFab.hide();
+
+            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.headerCard, ConstraintSet.BOTTOM);
+
+            viewAllMemories.animate().rotation(180f).setDuration(400).start();
+
+        } else {
+
+            infoCard.setVisibility(View.VISIBLE);
+            editProfileFab.show();
+
+            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.infoCard, ConstraintSet.BOTTOM);
+
+            viewAllMemories.animate().rotation(0f).setDuration(400).start();
+        }
+
+        constraintSet.applyTo(rootLayout);
     }
 
     private void changeProfileImage() {
@@ -174,21 +231,52 @@ public class Profile extends AppCompatActivity {
     }
 
     private void uploadImageToCloudinary(Uri imageUri) {
+        // Проверка перед показом диалога
+        if (isFinishing() || isDestroyed()) return;
+
         progressDialog.setMessage("Загрузка фото...");
         progressDialog.show();
 
         Executors.newSingleThreadExecutor().execute(() -> {
+            InputStream inputStream = null;
             try {
-                InputStream inputStream = getContentResolver().openInputStream(imageUri);
-                Map uploadResult = cloudinary.uploader().upload(inputStream, ObjectUtils.emptyMap());
+                // Открываем поток
+                inputStream = getContentResolver().openInputStream(imageUri);
+
+                // Настройки загрузки Cloudinary (сжатие на сервере для экономии трафика)
+                Map<String, Object> options = new HashMap<>();
+                options.put("resource_type", "image");
+                // Можно добавить трансформацию, чтобы хранить сразу квадратные аватарки 500x500
+                // options.put("transformation", new com.cloudinary.Transformation().width(500).height(500).crop("fill"));
+
+                Map uploadResult = cloudinary.uploader().upload(inputStream, options);
                 String imageUrl = (String) uploadResult.get("secure_url");
-                runOnUiThread(() -> updateProfileImageUrlInFirebase(imageUrl));
+
+                // Обновляем UI в главном потоке
+                runOnUiThread(() -> {
+                    // Еще одна проверка, жива ли активити
+                    if (!isFinishing() && !isDestroyed()) {
+                        updateProfileImageUrlInFirebase(imageUrl);
+                    }
+                });
+
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    if (!isFinishing() && !isDestroyed()) {
+                        progressDialog.dismiss();
+                        Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    }
                 });
+            } finally {
+                // ОБЯЗАТЕЛЬНО закрываем поток, чтобы избежать утечек
+                if (inputStream != null) {
+                    try {
+                        inputStream.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         });
     }
@@ -196,12 +284,17 @@ public class Profile extends AppCompatActivity {
     private void updateProfileImageUrlInFirebase(String imageUrl) {
         userRef.child("profileImageUrl").setValue(imageUrl)
                 .addOnSuccessListener(aVoid -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(Profile.this, "Фото обновлено!", Toast.LENGTH_SHORT).show();
+                    // Проверяем состояние Activity перед закрытием диалога
+                    if (!isFinishing() && !isDestroyed() && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                        Toast.makeText(Profile.this, "Фото обновлено!", Toast.LENGTH_SHORT).show();
+                    }
                 })
                 .addOnFailureListener(e -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    if (!isFinishing() && !isDestroyed() && progressDialog.isShowing()) {
+                        progressDialog.dismiss();
+                        Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
                 });
     }
 
@@ -209,27 +302,41 @@ public class Profile extends AppCompatActivity {
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (isDestroyed() || isFinishing()) return; // Защита от краша Glide
+                // --- ГЛАВНАЯ ЗАЩИТА ОТ ВЫЛЕТА ---
+                // Если активити уже закрывается или уничтожена, прерываем выполнение.
+                // Иначе Glide попытается отрисовать картинку на "мертвом" экране и будет краш.
+                if (isDestroyed() || isFinishing()) {
+                    return;
+                }
 
                 if (snapshot.exists()) {
-                    emailText.setText(currentUser.getEmail());
+                    // 1. Устанавливаем Email (он берется из авторизации, а не из базы)
+                    if (currentUser.getEmail() != null) {
+                        emailText.setText(currentUser.getEmail());
+                    }
+
+                    // 2. Достаем данные из снимка базы данных
                     String username = snapshot.child("username").getValue(String.class);
                     String phone = snapshot.child("phone").getValue(String.class);
                     String about = snapshot.child("about").getValue(String.class);
                     String profileImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
+
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
                     Long memories = snapshot.child("memoriesCount").getValue(Long.class);
                     Long places = snapshot.child("placesCount").getValue(Long.class);
                     Long likes = snapshot.child("likesCount").getValue(Long.class);
 
+                    // 3. Устанавливаем тексты (с проверкой на пустоту)
                     usernameText.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
                     phoneText.setText(TextUtils.isEmpty(phone) ? "Не указан" : phone);
                     aboutText.setText(TextUtils.isEmpty(about) ? "Расскажите о себе..." : about);
 
+                    // 4. Устанавливаем счетчики (с защитой от null)
                     memoriesCount.setText(String.valueOf(memories != null ? memories : 0));
                     placesCount.setText(String.valueOf(places != null ? places : 0));
                     likesCount.setText(String.valueOf(likes != null ? likes : 0));
 
+                    // 5. Форматируем дату регистрации
                     if (joinDate != null) {
                         SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", new Locale("ru"));
                         joinDateText.setText(sdf.format(new Date(joinDate)));
@@ -237,21 +344,31 @@ public class Profile extends AppCompatActivity {
                         joinDateText.setText("Недавно");
                     }
 
+                    // 6. Загружаем аватарку через Glide
                     if (!TextUtils.isEmpty(profileImageUrl)) {
                         Glide.with(Profile.this)
                                 .load(profileImageUrl)
-                                .placeholder(R.drawable.ic_profile_placeholder)
-                                .circleCrop()
+                                .placeholder(R.drawable.ic_profile_placeholder) // Картинка пока грузится
+                                .error(R.drawable.ic_profile_placeholder)       // Картинка если ошибка
+                                .circleCrop()                                   // Круглая обрезка
                                 .into(profileImage);
+                    } else {
+                        // Если ссылки нет совсем, ставим заглушку
+                        profileImage.setImageResource(R.drawable.ic_profile_placeholder);
                     }
+
                 } else {
+                    // Если записи пользователя в базе нет, создаем её
                     createUserProfile();
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(Profile.this, "Ошибка загрузки: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                // Тут тоже проверка, чтобы Toast не крашнул приложение при закрытии
+                if (!isDestroyed() && !isFinishing()) {
+                    Toast.makeText(Profile.this, "Ошибка загрузки данных: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -273,11 +390,9 @@ public class Profile extends AppCompatActivity {
     private void loadMemories() {
         memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Инициализируем адаптер с обработчиком клика
         memoriesAdapter = new MemoriesAdapter(this, myPostList, new MemoriesAdapter.OnPostClickListener() {
             @Override
             public void onPostClick(Post post) {
-                // Переход на экран деталей при клике на элемент списка в профиле
                 Intent intent = new Intent(Profile.this, PostDetailsActivity.class);
                 intent.putExtra("postId", post.getId());
                 startActivity(intent);
@@ -290,16 +405,11 @@ public class Profile extends AppCompatActivity {
 
         DatabaseReference postsRef = FirebaseDatabase.getInstance().getReference("posts");
 
-        // Ограничиваем загрузку последними 3-5 постами для профиля, если хочешь,
-        // или грузим все, но показываем в маленьком окне.
-        // В данном коде грузятся все посты юзера.
         postsRef.orderByChild("userId").equalTo(currentUser.getUid())
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        // Проверка на null, чтобы избежать краша при быстром выходе
                         if (myPostList == null) myPostList = new ArrayList<>();
-
                         myPostList.clear();
 
                         if (snapshot.exists()) {
@@ -309,7 +419,7 @@ public class Profile extends AppCompatActivity {
                                     myPostList.add(post);
                                 }
                             }
-                            Collections.reverse(myPostList); // Сначала новые
+                            Collections.reverse(myPostList);
                         }
 
                         memoriesAdapter.notifyDataSetChanged();
@@ -373,8 +483,12 @@ public class Profile extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        super.onBackPressed();
-        Close();
+        if (isMemoriesExpanded) {
+            toggleMemoriesState();
+        } else {
+            super.onBackPressed();
+            Close();
+        }
     }
 
     private void Close() {

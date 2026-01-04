@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     android:background="@color/primary"
     android:fitsSystemWindows="true"
+    android:id="@+id/rootLayout"
     tools:context=".Profile">
 
     <!-- ... HEADER CARD (без изменений) ... -->
@@ -358,7 +359,7 @@
 
                     android:layout_width="100dp"
                     android:layout_height="match_parent"
-                    android:src="@drawable/ic_arrow_right"
+                    android:src="@drawable/ic_arrow_drop"
                     android:background="@color/secondary"
 
                     />

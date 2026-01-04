@@ -40,6 +40,7 @@
             android:value="MapMemoriesApp/1.0" />
 
         <activity android:name=".PostDetailsActivity" />
+        <activity android:name=".ViewPostDetailsActivity" />
         <activity
             android:name=".SplashActivity"
             android:exported="true">

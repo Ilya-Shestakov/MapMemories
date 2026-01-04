@@ -3,11 +3,8 @@ package com.example.mapmemories;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView; // Важно: используем ImageView
-import android.widget.TextView;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
@@ -29,6 +26,7 @@ import com.google.firebase.database.ValueEventListener;
 import org.osmdroid.config.Configuration;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -36,11 +34,16 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView memoriesRecyclerView;
     private FloatingActionButton fabAdd, fabMap;
     private ImageView logoutButton;
-    private ImageView profileButton; // Теперь это ImageView
+    private ImageView profileButton;
 
     // Firebase
     private FirebaseAuth mAuth;
     private DatabaseReference userRef;
+    private DatabaseReference postsRef;
+
+    // Адаптер и список
+    private PublicMemoriesAdapter publicAdapter;
+    private List<Post> publicPostList;
 
     // Для двойного нажатия "Назад"
     private long backPressedTime;
@@ -55,6 +58,7 @@ public class MainActivity extends AppCompatActivity {
                 androidx.preference.PreferenceManager.getDefaultSharedPreferences(this));
 
         mAuth = FirebaseAuth.getInstance();
+        postsRef = FirebaseDatabase.getInstance().getReference("posts"); // Инициализируем ссылку на посты
 
         checkCurrentUser();
         initViews();
@@ -64,8 +68,11 @@ public class MainActivity extends AppCompatActivity {
         // Настройка выхода по двойному клику
         setupDoubleBackExit();
 
-        // Загрузка фото
+        // Загрузка фото (твоя существующая логика)
         loadUserAvatar();
+
+        // Загрузка публичных постов (НОВОЕ)
+        loadPublicPosts();
     }
 
     private void checkCurrentUser() {
@@ -86,18 +93,15 @@ public class MainActivity extends AppCompatActivity {
         logoutButton = findViewById(R.id.logoutButton);
     }
 
-    // --- ЛОГИКА ВЫХОДА ПО ДВОЙНОМУ НАЖАТИЮ ---
     private void setupDoubleBackExit() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 if (backPressedTime + 2000 > System.currentTimeMillis()) {
-                    // Если нажали второй раз быстрее чем за 2 секунды
                     if (backToast != null) backToast.cancel();
-                    finish(); // Закрываем активити (выходим из приложения)
+                    finish();
                     finishAffinity();
                 } else {
-                    // Первое нажатие
                     backToast = Toast.makeText(getBaseContext(), "Нажмите еще раз, чтобы выйти", Toast.LENGTH_SHORT);
                     backToast.show();
                 }
@@ -106,63 +110,114 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    // --- ЗАГРУЗКА АВАТАРКИ ---
     private void loadUserAvatar() {
         if (userRef == null) return;
-
         userRef.child("profileImageUrl").addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 String profileImageUrl = snapshot.getValue(String.class);
-
                 if (!TextUtils.isEmpty(profileImageUrl)) {
-                    // Теперь код очень простой, так как XML исправлен
                     Glide.with(MainActivity.this)
                             .load(profileImageUrl)
-                            .placeholder(R.drawable.ic_profile_placeholder) // Показываем пока грузится
-                            .circleCrop() // Обрезаем в круг
+                            .placeholder(R.drawable.ic_profile_placeholder)
+                            .circleCrop()
                             .into(profileButton);
                 }
             }
-
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                // Игнорируем ошибки
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
     private void setupRecyclerView() {
         memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        List<String> dummyList = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            dummyList.add("Item " + i);
-        }
-        SimpleAdapter adapter = new SimpleAdapter(dummyList);
-        memoriesRecyclerView.setAdapter(adapter);
+
+        publicPostList = new ArrayList<>();
+
+        publicAdapter = new PublicMemoriesAdapter(this, publicPostList, post -> {
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+
+            if (currentUser != null && post.getUserId().equals(currentUser.getUid())) {
+                Intent intent = new Intent(MainActivity.this, PostDetailsActivity.class);
+                intent.putExtra("postId", post.getId());
+                intent.putExtra("isEditMode", true);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(MainActivity.this, ViewPostDetailsActivity.class);
+                intent.putExtra("postId", post.getId());
+                startActivity(intent);
+            }
+        });
+
+        memoriesRecyclerView.setAdapter(publicAdapter);
+    }
+
+    // Метод загрузки постов
+    private void loadPublicPosts() {
+        postsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                publicPostList.clear();
+
+                if (snapshot.exists()) {
+                    for (DataSnapshot postSnap : snapshot.getChildren()) {
+                        Post post = postSnap.getValue(Post.class);
+
+                        // ФИЛЬТРАЦИЯ: Добавляем только если пост публичный
+                        if (post != null && post.isPublic()) {
+                            publicPostList.add(post);
+                        }
+                    }
+                    // Сортируем: сначала новые
+                    Collections.reverse(publicPostList);
+                }
+
+                publicAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(MainActivity.this, "Ошибка загрузки ленты", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupClickListeners() {
         profileButton.setOnClickListener(view -> {
             VibratorHelper.vibrate(MainActivity.this, 50);
             startActivity(new Intent(this, Profile.class));
-            finish();
         });
 
         logoutButton.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 100);
-            showLogoutConfirmation();
+            DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
+
+                mAuth.signOut();
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            });
         });
 
         fabAdd.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            Toast.makeText(this, "Открыть создание поста", Toast.LENGTH_SHORT).show();
-            startActivity(new Intent(this, CreatePostActivity.class));
+
+            fabAdd.animate()
+                    .rotationBy(360f)
+                    .setDuration(2000)
+                    .start();
+
+            int revealX = (int) (v.getX() + v.getWidth() / 2);
+            int revealY = (int) (v.getY() + v.getHeight() / 2);
+
+            Intent intent = new Intent(this, CreatePostActivity.class);
+            intent.putExtra("revealX", revealX);
+            intent.putExtra("revealY", revealY);
+            startActivity(intent);
+
+            overridePendingTransition(0, 0);
         });
 
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            Toast.makeText(this, "Открыть карту", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, Setting.class));
         });
     }
@@ -180,33 +235,5 @@ public class MainActivity extends AppCompatActivity {
         mAuth.signOut();
         startActivity(new Intent(this, LoginActivity.class));
         finish();
-    }
-
-    // Простой адаптер для примера
-    class SimpleAdapter extends RecyclerView.Adapter<SimpleAdapter.ViewHolder> {
-        private List<String> data;
-        public SimpleAdapter(List<String> data) { this.data = data; }
-
-        @NonNull
-        @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = LayoutInflater.from(parent.getContext())
-                    .inflate(R.layout.item_memory_card, parent, false);
-            return new ViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull ViewHolder holder, int position) { }
-
-        @Override
-        public int getItemCount() { return data.size(); }
-
-        class ViewHolder extends RecyclerView.ViewHolder {
-            TextView title;
-            public ViewHolder(@NonNull View itemView) {
-                super(itemView);
-                title = itemView.findViewById(R.id.cardTitle);
-            }
-        }
     }
 }

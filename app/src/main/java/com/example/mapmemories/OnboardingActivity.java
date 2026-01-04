@@ -29,6 +29,15 @@ public class OnboardingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        android.content.SharedPreferences preferences = getSharedPreferences("onboarding_prefs", MODE_PRIVATE);
+
+        if (preferences.getBoolean("is_onboarding_completed", false)) {
+            startMainActivity();
+            return;
+        }
+
+
         setContentView(R.layout.activity_onboarding);
 
         onboardingViewPager = findViewById(R.id.onboardingViewPager);
@@ -170,6 +179,15 @@ public class OnboardingActivity extends AppCompatActivity {
     }
 
     private void startMainActivity() {
+
+        android.content.SharedPreferences preferences = getSharedPreferences("onboarding_prefs", MODE_PRIVATE);
+
+        android.content.SharedPreferences.Editor editor = preferences.edit();
+
+        editor.putBoolean("is_onboarding_completed", true);
+
+        editor.apply();
+
         Intent intent = new Intent(OnboardingActivity.this, LoginActivity.class);
         startActivity(intent);
         finish();

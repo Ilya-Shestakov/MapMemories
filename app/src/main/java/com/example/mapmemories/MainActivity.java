@@ -82,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
         fabAdd = findViewById(R.id.fabAdd);
         fabMap = findViewById(R.id.fabMap);
-        // Тут теперь ImageView, но findViewById найдет его по ID без проблем
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
     }
@@ -96,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
                     // Если нажали второй раз быстрее чем за 2 секунды
                     if (backToast != null) backToast.cancel();
                     finish(); // Закрываем активити (выходим из приложения)
+                    finishAffinity();
                 } else {
                     // Первое нажатие
                     backToast = Toast.makeText(getBaseContext(), "Нажмите еще раз, чтобы выйти", Toast.LENGTH_SHORT);
@@ -158,14 +158,12 @@ public class MainActivity extends AppCompatActivity {
             VibratorHelper.vibrate(this, 50);
             Toast.makeText(this, "Открыть создание поста", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, CreatePostActivity.class));
-            finish();
         });
 
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
             Toast.makeText(this, "Открыть карту", Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, Setting.class));
-            finish();
         });
     }
 

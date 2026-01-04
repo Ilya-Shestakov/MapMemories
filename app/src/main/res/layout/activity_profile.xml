@@ -9,6 +9,7 @@
     android:fitsSystemWindows="true"
     tools:context=".Profile">
 
+    <!-- ... HEADER CARD (без изменений) ... -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/headerCard"
         android:layout_width="0dp"
@@ -33,7 +34,7 @@
                 android:background="@drawable/rounded_button"
                 android:contentDescription="Назад"
                 android:src="@drawable/ic_arrow_back"
-                android:tint="@color/text_primary"
+                app:tint="@color/text_primary"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
             <ImageView
@@ -42,8 +43,6 @@
                 android:layout_height="100dp"
                 android:layout_marginTop="16dp"
                 android:src="@drawable/ic_profile_placeholder"
-                app:civ_border_color="@color/accent"
-                app:civ_border_width="3dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -94,7 +93,7 @@
                         android:id="@+id/memoriesCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="127"
+                        android:text="0"
                         android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -118,7 +117,7 @@
                         android:id="@+id/placesCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="42"
+                        android:text="0"
                         android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -142,7 +141,7 @@
                         android:id="@+id/likesCount"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1.2k"
+                        android:text="0"
                         android:textColor="@color/accent"
                         android:textSize="20sp"
                         android:textStyle="bold" />
@@ -158,6 +157,7 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- ... INFO CARD (без изменений) ... -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/infoCard"
         android:layout_width="0dp"
@@ -197,7 +197,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_phone"
-                    android:tint="@color/accent"
+                    app:tint="@color/accent"
                     android:layout_marginEnd="12dp" />
 
                 <LinearLayout
@@ -217,7 +217,7 @@
                         android:id="@+id/phoneText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="+7 (999) 000-12-34"
+                        android:text="Не указан"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -228,7 +228,7 @@
                     android:layout_height="32dp"
                     android:background="?attr/selectableItemBackground"
                     android:src="@drawable/ic_edit"
-                    android:tint="@color/text_secondary"
+                    app:tint="@color/text_secondary"
                     android:contentDescription="Редактировать телефон" />
             </LinearLayout>
 
@@ -242,7 +242,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_info"
-                    android:tint="@color/accent"
+                    app:tint="@color/accent"
                     android:layout_marginEnd="12dp" />
 
                 <LinearLayout
@@ -262,7 +262,7 @@
                         android:id="@+id/aboutText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Я путешественник и люблю открывать новые места!"
+                        android:text="Расскажите о себе..."
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:lineSpacingExtra="4dp" />
@@ -274,7 +274,7 @@
                     android:layout_height="32dp"
                     android:background="?attr/selectableItemBackground"
                     android:src="@drawable/ic_edit"
-                    android:tint="@color/text_secondary"
+                    app:tint="@color/text_secondary"
                     android:contentDescription="Редактировать информацию" />
             </LinearLayout>
 
@@ -287,7 +287,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_calendar"
-                    android:tint="@color/accent"
+                    app:tint="@color/accent"
                     android:layout_marginEnd="12dp" />
 
                 <LinearLayout
@@ -307,7 +307,7 @@
                         android:id="@+id/joinDateText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="1 декабря 2024"
+                        android:text="Недавно"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp" />
                 </LinearLayout>
@@ -315,6 +315,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <!-- MEMORIES CARD (Исправлен RecyclerView) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/memoriesCard"
         android:layout_width="0dp"
@@ -351,6 +352,17 @@
                     android:textColor="@color/text_primary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
+
+                <ImageButton
+                    android:id="@+id/viewAllMemories"
+
+                    android:layout_width="100dp"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_arrow_right"
+                    android:background="@color/secondary"
+
+                    />
+
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
@@ -360,10 +372,7 @@
                 android:layout_weight="1"
                 android:clipToPadding="false"
                 android:padding="4dp"
-                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="3"
-                tools:listitem="@layout/item_memory_grid"
-                />
+                tools:listitem="@layout/item_memory_grid" />
 
             <TextView
                 android:id="@+id/emptyMemoriesText"
@@ -378,7 +387,6 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Кнопка редактирования профиля (FAB) -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/editProfileFab"
         android:layout_width="wrap_content"

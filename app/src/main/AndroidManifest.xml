@@ -3,18 +3,13 @@
     package="com.example.mapmemories">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
-    <uses-permission
-        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
-        android:maxSdkVersion="28" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -25,6 +20,9 @@
         android:theme="@style/Theme.MapMemories"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".AllMemoriesActivity"
+            android:exported="false" />
+        <activity
             android:name=".Setting"
             android:exported="false" />
         <activity
@@ -32,7 +30,8 @@
             android:exported="false" />
         <activity
             android:name=".Profile"
-            android:exported="false" /> <!-- Конфиг OSMDroid -->
+            android:exported="false" />
+
         <meta-data
             android:name="osmdroid.basePath"
             android:value="/osmdroid" />
@@ -40,6 +39,7 @@
             android:name="osmdroid.osmroid.userAgent"
             android:value="MapMemoriesApp/1.0" />
 
+        <activity android:name=".PostDetailsActivity" />
         <activity
             android:name=".SplashActivity"
             android:exported="true">

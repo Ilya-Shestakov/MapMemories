@@ -19,7 +19,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- ШАПКА АВТОРА (Новое) -->
+        <!-- Header -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -58,12 +58,13 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"/>
             </LinearLayout>
+
         </LinearLayout>
 
         <!-- МЕДИА -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="220dp">
+            android:layout_height="250dp"> <!-- Чуть увеличил высоту -->
 
             <ImageView
                 android:id="@+id/postImage"
@@ -72,7 +73,6 @@
                 android:scaleType="centerCrop"
                 android:src="@color/text_secondary" />
 
-            <!-- Иконка видео -->
             <ImageView
                 android:id="@+id/videoIcon"
                 android:layout_width="48dp"
@@ -83,7 +83,7 @@
                 app:tint="@android:color/white" />
         </FrameLayout>
 
-        <!-- НИЖНЯЯ ЧАСТЬ (Без описания) -->
+        <!-- НИЖНЯЯ ЧАСТЬ -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -101,30 +101,70 @@
                 android:maxLines="2"
                 android:ellipsize="end" />
 
-            <!-- Координаты -->
             <LinearLayout
-                android:id="@+id/coordinatesLayout"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:layout_marginTop="8dp">
 
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_my_location"
-                    app:tint="@color/accent"
-                    android:layout_marginEnd="6dp"/>
+                <!-- Координаты -->
+                <LinearLayout
+                    android:id="@+id/coordinatesLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
 
-                <TextView
-                    android:id="@+id/coordinatesText"
+                    <ImageView
+                        android:layout_width="16dp"
+                        android:layout_height="16dp"
+                        android:src="@drawable/ic_my_location"
+                        app:tint="@color/accent"
+                        android:layout_marginEnd="6dp"/>
+
+                    <TextView
+                        android:id="@+id/coordinatesText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0.0, 0.0"
+                        android:textColor="@color/accent"
+                        android:textSize="12sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <!-- ЛАЙКИ -->
+                <LinearLayout
+                    android:id="@+id/likeContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="0.0, 0.0"
-                    android:textColor="@color/accent"
-                    android:textSize="12sp"
-                    android:textStyle="bold"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?attr/selectableItemBackgroundBorderless">
+
+                    <TextView
+                        android:id="@+id/likeCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:layout_marginEnd="6dp"/>
+
+                    <ImageView
+                        android:id="@+id/likeIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_favorite_border" />
+                </LinearLayout>
+
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

@@ -5,13 +5,12 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:padding="24dp">
-    <!-- Внешний отступ, чтобы диалог не прилипал к краям экрана -->
 
-    <com.google.android.material.card.MaterialCardView
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/dialogCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/secondary"
+        android:background="@drawable/back_dialog"
         app:cardCornerRadius="24dp"
         app:cardElevation="12dp"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -26,7 +25,6 @@
             android:paddingTop="20dp"
             android:paddingBottom="16dp">
 
-            <!-- Иконка (Слева сверху) -->
             <ImageView
                 android:id="@+id/dialogIcon"
                 android:layout_width="28dp"
@@ -37,7 +35,6 @@
                 app:layout_constraintTop_toTopOf="@id/dialogTitle"
                 app:layout_constraintBottom_toBottomOf="@id/dialogTitle" />
 
-            <!-- Заголовок (Справа от иконки) -->
             <TextView
                 android:id="@+id/dialogTitle"
                 android:layout_width="0dp"
@@ -51,7 +48,6 @@
                 app:layout_constraintStart_toEndOf="@id/dialogIcon"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Сообщение (под заголовком) -->
             <TextView
                 android:id="@+id/dialogMessage"
                 android:layout_width="0dp"
@@ -67,7 +63,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/dialogTitle" />
 
-            <!-- Поле ввода -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/inputLayout"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
@@ -128,5 +123,5 @@
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

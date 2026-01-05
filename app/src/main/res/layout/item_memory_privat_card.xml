@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="16dp"
+    android:layout_marginHorizontal="8dp"
     android:layout_marginVertical="8dp"
     android:clickable="true"
     android:focusable="true"
@@ -30,7 +30,6 @@
                 android:scaleType="centerCrop"
                 android:src="@color/text_secondary" />
 
-            <!-- Иконка видео -->
             <ImageView
                 android:id="@+id/videoIcon"
                 android:layout_width="48dp"
@@ -40,7 +39,6 @@
                 android:visibility="gone"
                 app:tint="@android:color/white" />
 
-            <!-- Индикатор приватности (справа сверху) -->
             <ImageView
                 android:id="@+id/privacyIcon"
                 android:layout_width="36dp"
@@ -52,7 +50,6 @@
                 app:tint="@android:color/white"
                 android:background="@drawable/rounded_button"
                 android:backgroundTint="#80000000"/>
-            <!-- backgroundTint делает фон полупрозрачным черным -->
         </FrameLayout>
 
         <!-- Текстовая часть -->
@@ -84,7 +81,6 @@
                 android:maxLines="2"
                 android:ellipsize="end" />
 
-            <!-- Разделитель -->
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
@@ -92,32 +88,65 @@
                 android:background="@color/text_secondary"
                 android:alpha="0.2"/>
 
-            <!-- Координаты (кнопка) -->
+            <!-- Нижняя панель: Координаты + Лайки -->
             <LinearLayout
-                android:id="@+id/coordinatesLayout"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:background="?attr/selectableItemBackground"
-                android:paddingVertical="4dp"
-                android:paddingEnd="8dp">
+                android:gravity="center_vertical">
 
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@drawable/ic_my_location"
-                    app:tint="@color/accent"
-                    android:layout_marginEnd="6dp"/>
+                <LinearLayout
+                    android:id="@+id/coordinatesLayout"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingVertical="4dp">
 
-                <TextView
-                    android:id="@+id/coordinatesText"
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_my_location"
+                        app:tint="@color/accent"
+                        android:layout_marginEnd="6dp"/>
+
+                    <TextView
+                        android:id="@+id/coordinatesText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="55.7558, 37.6173"
+                        android:textColor="@color/accent"
+                        android:textSize="13sp"
+                        android:textStyle="bold"/>
+                </LinearLayout>
+
+                <!-- ЛАЙКИ -->
+                <LinearLayout
+                    android:id="@+id/likeContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="55.7558, 37.6173"
-                    android:textColor="@color/accent"
-                    android:textSize="13sp"
-                    android:textStyle="bold"/>
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingStart="8dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp">
+
+                    <TextView
+                        android:id="@+id/likeCount"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="6dp"/>
+
+                    <ImageView
+                        android:id="@+id/likeIcon"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_favorite_border" />
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>

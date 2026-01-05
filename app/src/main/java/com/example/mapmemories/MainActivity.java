@@ -2,8 +2,11 @@ package com.example.mapmemories;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
-import android.view.View;
+import android.view.animation.AnimationUtils;
+import android.view.animation.LayoutAnimationController;
 import android.widget.ImageView;
 import android.widget.Toast;
 
@@ -12,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -31,6 +35,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private SwipeRefreshLayout swipeRefreshLayout; // Добавили
     private RecyclerView memoriesRecyclerView;
     private FloatingActionButton fabAdd, fabMap;
     private ImageView logoutButton;
@@ -58,20 +63,16 @@ public class MainActivity extends AppCompatActivity {
                 androidx.preference.PreferenceManager.getDefaultSharedPreferences(this));
 
         mAuth = FirebaseAuth.getInstance();
-        postsRef = FirebaseDatabase.getInstance().getReference("posts"); // Инициализируем ссылку на посты
+        postsRef = FirebaseDatabase.getInstance().getReference("posts");
 
         checkCurrentUser();
         initViews();
         setupClickListeners();
         setupRecyclerView();
+        setupSwipeRefresh(); // НОВЫЙ МЕТОД
 
-        // Настройка выхода по двойному клику
         setupDoubleBackExit();
-
-        // Загрузка фото (твоя существующая логика)
         loadUserAvatar();
-
-        // Загрузка публичных постов (НОВОЕ)
         loadPublicPosts();
     }
 
@@ -86,12 +87,115 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout); // Инициализация
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
         fabAdd = findViewById(R.id.fabAdd);
         fabMap = findViewById(R.id.fabMap);
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
     }
+
+    private void setupSwipeRefresh() {
+        // Настраиваем цвета кружка (сделай под свои цвета theme colors)
+        swipeRefreshLayout.setColorSchemeResources(
+                R.color.accent,
+                R.color.text_primary,
+                R.color.secondary
+        );
+
+        // Логика "потяни вниз"
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            // Фейковая задержка для красоты (1.5 секунды)
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+
+                // 1. Останавливаем кружок
+                swipeRefreshLayout.setRefreshing(false);
+
+                // 2. Перезапускаем анимацию списка (то самое "проседание")
+                runLayoutAnimation();
+
+                // 3. Можно вибру добавить для кайфа
+                VibratorHelper.vibrate(MainActivity.this, 30);
+
+            }, 1200);
+        });
+    }
+
+    private void setupRecyclerView() {
+        memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        // Привязываем контроллер анимации
+        int resId = R.anim.layout_animation_fall_down;
+        LayoutAnimationController animation = AnimationUtils.loadLayoutAnimation(this, resId);
+        memoriesRecyclerView.setLayoutAnimation(animation);
+
+        publicPostList = new ArrayList<>();
+        publicAdapter = new PublicMemoriesAdapter(this, publicPostList, post -> {
+            FirebaseUser currentUser = mAuth.getCurrentUser();
+            if (currentUser != null && post.getUserId().equals(currentUser.getUid())) {
+                Intent intent = new Intent(MainActivity.this, PostDetailsActivity.class);
+                intent.putExtra("postId", post.getId());
+                intent.putExtra("isEditMode", true);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(MainActivity.this, ViewPostDetailsActivity.class);
+                intent.putExtra("postId", post.getId());
+                startActivity(intent);
+            }
+        });
+
+        memoriesRecyclerView.setAdapter(publicAdapter);
+    }
+
+    // Вспомогательный метод для запуска анимации
+    private void runLayoutAnimation() {
+        final LayoutAnimationController controller =
+                AnimationUtils.loadLayoutAnimation(this, R.anim.layout_animation_fall_down);
+
+        memoriesRecyclerView.setLayoutAnimation(controller);
+        memoriesRecyclerView.getAdapter().notifyDataSetChanged();
+        memoriesRecyclerView.scheduleLayoutAnimation();
+    }
+
+    private void loadPublicPosts() {
+        // Показываем кружок при первой загрузке (если хочешь)
+        // swipeRefreshLayout.setRefreshing(true);
+
+        postsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                publicPostList.clear();
+
+                if (snapshot.exists()) {
+                    for (DataSnapshot postSnap : snapshot.getChildren()) {
+                        Post post = postSnap.getValue(Post.class);
+                        if (post != null && post.isPublic()) {
+                            publicPostList.add(post);
+                        }
+                    }
+                    Collections.reverse(publicPostList);
+                }
+
+                publicAdapter.notifyDataSetChanged();
+
+                // Запускаем анимацию при получении данных
+                memoriesRecyclerView.scheduleLayoutAnimation();
+
+                // Если кружок крутился - убираем
+                if (swipeRefreshLayout.isRefreshing()) {
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                if (swipeRefreshLayout.isRefreshing()) swipeRefreshLayout.setRefreshing(false);
+                Toast.makeText(MainActivity.this, "Ошибка загрузки ленты", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    // ... Остальные методы (setupDoubleBackExit, loadUserAvatar, setupClickListeners, logoutUser) без изменений ...
 
     private void setupDoubleBackExit() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -129,68 +233,20 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void setupRecyclerView() {
-        memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        publicPostList = new ArrayList<>();
-
-        publicAdapter = new PublicMemoriesAdapter(this, publicPostList, post -> {
-            FirebaseUser currentUser = mAuth.getCurrentUser();
-
-            if (currentUser != null && post.getUserId().equals(currentUser.getUid())) {
-                Intent intent = new Intent(MainActivity.this, PostDetailsActivity.class);
-                intent.putExtra("postId", post.getId());
-                intent.putExtra("isEditMode", true);
-                startActivity(intent);
-            } else {
-                Intent intent = new Intent(MainActivity.this, ViewPostDetailsActivity.class);
-                intent.putExtra("postId", post.getId());
-                startActivity(intent);
-            }
-        });
-
-        memoriesRecyclerView.setAdapter(publicAdapter);
-    }
-
-    // Метод загрузки постов
-    private void loadPublicPosts() {
-        postsRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                publicPostList.clear();
-
-                if (snapshot.exists()) {
-                    for (DataSnapshot postSnap : snapshot.getChildren()) {
-                        Post post = postSnap.getValue(Post.class);
-
-                        // ФИЛЬТРАЦИЯ: Добавляем только если пост публичный
-                        if (post != null && post.isPublic()) {
-                            publicPostList.add(post);
-                        }
-                    }
-                    // Сортируем: сначала новые
-                    Collections.reverse(publicPostList);
-                }
-
-                publicAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(MainActivity.this, "Ошибка загрузки ленты", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     private void setupClickListeners() {
         profileButton.setOnClickListener(view -> {
             VibratorHelper.vibrate(MainActivity.this, 50);
-            startActivity(new Intent(this, Profile.class));
+            int revealX = (int) (view.getX() + view.getWidth() / 2);
+            int revealY = (int) (view.getY() + view.getHeight() / 2);
+            Intent intent = new Intent(this, Profile.class);
+            intent.putExtra("revealX", revealX);
+            intent.putExtra("revealY", revealY);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
         });
 
         logoutButton.setOnClickListener(v -> {
             DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
-
                 mAuth.signOut();
                 startActivity(new Intent(this, LoginActivity.class));
                 finish();
@@ -199,41 +255,21 @@ public class MainActivity extends AppCompatActivity {
 
         fabAdd.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-
-            fabAdd.animate()
-                    .rotationBy(360f)
-                    .setDuration(2000)
-                    .start();
-
-            int revealX = (int) (v.getX() + v.getWidth() / 2);
-            int revealY = (int) (v.getY() + v.getHeight() / 2);
-
-            Intent intent = new Intent(this, CreatePostActivity.class);
-            intent.putExtra("revealX", revealX);
-            intent.putExtra("revealY", revealY);
-            startActivity(intent);
-
-            overridePendingTransition(0, 0);
+            fabAdd.animate().rotationBy(180f).setDuration(300).start();
+            new android.os.Handler().postDelayed(() -> {
+                int revealX = (int) (v.getX() + v.getWidth() / 2);
+                int revealY = (int) (v.getY() + v.getHeight() / 2);
+                Intent intent = new Intent(this, CreatePostActivity.class);
+                intent.putExtra("revealX", revealX);
+                intent.putExtra("revealY", revealY);
+                startActivity(intent);
+                overridePendingTransition(0, 0);
+            }, 250);
         });
 
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
             startActivity(new Intent(this, Setting.class));
         });
-    }
-
-    private void showLogoutConfirmation() {
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Выход")
-                .setMessage("Вы уверены, что хотите выйти?")
-                .setPositiveButton("Выйти", (dialog, which) -> logoutUser())
-                .setNegativeButton("Отмена", null)
-                .show();
-    }
-
-    private void logoutUser() {
-        mAuth.signOut();
-        startActivity(new Intent(this, LoginActivity.class));
-        finish();
     }
 }

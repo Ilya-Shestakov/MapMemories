@@ -1,17 +1,28 @@
 package com.example.mapmemories;
 
-import android.app.AlertDialog;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RenderEffect;
+import android.graphics.Shader;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.transition.AutoTransition;
 import android.transition.TransitionManager;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.EditText;
+import android.view.ViewAnimationUtils;
+import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -28,7 +39,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
@@ -61,17 +71,27 @@ public class Profile extends AppCompatActivity {
     private Cloudinary cloudinary;
 
     // UI элементы
-    private ConstraintLayout rootLayout; // Корневой контейнер
+    private ConstraintLayout rootLayout;
+    private ConstraintLayout mainContentLayout;
+
     private MaterialCardView infoCard, memoriesCard, headerCard;
 
     private ImageView profileImage;
     private TextView usernameText, emailText, phoneText, aboutText, joinDateText;
     private TextView memoriesCount, placesCount, likesCount;
-    private ImageButton buttonBack, editPhoneButton, editAboutButton;
-    private ExtendedFloatingActionButton editProfileFab;
+    private ImageButton buttonBack, editPhoneButton, editAboutButton, editNameButton; // editNameButton вместо editProfileFab
     private RecyclerView memoriesRecyclerView;
     private TextView emptyMemoriesText;
     private ImageButton viewAllMemories;
+
+    // Элементы для анимации Zoom
+    private FrameLayout expandedContainer;
+    private MaterialCardView expandedCard;
+    private ImageView expandedImage;
+    private View expandedBackground;
+    private ExtendedFloatingActionButton btnEditExpanded;
+    private Animator currentAnimator;
+    private int shortAnimationDuration;
 
     private ProgressDialog progressDialog;
 
@@ -79,11 +99,9 @@ public class Profile extends AppCompatActivity {
     private MemoriesAdapter memoriesAdapter;
     private List<Post> myPostList;
 
-    // Состояние развернутости блока воспоминаний
     private boolean isMemoriesExpanded = false;
-
-    // Лаунчер для выбора фото из галереи
     private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private String currentProfileImageUrl = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,9 +111,7 @@ public class Profile extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         currentUser = mAuth.getCurrentUser();
 
-        if (currentUser == null) {
-            return;
-        }
+        if (currentUser == null) return;
 
         userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid());
 
@@ -108,22 +124,32 @@ public class Profile extends AppCompatActivity {
 
         loadUserData();
         loadMemories();
+
+        shortAnimationDuration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+
+        if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
+            mainContentLayout.setVisibility(View.INVISIBLE);
+            ViewTreeObserver viewTreeObserver = mainContentLayout.getViewTreeObserver();
+            if (viewTreeObserver.isAlive()) {
+                viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        mainContentLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        revealActivity(getIntent().getIntExtra("revealX", 0),
+                                getIntent().getIntExtra("revealY", 0));
+                    }
+                });
+            }
+        }
     }
 
     private void initCloudinary() {
-
-
-
-        /// ***Cloudinary***
-
-
         Map<String, String> config = new HashMap<>();
         config.put("cloud_name", "dvbjhturp");
         config.put("api_key", "149561293632228");
         config.put("api_secret", "U8ZmnwKrLwBxmLbBPMM5CxvEYdU");
         cloudinary = new Cloudinary(config);
     }
-
 
     private void setupImagePicker() {
         imagePickerLauncher = registerForActivityResult(
@@ -132,6 +158,18 @@ public class Profile extends AppCompatActivity {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
                         if (imageUri != null) {
+                            // !!! МОМЕНТАЛЬНОЕ ОБНОВЛЕНИЕ UI !!!
+                            // 1. Сразу ставим картинку в маленький кружок
+                            Glide.with(this)
+                                    .load(imageUri)
+                                    .circleCrop()
+                                    .into(profileImage);
+
+                            // 2. Обновляем переменную ссылки (временно на локальный путь),
+                            // чтобы если юзер нажмет на аву, она открылась сразу новой
+                            currentProfileImageUrl = imageUri.toString();
+
+                            // 3. Запускаем загрузку в облако
                             uploadImageToCloudinary(imageUri);
                         }
                     }
@@ -140,8 +178,9 @@ public class Profile extends AppCompatActivity {
     }
 
     private void initViews() {
-        // Находим основные контейнеры для анимации
-        rootLayout = findViewById(R.id.rootLayout);
+        mainContentLayout = findViewById(R.id.mainContentLayout);
+        rootLayout = mainContentLayout;
+
         headerCard = findViewById(R.id.headerCard);
         infoCard = findViewById(R.id.infoCard);
         memoriesCard = findViewById(R.id.memoriesCard);
@@ -158,10 +197,19 @@ public class Profile extends AppCompatActivity {
         likesCount = findViewById(R.id.likesCount);
         editPhoneButton = findViewById(R.id.editPhoneButton);
         editAboutButton = findViewById(R.id.editAboutButton);
-        editProfileFab = findViewById(R.id.editProfileFab);
+
+        // !!! НОВАЯ КНОПКА !!!
+        editNameButton = findViewById(R.id.editNameButton);
+
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
         emptyMemoriesText = findViewById(R.id.emptyMemoriesText);
         viewAllMemories = findViewById(R.id.viewAllMemories);
+
+        expandedContainer = findViewById(R.id.expandedContainer);
+        expandedCard = findViewById(R.id.expandedCard);
+        expandedImage = findViewById(R.id.expandedImage);
+        expandedBackground = findViewById(R.id.expandedBackground);
+        btnEditExpanded = findViewById(R.id.btnEditExpanded);
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка...");
@@ -181,47 +229,137 @@ public class Profile extends AppCompatActivity {
                         InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, R.drawable.ic_info,
                         newValue -> updateUserField("about", newValue)));
 
-        editProfileFab.setOnClickListener(v ->
+        // !!! ИЗМЕНЕНО: Редактирование имени по нажатию на карандашик рядом с именем
+        editNameButton.setOnClickListener(v ->
                 DialogHelper.showInput(this, "Изменить имя", usernameText.getText().toString(),
                         InputType.TYPE_CLASS_TEXT, R.drawable.ic_edit,
                         newValue -> updateUserField("username", newValue)));
 
-        profileImage.setOnClickListener(v -> changeProfileImage());
+        profileImage.setOnClickListener(v -> {
+            if (currentProfileImageUrl != null && !currentProfileImageUrl.isEmpty()) {
+                zoomImageFromThumb(profileImage, currentProfileImageUrl);
+            } else {
+                changeProfileImage();
+            }
+        });
 
+        btnEditExpanded.setOnClickListener(v -> {
+            if (currentAnimator != null) currentAnimator.cancel();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                mainContentLayout.setRenderEffect(null);
+            }
+            expandedContainer.setVisibility(View.GONE);
+            changeProfileImage();
+        });
 
         viewAllMemories.setOnClickListener(v -> toggleMemoriesState());
     }
 
-    private void toggleMemoriesState() {
-        isMemoriesExpanded = !isMemoriesExpanded;
-
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(rootLayout);
-
-        AutoTransition transition = new AutoTransition();
-        transition.setDuration(500);
-        TransitionManager.beginDelayedTransition(rootLayout, transition);
-
-        if (isMemoriesExpanded) {
-
-            infoCard.setVisibility(View.GONE);
-            editProfileFab.hide();
-
-            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.headerCard, ConstraintSet.BOTTOM);
-
-            viewAllMemories.animate().rotation(180f).setDuration(400).start();
-
-        } else {
-
-            infoCard.setVisibility(View.VISIBLE);
-            editProfileFab.show();
-
-            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.infoCard, ConstraintSet.BOTTOM);
-
-            viewAllMemories.animate().rotation(0f).setDuration(400).start();
+    private void zoomImageFromThumb(final View thumbView, String imageUrl) {
+        if (currentAnimator != null) {
+            currentAnimator.cancel();
         }
 
-        constraintSet.applyTo(rootLayout);
+        Glide.with(this)
+                .load(imageUrl)
+                .placeholder(R.drawable.ic_profile_placeholder)
+                .into(expandedImage);
+
+        expandedContainer.setAlpha(0f);
+        expandedContainer.setVisibility(View.VISIBLE);
+
+        expandedCard.post(() -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            Rect startBounds = new Rect();
+            Rect finalBounds = new Rect();
+            Point globalOffset = new Point();
+
+            thumbView.getGlobalVisibleRect(startBounds);
+            expandedCard.getGlobalVisibleRect(finalBounds, globalOffset);
+
+            startBounds.offset(-globalOffset.x, -globalOffset.y);
+            finalBounds.offset(-globalOffset.x, -globalOffset.y);
+
+            float startScale = (float) startBounds.width() / finalBounds.width();
+            float startX = startBounds.left - finalBounds.left;
+            float startY = startBounds.top - finalBounds.top;
+
+            expandedCard.setPivotX(0f);
+            expandedCard.setPivotY(0f);
+
+            expandedCard.setTranslationX(startX);
+            expandedCard.setTranslationY(startY);
+            expandedCard.setScaleX(startScale);
+            expandedCard.setScaleY(startScale);
+
+            btnEditExpanded.setAlpha(0f);
+            expandedBackground.setAlpha(0f);
+
+            expandedContainer.setAlpha(1f);
+            thumbView.setAlpha(0f);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                mainContentLayout.setRenderEffect(RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.MIRROR));
+            }
+
+            AnimatorSet set = new AnimatorSet();
+            set
+                    .play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, 0f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, 0f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, 1f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, 1f))
+                    .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f, 1f))
+                    .with(ObjectAnimator.ofFloat(btnEditExpanded, View.ALPHA, 0f, 1f));
+
+            set.setDuration(300);
+            set.setInterpolator(new DecelerateInterpolator());
+            set.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    currentAnimator = null;
+                }
+            });
+            set.start();
+            currentAnimator = set;
+
+            View.OnClickListener closeListener = v -> {
+                if (currentAnimator != null) currentAnimator.cancel();
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    mainContentLayout.setRenderEffect(null);
+                }
+
+                AnimatorSet closeSet = new AnimatorSet();
+                closeSet.play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, startX))
+                        .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, startY))
+                        .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, startScale))
+                        .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, startScale))
+                        .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f))
+                        .with(ObjectAnimator.ofFloat(btnEditExpanded, View.ALPHA, 0f));
+
+                closeSet.setDuration(250);
+                closeSet.setInterpolator(new AccelerateInterpolator());
+                closeSet.addListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator animation) {
+                        thumbView.setAlpha(1f);
+                        expandedContainer.setVisibility(View.GONE);
+                        currentAnimator = null;
+
+                        expandedCard.setTranslationX(0f);
+                        expandedCard.setTranslationY(0f);
+                        expandedCard.setScaleX(1f);
+                        expandedCard.setScaleY(1f);
+                    }
+                });
+                closeSet.start();
+                currentAnimator = closeSet;
+            };
+
+            expandedImage.setOnClickListener(closeListener);
+            expandedBackground.setOnClickListener(closeListener);
+        });
     }
 
     private void changeProfileImage() {
@@ -231,51 +369,36 @@ public class Profile extends AppCompatActivity {
     }
 
     private void uploadImageToCloudinary(Uri imageUri) {
-        // Проверка перед показом диалога
         if (isFinishing() || isDestroyed()) return;
-
-        progressDialog.setMessage("Загрузка фото...");
-        progressDialog.show();
+        // !!! НЕ показываем диалог, так как картинка уже на экране
+        // progressDialog.setMessage("Загрузка фото...");
+        // progressDialog.show();
 
         Executors.newSingleThreadExecutor().execute(() -> {
             InputStream inputStream = null;
             try {
-                // Открываем поток
                 inputStream = getContentResolver().openInputStream(imageUri);
-
-                // Настройки загрузки Cloudinary (сжатие на сервере для экономии трафика)
                 Map<String, Object> options = new HashMap<>();
                 options.put("resource_type", "image");
-                // Можно добавить трансформацию, чтобы хранить сразу квадратные аватарки 500x500
-                // options.put("transformation", new com.cloudinary.Transformation().width(500).height(500).crop("fill"));
-
                 Map uploadResult = cloudinary.uploader().upload(inputStream, options);
                 String imageUrl = (String) uploadResult.get("secure_url");
 
-                // Обновляем UI в главном потоке
                 runOnUiThread(() -> {
-                    // Еще одна проверка, жива ли активити
                     if (!isFinishing() && !isDestroyed()) {
                         updateProfileImageUrlInFirebase(imageUrl);
                     }
                 });
-
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
                     if (!isFinishing() && !isDestroyed()) {
-                        progressDialog.dismiss();
+                        // progressDialog.dismiss();
                         Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
             } finally {
-                // ОБЯЗАТЕЛЬНО закрываем поток, чтобы избежать утечек
                 if (inputStream != null) {
-                    try {
-                        inputStream.close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    try { inputStream.close(); } catch (Exception e) { e.printStackTrace(); }
                 }
             }
         });
@@ -284,17 +407,12 @@ public class Profile extends AppCompatActivity {
     private void updateProfileImageUrlInFirebase(String imageUrl) {
         userRef.child("profileImageUrl").setValue(imageUrl)
                 .addOnSuccessListener(aVoid -> {
-                    // Проверяем состояние Activity перед закрытием диалога
-                    if (!isFinishing() && !isDestroyed() && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                        Toast.makeText(Profile.this, "Фото обновлено!", Toast.LENGTH_SHORT).show();
-                    }
+                    // if (progressDialog.isShowing()) progressDialog.dismiss();
+                    Toast.makeText(Profile.this, "Фото сохранено!", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
-                    if (!isFinishing() && !isDestroyed() && progressDialog.isShowing()) {
-                        progressDialog.dismiss();
-                        Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                    }
+                    // if (progressDialog.isShowing()) progressDialog.dismiss();
+                    Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
     }
 
@@ -302,41 +420,32 @@ public class Profile extends AppCompatActivity {
         userRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                // --- ГЛАВНАЯ ЗАЩИТА ОТ ВЫЛЕТА ---
-                // Если активити уже закрывается или уничтожена, прерываем выполнение.
-                // Иначе Glide попытается отрисовать картинку на "мертвом" экране и будет краш.
-                if (isDestroyed() || isFinishing()) {
-                    return;
-                }
+                if (isDestroyed() || isFinishing()) return;
 
                 if (snapshot.exists()) {
-                    // 1. Устанавливаем Email (он берется из авторизации, а не из базы)
                     if (currentUser.getEmail() != null) {
                         emailText.setText(currentUser.getEmail());
                     }
 
-                    // 2. Достаем данные из снимка базы данных
                     String username = snapshot.child("username").getValue(String.class);
                     String phone = snapshot.child("phone").getValue(String.class);
                     String about = snapshot.child("about").getValue(String.class);
-                    String profileImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
+
+                    String remoteImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
 
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
                     Long memories = snapshot.child("memoriesCount").getValue(Long.class);
                     Long places = snapshot.child("placesCount").getValue(Long.class);
                     Long likes = snapshot.child("likesCount").getValue(Long.class);
 
-                    // 3. Устанавливаем тексты (с проверкой на пустоту)
                     usernameText.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
                     phoneText.setText(TextUtils.isEmpty(phone) ? "Не указан" : phone);
                     aboutText.setText(TextUtils.isEmpty(about) ? "Расскажите о себе..." : about);
 
-                    // 4. Устанавливаем счетчики (с защитой от null)
                     memoriesCount.setText(String.valueOf(memories != null ? memories : 0));
                     placesCount.setText(String.valueOf(places != null ? places : 0));
                     likesCount.setText(String.valueOf(likes != null ? likes : 0));
 
-                    // 5. Форматируем дату регистрации
                     if (joinDate != null) {
                         SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", new Locale("ru"));
                         joinDateText.setText(sdf.format(new Date(joinDate)));
@@ -344,35 +453,42 @@ public class Profile extends AppCompatActivity {
                         joinDateText.setText("Недавно");
                     }
 
-                    // 6. Загружаем аватарку через Glide
-                    if (!TextUtils.isEmpty(profileImageUrl)) {
+                    // Обновляем ссылку, но картинку грузим только если она изменилась на сервере,
+                    // чтобы не моргало после нашей локальной установки
+                    if (remoteImageUrl != null && !remoteImageUrl.equals(currentProfileImageUrl)) {
+                        currentProfileImageUrl = remoteImageUrl;
                         Glide.with(Profile.this)
-                                .load(profileImageUrl)
-                                .placeholder(R.drawable.ic_profile_placeholder) // Картинка пока грузится
-                                .error(R.drawable.ic_profile_placeholder)       // Картинка если ошибка
-                                .circleCrop()                                   // Круглая обрезка
+                                .load(currentProfileImageUrl)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .circleCrop()
                                 .into(profileImage);
-                    } else {
-                        // Если ссылки нет совсем, ставим заглушку
-                        profileImage.setImageResource(R.drawable.ic_profile_placeholder);
+                    } else if (currentProfileImageUrl == null && remoteImageUrl != null) {
+                        // Первый запуск
+                        currentProfileImageUrl = remoteImageUrl;
+                        Glide.with(Profile.this)
+                                .load(currentProfileImageUrl)
+                                .placeholder(R.drawable.ic_profile_placeholder)
+                                .circleCrop()
+                                .into(profileImage);
                     }
 
                 } else {
-                    // Если записи пользователя в базе нет, создаем её
                     createUserProfile();
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
-                // Тут тоже проверка, чтобы Toast не крашнул приложение при закрытии
                 if (!isDestroyed() && !isFinishing()) {
-                    Toast.makeText(Profile.this, "Ошибка загрузки данных: " + error.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(Profile.this, "Ошибка: " + error.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             }
         });
     }
 
+    // ... Остальные методы (createUserProfile, loadMemories, updateMemoriesCountUI, updateUserField, onBackPressed, Close, revealActivity, unRevealActivity, toggleMemoriesState) без изменений ...
+
+    // (Копируй их из предыдущего ответа, если нужно, но они не менялись)
     private void createUserProfile() {
         Map<String, Object> userData = new HashMap<>();
         userData.put("username", currentUser.getDisplayName() != null ? currentUser.getDisplayName() : "Пользователь");
@@ -389,20 +505,14 @@ public class Profile extends AppCompatActivity {
 
     private void loadMemories() {
         memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-
-        memoriesAdapter = new MemoriesAdapter(this, myPostList, new MemoriesAdapter.OnPostClickListener() {
-            @Override
-            public void onPostClick(Post post) {
-                Intent intent = new Intent(Profile.this, PostDetailsActivity.class);
-                intent.putExtra("postId", post.getId());
-                startActivity(intent);
-            }
+        memoriesAdapter = new MemoriesAdapter(this, myPostList, post -> {
+            Intent intent = new Intent(Profile.this, PostDetailsActivity.class);
+            intent.putExtra("postId", post.getId());
+            startActivity(intent);
         });
-
         memoriesRecyclerView.setAdapter(memoriesAdapter);
 
         if (currentUser == null) return;
-
         DatabaseReference postsRef = FirebaseDatabase.getInstance().getReference("posts");
 
         postsRef.orderByChild("userId").equalTo(currentUser.getUid())
@@ -411,7 +521,6 @@ public class Profile extends AppCompatActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (myPostList == null) myPostList = new ArrayList<>();
                         myPostList.clear();
-
                         if (snapshot.exists()) {
                             for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                                 Post post = postSnapshot.getValue(Post.class);
@@ -421,7 +530,6 @@ public class Profile extends AppCompatActivity {
                             }
                             Collections.reverse(myPostList);
                         }
-
                         memoriesAdapter.notifyDataSetChanged();
                         updateMemoriesCountUI();
                     }
@@ -445,28 +553,6 @@ public class Profile extends AppCompatActivity {
         userRef.child("memoriesCount").setValue(myPostList.size());
     }
 
-    private void showEditDialog(String fieldKey, String title, String currentValue, int inputType) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(title);
-        final EditText input = new EditText(this);
-        input.setInputType(inputType);
-        if (fieldKey.equals("about")) {
-            input.setLines(3);
-            input.setGravity(Gravity.TOP | Gravity.START);
-        }
-        if (!currentValue.equals("Не указан") && !currentValue.equals("Расскажите о себе...") && !currentValue.equals("Пользователь")) {
-            input.setText(currentValue);
-        }
-        input.setPadding(50, 30, 50, 30);
-        builder.setView(input);
-        builder.setPositiveButton("Сохранить", (dialog, which) -> {
-            String newValue = input.getText().toString().trim();
-            updateUserField(fieldKey, newValue);
-        });
-        builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-
     private void updateUserField(String fieldName, String value) {
         progressDialog.setMessage("Сохранение...");
         progressDialog.show();
@@ -483,17 +569,75 @@ public class Profile extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (isMemoriesExpanded) {
+        if (expandedContainer.getVisibility() == View.VISIBLE) {
+            expandedImage.performClick();
+        } else if (isMemoriesExpanded) {
             toggleMemoriesState();
+        } else if (getIntent().hasExtra("revealX")) {
+            int revealX = getIntent().getIntExtra("revealX", 0);
+            int revealY = getIntent().getIntExtra("revealY", 0);
+            unRevealActivity(revealX, revealY);
         } else {
             super.onBackPressed();
-            Close();
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+            finish();
         }
     }
 
-    private void Close() {
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
-        finish();
+    public void Close() {
+        int revealX = getIntent().getIntExtra("revealX", 0);
+        int revealY = getIntent().getIntExtra("revealY", 0);
+        unRevealActivity(revealX, revealY);
+    }
+
+    private void revealActivity(int x, int y) {
+        float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
+
+        Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, 0, finalRadius);
+        circularReveal.setDuration(400);
+        circularReveal.setInterpolator(new AccelerateInterpolator());
+
+        mainContentLayout.setVisibility(View.VISIBLE);
+        circularReveal.start();
+    }
+
+    private void unRevealActivity(int x, int y) {
+        float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
+        Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
+
+        circularReveal.setDuration(500);
+        circularReveal.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mainContentLayout.setVisibility(View.INVISIBLE);
+                finish();
+                overridePendingTransition(0, 0);
+            }
+        });
+        circularReveal.start();
+    }
+
+    private void toggleMemoriesState() {
+        isMemoriesExpanded = !isMemoriesExpanded;
+        ConstraintSet constraintSet = new ConstraintSet();
+        constraintSet.clone(rootLayout);
+
+        AutoTransition transition = new AutoTransition();
+        transition.setDuration(500);
+        TransitionManager.beginDelayedTransition(rootLayout, transition);
+
+        if (isMemoriesExpanded) {
+            infoCard.setVisibility(View.GONE);
+            // editProfileFab.hide(); // Удалили эту кнопку
+            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.headerCard, ConstraintSet.BOTTOM);
+            viewAllMemories.animate().rotation(180f).setDuration(400).start();
+        } else {
+            infoCard.setVisibility(View.VISIBLE);
+            // editProfileFab.show(); // Удалили эту кнопку
+            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.infoCard, ConstraintSet.BOTTOM);
+            viewAllMemories.animate().rotation(0f).setDuration(400).start();
+        }
+        constraintSet.applyTo(rootLayout);
     }
 }

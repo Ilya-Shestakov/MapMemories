@@ -12,6 +12,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
@@ -20,17 +21,27 @@
         android:theme="@style/Theme.MapMemories"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".UserProfileActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
+        <activity
             android:name=".AllMemoriesActivity"
             android:exported="false" />
+        <activity
+            android:name=".PickLocationActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
         <activity
             android:name=".Setting"
             android:exported="false" />
         <activity
             android:name=".CreatePostActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Transparent" />
         <activity
             android:name=".Profile"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Transparent" />
 
         <meta-data
             android:name="osmdroid.basePath"

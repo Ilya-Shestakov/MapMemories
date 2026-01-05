@@ -99,13 +99,12 @@
 
             </androidx.cardview.widget.CardView>
 
-            <!-- Поле: Название -->
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="16dp"
                 android:hint="Название места"
-                app:hintTextColor="@color/text_secondary"
+                android:textColorHint="@color/text_secondary"
                 app:boxStrokeColor="@color/online_indicator"
                 app:boxBackgroundColor="@color/surface_dark"
                 app:boxCornerRadiusTopStart="8dp"
@@ -119,7 +118,9 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textCapSentences"
-                    android:textColor="@color/text_primary" />
+                    android:textColor="@color/text_primary"
+
+                    />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.textfield.TextInputLayout
@@ -127,7 +128,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
                 android:hint="Расскажите об этом моменте..."
-                app:hintTextColor="@color/text_secondary"
+                android:textColorHint="@color/text_secondary"
                 app:boxStrokeColor="@color/online_indicator"
                 app:boxBackgroundColor="@color/surface_dark"
                 app:boxCornerRadiusTopStart="8dp"

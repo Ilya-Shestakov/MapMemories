@@ -22,6 +22,7 @@ recyclerview = "1.4.0"
 viewpager2 = "1.1.0"
 firebaseAuth = "24.0.1"
 preference = "1.2.1"
+swiperefreshlayout = "1.2.0"
 
 [libraries]
 appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompatVersion" }
@@ -50,6 +51,7 @@ recyclerview = { module = "androidx.recyclerview:recyclerview", version.ref = "r
 viewpager2 = { module = "androidx.viewpager2:viewpager2", version.ref = "viewpager2" }
 google-firebase-auth = { group = "com.google.firebase", name = "firebase-auth", version.ref = "firebaseAuth" }
 preference = { group = "androidx.preference", name = "preference", version.ref = "preference" }
+swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

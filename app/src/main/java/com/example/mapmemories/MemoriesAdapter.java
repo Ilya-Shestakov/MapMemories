@@ -5,16 +5,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.bitmap.CenterCrop;
-import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
-import com.bumptech.glide.request.RequestOptions;
 
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +35,7 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Убедись, что layout item_memory_privat_card существует и в нем есть нужные ID
+        // Используем обновленный item_memory
         View view = LayoutInflater.from(context).inflate(R.layout.item_memory_privat_card, parent, false);
         return new ViewHolder(view);
     }
@@ -50,46 +47,41 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
         holder.title.setText(post.getTitle());
         holder.description.setText(post.getDescription());
 
-        if (post.getMediaUrl() != null && !post.getMediaUrl().isEmpty()) {
-            Glide.with(context)
-                    .load(post.getMediaUrl())
-                    .apply(new RequestOptions().transform(new CenterCrop(), new RoundedCorners(16)))
-                    .placeholder(R.drawable.ic_profile_placeholder)
-                    .into(holder.image);
-        } else {
-            holder.image.setImageResource(R.drawable.ic_profile_placeholder);
-        }
+        String coords = String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude());
+        holder.coordinates.setText(coords);
 
-        // Иконка видео
+        Glide.with(context)
+                .load(post.getMediaUrl())
+                .placeholder(R.color.secondary)
+                .centerCrop()
+                .into(holder.postImage);
+
         if ("video".equals(post.getMediaType())) {
             holder.videoIcon.setVisibility(View.VISIBLE);
         } else {
             holder.videoIcon.setVisibility(View.GONE);
         }
 
-        // Логика приватности (Теперь работает корректно благодаря Post.java)
+        // Приватность
         if (post.isPublic()) {
-            holder.privacyIcon.setImageResource(R.drawable.ic_public); // Иконка открытого замка/глобуса
+            holder.privacyIcon.setVisibility(View.GONE); // Публичный - иконки замка нет
         } else {
-            holder.privacyIcon.setImageResource(R.drawable.ic_lock);   // Иконка закрытого замка
+            holder.privacyIcon.setVisibility(View.VISIBLE); // Приватный - иконка замка
         }
 
-        // Координаты
-        String coords = String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude());
-        holder.coordinatesText.setText(coords);
+        // === ЛОГИКА ЛАЙКОВ ===
+        // Даже в своем профиле интересно видеть, сколько лайков собрал пост
+        PostUtils.bindLikeButton(post.getId(), holder.likeIcon, holder.likeCount);
 
-        // Клик по координатам
-        holder.coordinatesLayout.setOnClickListener(v -> {
-            // Здесь можно добавить открытие карты
-            Toast.makeText(context, "Координаты: " + coords, Toast.LENGTH_SHORT).show();
+        // Можно разрешить лайкать свои посты (это стандартная практика)
+        holder.likeContainer.setOnClickListener(v -> {
+            holder.likeIcon.animate().scaleX(0.8f).scaleY(0.8f).setDuration(100).withEndAction(() -> {
+                holder.likeIcon.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
+            });
+            PostUtils.toggleLike(post);
         });
 
-        // Клик по всей карточке
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onPostClick(post);
-            }
-        });
+        holder.itemView.setOnClickListener(v -> listener.onPostClick(post));
     }
 
     @Override
@@ -98,19 +90,23 @@ public class MemoriesAdapter extends RecyclerView.Adapter<MemoriesAdapter.ViewHo
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView image, videoIcon, privacyIcon;
-        TextView title, description, coordinatesText;
-        View coordinatesLayout;
+        ImageView postImage, videoIcon, privacyIcon, likeIcon;
+        TextView title, description, coordinates, likeCount;
+        LinearLayout likeContainer;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            image = itemView.findViewById(R.id.postImage);
+            postImage = itemView.findViewById(R.id.postImage);
             videoIcon = itemView.findViewById(R.id.videoIcon);
             privacyIcon = itemView.findViewById(R.id.privacyIcon);
             title = itemView.findViewById(R.id.postTitle);
             description = itemView.findViewById(R.id.postDescription);
-            coordinatesText = itemView.findViewById(R.id.coordinatesText);
-            coordinatesLayout = itemView.findViewById(R.id.coordinatesLayout);
+            coordinates = itemView.findViewById(R.id.coordinatesText);
+
+            // Лайки
+            likeIcon = itemView.findViewById(R.id.likeIcon);
+            likeCount = itemView.findViewById(R.id.likeCount);
+            likeContainer = itemView.findViewById(R.id.likeContainer);
         }
     }
 }

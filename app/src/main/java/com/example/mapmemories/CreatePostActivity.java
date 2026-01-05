@@ -114,36 +114,22 @@ public class CreatePostActivity extends AppCompatActivity {
         }
     }
 
-    // Метод запуска анимации раскрытия
     private void revealActivity(int x, int y) {
         float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
 
-        // Создаем аниматор для этой View
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, x, y, 0, finalRadius);
         circularReveal.setDuration(400);
         circularReveal.setInterpolator(new AccelerateInterpolator());
 
-        // Делаем видимым и запускаем
         rootLayout.setVisibility(View.VISIBLE);
         circularReveal.start();
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (getIntent().hasExtra("revealX")) {
-            int revealX = getIntent().getIntExtra("revealX", 0);
-            int revealY = getIntent().getIntExtra("revealY", 0);
-            unRevealActivity(revealX, revealY);
-        } else {
-            super.onBackPressed();
-        }
     }
 
     private void unRevealActivity(int x, int y) {
         float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, x, y, finalRadius, 0);
 
-        circularReveal.setDuration(300);
+        circularReveal.setDuration(500);
         circularReveal.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -233,7 +219,7 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // Изменили finish() на onBackPressed(), чтобы срабатывала обратная анимация
+
         btnClose.setOnClickListener(v -> onBackPressed());
 
         btnAddMedia.setOnClickListener(v -> {
@@ -245,10 +231,15 @@ public class CreatePostActivity extends AppCompatActivity {
 
         btnSelectLocation.setOnClickListener(v -> {
             // Заглушка
-            Toast.makeText(this, "Выбор локации (заглушка)", Toast.LENGTH_SHORT).show();
-            selectedLat = 55.7558;
-            selectedLng = 37.6173;
-            textLocation.setText("Москва, Кремль");
+
+            Intent intent = new Intent(CreatePostActivity.this, PickLocationActivity.class);
+            locationPickerLauncher.launch(intent);
+
+//            Toast.makeText(this, "Выбор локации (заглушка)", Toast.LENGTH_SHORT).show();
+//            selectedLat = 55.7558;
+//            selectedLng = 37.6173;
+//            textLocation.setText("Москва, Кремль");
+
         });
 
         btnPrivacyToggle.setOnClickListener(v -> togglePrivacy());
@@ -393,4 +384,22 @@ public class CreatePostActivity extends AppCompatActivity {
                     });
         }
     }
+
+
+    @Override
+    public void onBackPressed() {
+        if (getIntent().hasExtra("revealX")) {
+            // --- ХИТРОСТЬ ---
+            // Перед тем как начать сворачивать круг, мы меняем фон самого ОКНА на основной цвет.
+            // Теперь, когда круг будет сужаться, вокруг него будет не MainActivity, а сплошной цвет.
+            //getWindow().getDecorView().setBackgroundColor(ContextCompat.getColor(this, R.color.primary));
+
+            int revealX = getIntent().getIntExtra("revealX", 0);
+            int revealY = getIntent().getIntExtra("revealY", 0);
+            unRevealActivity(revealX, revealY);
+        } else {
+            super.onBackPressed();
+        }
+    }
+
 }

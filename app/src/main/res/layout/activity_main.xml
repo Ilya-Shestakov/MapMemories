@@ -6,9 +6,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary"
+    android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
-    <!-- Верхняя панель (оставили как была) -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
@@ -31,7 +31,6 @@
                 android:src="@drawable/ic_profile_placeholder"
                 android:background="@drawable/circle_background"
                 android:scaleType="centerCrop"
-                android:contentDescription="@string/профиль"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -57,7 +56,6 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:src="@drawable/ic_logout"
-                android:contentDescription="Выйти"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
@@ -66,17 +64,25 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/memoriesRecyclerView"
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@color/primary"
         android:paddingTop="8dp"
-        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/topAppBar" />
+        app:layout_constraintTop_toBottomOf="@id/topAppBar">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/memoriesRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/primary"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp"/>
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabMap"
@@ -88,7 +94,6 @@
         app:backgroundTint="@color/surface_dark"
         app:tint="@color/text_primary"
         app:fabSize="mini"
-        android:contentDescription="Открыть карту"
         app:layout_constraintBottom_toTopOf="@id/fabAdd"
         app:layout_constraintEnd_toEndOf="parent" />
 
@@ -100,7 +105,6 @@
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/accent"
         app:tint="@color/white"
-        android:contentDescription="Создать воспоминание"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

@@ -22,9 +22,13 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.work.ExistingWorkPolicy;
+
+import java.io.File;
+import java.io.InputStream;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -32,17 +36,27 @@ import androidx.core.content.ContextCompat;
 
 import com.bumptech.glide.Glide;
 import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
+import com.example.mapmemories.database.AppDatabase;
+import com.example.mapmemories.database.OfflinePost;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import androidx.work.Constraints;
+import androidx.work.NetworkType;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import com.example.mapmemories.database.AppDatabase;
+import com.example.mapmemories.database.OfflinePost;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -317,8 +331,79 @@ public class CreatePostActivity extends AppCompatActivity {
             Toast.makeText(this, "Пожалуйста, выберите фото или видео", Toast.LENGTH_SHORT).show();
             return;
         }
-        progressDialog.show();
-        uploadToCloudinary(title, desc);
+
+        // ПРОВЕРКА СЕТИ
+        if (NetworkUtils.isConnected(this)) {
+            progressDialog.show();
+            uploadToCloudinary(title, desc);
+        } else {
+            // ОФЛАЙН РЕЖИМ
+            savePostOffline(title, desc);
+        }
+    }
+
+    private void savePostOffline(String title, String desc) {
+        new Thread(() -> {
+            try {
+                // 1. Копируем файл во внутреннее хранилище приложения, чтобы WorkManager точно имел к нему доступ
+                File localFile = copyUriToInternalStorage(selectedMediaUri);
+
+                // 2. Сохраняем в Room
+                OfflinePost offlinePost = new OfflinePost(
+                        title, desc, localFile.getAbsolutePath(), selectedMediaType,
+                        selectedLat, selectedLng, isPublic, System.currentTimeMillis()
+                );
+                AppDatabase.getDatabase(this).offlinePostDao().insert(offlinePost);
+
+                // 3. Запускаем WorkManager
+                scheduleUploadWorker();
+
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Нет интернета. Сохранено в черновики!", Toast.LENGTH_LONG).show();
+                    finish(); // Закрываем экран
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        }).start();
+    }
+
+    private void scheduleUploadWorker() {
+        Constraints constraints = new Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build();
+
+        OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(UploadWorker.class)
+                .setConstraints(constraints)
+                .build();
+
+        // ИСПОЛЬЗУЕМ enqueueUniqueWork
+        // "UPLOAD_POSTS_WORK" — это уникальное имя очереди.
+        // ExistingWorkPolicy.APPEND_OR_REPLACE — если задача уже висит, новая добавится в хвост очереди.
+        // Это гарантирует, что одновременно работает только один загрузчик.
+        WorkManager.getInstance(this).enqueueUniqueWork(
+                "UPLOAD_POSTS_WORK",
+                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                uploadWork
+        );
+    }
+
+    // Хелпер копирования файла
+    private File copyUriToInternalStorage(Uri uri) throws IOException {
+        InputStream inputStream = getContentResolver().openInputStream(uri);
+        File destinationFile = new File(getFilesDir(), "offline_media_" + System.currentTimeMillis());
+
+        try (FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((inputStream != null) && ((length = inputStream.read(buffer)) > 0)) {
+                outputStream.write(buffer, 0, length);
+            }
+        }
+        if (inputStream != null) inputStream.close();
+        return destinationFile;
     }
 
     private void uploadToCloudinary(String title, String desc) {

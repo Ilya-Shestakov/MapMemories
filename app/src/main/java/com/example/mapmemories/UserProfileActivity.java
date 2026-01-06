@@ -138,6 +138,8 @@ public class UserProfileActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        adapter.setAuthorClickable(false);
+
         userPostsRecyclerView.setAdapter(adapter);
     }
 

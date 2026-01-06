@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent">
 
-    <!-- СЛОЙ 1: ОСНОВНОЙ КОНТЕНТ -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/mainContentLayout"
         android:layout_width="match_parent"
@@ -18,8 +17,9 @@
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/headerCard"
             android:layout_width="0dp"
-            android:layout_height="220dp"
-            android:layout_margin="16dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
             app:cardBackgroundColor="@color/secondary"
             app:cardCornerRadius="20dp"
             app:cardElevation="8dp"
@@ -29,36 +29,42 @@
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="20dp">
+                android:layout_height="wrap_content"
+                android:paddingBottom="20dp">
 
+                <!-- КНОПКА НАЗАД (Идеальное совпадение с Main) -->
+                <!-- 8dp отступ слева и сверху соответствует паддингу тулбара -->
                 <ImageButton
                     android:id="@+id/buttonBack"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="@drawable/rounded_button"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/circle_background"
                     android:contentDescription="Назад"
                     android:src="@drawable/ic_arrow_back"
+                    android:scaleType="centerInside"
                     app:tint="@color/text_primary"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
+                <!-- Аватарка -->
                 <ImageView
                     android:id="@+id/profileImage"
                     android:layout_width="100dp"
                     android:layout_height="100dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="24dp"
                     android:src="@drawable/ic_profile_placeholder"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- КОНТЕЙНЕР ДЛЯ ИМЕНИ И КАРАНДАША -->
+                <!-- Имя и редактирование -->
                 <LinearLayout
                     android:id="@+id/nameContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_marginTop="12dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -74,10 +80,9 @@
                         android:singleLine="true"
                         android:text="User"
                         android:textColor="@color/text_primary"
-                        android:textSize="24sp"
+                        android:textSize="22sp"
                         android:textStyle="bold" />
 
-                    <!-- НОВАЯ МАЛЕНЬКАЯ КНОПКА РЕДАКТИРОВАНИЯ ИМЕНИ -->
                     <ImageButton
                         android:id="@+id/editNameButton"
                         android:layout_width="24dp"
@@ -86,8 +91,7 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_edit"
                         app:tint="@color/text_secondary"
-                        android:scaleType="fitCenter"
-                        android:contentDescription="Изменить имя" />
+                        android:scaleType="fitCenter" />
                 </LinearLayout>
 
                 <TextView
@@ -102,42 +106,16 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/nameContainer" />
 
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/emailText">
-
-                    <!-- Блок со счетчиками (без изменений) -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Воспоминаний" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Мест" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                    </LinearLayout>
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                    </LinearLayout>
-
-                </LinearLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- INFO CARD (без изменений) -->
+        <!-- INFO CARD (Счетчики теперь здесь) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/infoCard"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
             app:cardBackgroundColor="@color/secondary"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
@@ -150,6 +128,9 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="20dp">
+
+
+
 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Информация" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
 
@@ -178,18 +159,51 @@
                         <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="16sp" />
                     </LinearLayout>
                 </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1AFFFFFF"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <!-- Публичные -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Публичные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Приватные -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Приватные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Лайки -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- MEMORIES CARD -->
+        <!-- MEMORIES CARD (Без изменений) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/memoriesCard"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="16dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             app:cardBackgroundColor="@color/secondary"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
@@ -250,7 +264,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-
+    <!-- EXPANDED IMAGE CONTAINER (Без изменений) -->
     <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"

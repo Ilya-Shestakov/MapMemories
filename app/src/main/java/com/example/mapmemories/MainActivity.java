@@ -5,10 +5,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.example.mapmemories.database.AppDatabase;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -26,6 +29,11 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+
+import android.view.MotionEvent;
+import android.view.View;
+import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 
 import org.osmdroid.config.Configuration;
 
@@ -54,6 +62,10 @@ public class MainActivity extends AppCompatActivity {
     private long backPressedTime;
     private Toast backToast;
 
+    private ImageView offlineBadge;
+
+    private boolean isFirstLoad = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +86,9 @@ public class MainActivity extends AppCompatActivity {
         setupDoubleBackExit();
         loadUserAvatar();
         loadPublicPosts();
+        observeOfflinePosts();
+
+        setupSecretGesture();
     }
 
     private void checkCurrentUser() {
@@ -93,6 +108,7 @@ public class MainActivity extends AppCompatActivity {
         fabMap = findViewById(R.id.fabMap);
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
+        offlineBadge = findViewById(R.id.offlineBadge);
     }
 
     private void setupSwipeRefresh() {
@@ -118,6 +134,18 @@ public class MainActivity extends AppCompatActivity {
                 VibratorHelper.vibrate(MainActivity.this, 30);
 
             }, 1200);
+        });
+    }
+
+    private void observeOfflinePosts() {
+        AppDatabase.getDatabase(this).offlinePostDao().getAllPostsLive().observe(this, posts -> {
+            if (posts != null && !posts.isEmpty()) {
+                offlineBadge.setVisibility(View.VISIBLE);
+                // Можно добавить анимацию мигания, чтобы привлекало внимание
+                offlineBadge.animate().alpha(1f).setDuration(500);
+            } else {
+                offlineBadge.setVisibility(View.GONE);
+            }
         });
     }
 
@@ -178,10 +206,11 @@ public class MainActivity extends AppCompatActivity {
 
                 publicAdapter.notifyDataSetChanged();
 
-                // Запускаем анимацию при получении данных
-                memoriesRecyclerView.scheduleLayoutAnimation();
+                if (isFirstLoad) {
+                    memoriesRecyclerView.scheduleLayoutAnimation();
+                    isFirstLoad = false;
+                }
 
-                // Если кружок крутился - убираем
                 if (swipeRefreshLayout.isRefreshing()) {
                     swipeRefreshLayout.setRefreshing(false);
                 }
@@ -272,4 +301,56 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, Setting.class));
         });
     }
+
+    private void setupSecretGesture() {
+        TextView appTitle = findViewById(R.id.appTitle);
+
+        appTitle.setOnTouchListener(new View.OnTouchListener() {
+            private Handler handler = new Handler(Looper.getMainLooper());
+            private long lastUpTime = 0; // Время, когда палец был поднят в последний раз
+
+            private static final int DOUBLE_CLICK_DELAY = 400;
+            private static final int LONG_PRESS_DURATION = 1000;
+
+            private Runnable secretAction = () -> {
+                VibratorHelper.vibrate(MainActivity.this, 100);
+                showSecretDialog();
+            };
+
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                switch (event.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        long currentTime = System.currentTimeMillis();
+
+                        if (currentTime - lastUpTime <= DOUBLE_CLICK_DELAY) {
+
+                            handler.postDelayed(secretAction, LONG_PRESS_DURATION);
+                        }
+                        break;
+
+                    case MotionEvent.ACTION_UP:
+                    case MotionEvent.ACTION_CANCEL:
+
+                        handler.removeCallbacks(secretAction);
+
+                        lastUpTime = System.currentTimeMillis();
+                        break;
+                }
+                return true;
+            }
+        });
+    }
+
+    private void showSecretDialog() {
+        // Самый обычный, системный AlertDialog без дизайна
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Пасхалочка")
+                .setMessage("Скиньте денег на сервера...\n\nРазработчик: +7(912)702-36-64.\n\nМодерация: +7(996)045-85-29")
+                .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
+                .setNegativeButton("Отмена", null)
+                .setCancelable(true)
+                .show();
+    }
+
 }

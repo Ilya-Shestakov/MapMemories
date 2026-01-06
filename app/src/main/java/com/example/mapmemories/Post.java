@@ -1,6 +1,8 @@
 package com.example.mapmemories;
 
 import com.google.firebase.database.PropertyName;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Post {
     private String id;
@@ -8,18 +10,17 @@ public class Post {
     private String title;
     private String description;
     private String mediaUrl;
-    private String mediaType; // "image" или "video"
+    private String mediaType;
     private double latitude;
     private double longitude;
 
-    // Поле в коде isPublic, но в базе оно называется "public"
-    private boolean isPublic;
+    @PropertyName("public")
+    public boolean isPublic;
 
     private long timestamp;
+    private Map<String, Boolean> likes = new HashMap<>();
 
-    public Post() {
-        // Пустой конструктор обязателен для Firebase
-    }
+    public Post() {}
 
     public Post(String id, String userId, String title, String description, String mediaUrl, String mediaType, double latitude, double longitude, boolean isPublic, long timestamp) {
         this.id = id;
@@ -34,8 +35,7 @@ public class Post {
         this.timestamp = timestamp;
     }
 
-    // --- Getters & Setters ---
-
+    // Getters & Setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 
@@ -60,17 +60,19 @@ public class Post {
     public double getLongitude() { return longitude; }
     public void setLongitude(double longitude) { this.longitude = longitude; }
 
-    // ВАЖНО: Аннотация указывает Firebase, что в JSON это поле называется "public"
     @PropertyName("public")
-    public boolean isPublic() {
-        return isPublic;
-    }
+    public boolean isPublic() { return isPublic; }
 
     @PropertyName("public")
-    public void setPublic(boolean isPublic) {
-        this.isPublic = isPublic;
-    }
+    public void setPublic(boolean isPublic) { this.isPublic = isPublic; }
 
     public long getTimestamp() { return timestamp; }
     public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
+
+    public Map<String, Boolean> getLikes() { return likes; }
+    public void setLikes(Map<String, Boolean> likes) { this.likes = likes; }
+
+    public int getLikeCount() {
+        return likes == null ? 0 : likes.size();
+    }
 }

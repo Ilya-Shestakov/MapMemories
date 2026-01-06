@@ -41,7 +41,7 @@
         android:layout_height="150dp"
         android:src="@drawable/circle_background"
         android:alpha="0"
-        app:tint="@color/online_indicator"
+        app:tint="@color/therty"
         app:layout_constraintBottom_toBottomOf="@id/logoImageView"
         app:layout_constraintEnd_toEndOf="@id/logoImageView"
         app:layout_constraintStart_toStartOf="@id/logoImageView"

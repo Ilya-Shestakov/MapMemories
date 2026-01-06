@@ -10,7 +10,7 @@
         android:id="@+id/dialogCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@drawable/back_dialog"
+        android:background="@drawable/dialog_gradient_bg"
         app:cardCornerRadius="24dp"
         app:cardElevation="12dp"
         app:layout_constraintBottom_toBottomOf="parent"

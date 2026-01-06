@@ -521,24 +521,67 @@ public class Profile extends AppCompatActivity {
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (myPostList == null) myPostList = new ArrayList<>();
                         myPostList.clear();
+
+                        int publicCounter = 0;
+                        int privateCounter = 0;
+                        int totalLikesCounter = 0;
+
                         if (snapshot.exists()) {
                             for (DataSnapshot postSnapshot : snapshot.getChildren()) {
                                 Post post = postSnapshot.getValue(Post.class);
                                 if (post != null) {
                                     myPostList.add(post);
+
+                                    // Считаем типы постов
+                                    if (post.isPublic()) {
+                                        publicCounter++;
+                                    } else {
+                                        privateCounter++;
+                                    }
+
+                                    // Считаем лайки
+                                    if (post.getLikes() != null) {
+                                        totalLikesCounter += post.getLikes().size();
+                                    }
                                 }
                             }
                             Collections.reverse(myPostList);
                         }
                         memoriesAdapter.notifyDataSetChanged();
-                        updateMemoriesCountUI();
+
+                        // Обновляем UI
+                        memoriesCount.setText(String.valueOf(publicCounter));
+                        placesCount.setText(String.valueOf(privateCounter));
+                        likesCount.setText(String.valueOf(totalLikesCounter));
+
+                        // Показываем/скрываем заглушку
+                        if (myPostList.isEmpty()) {
+                            emptyMemoriesText.setVisibility(View.VISIBLE);
+                            memoriesRecyclerView.setVisibility(View.GONE);
+                        } else {
+                            emptyMemoriesText.setVisibility(View.GONE);
+                            memoriesRecyclerView.setVisibility(View.VISIBLE);
+                        }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
-                        Toast.makeText(Profile.this, "Ошибка загрузки постов", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(Profile.this, "Ошибка загрузки", Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    private void updateCountersUI(int pub, int priv, int likes) {
+        // Используем существующие TextView, но с новым смыслом
+        memoriesCount.setText(String.valueOf(pub)); // Теперь это Публичные
+        placesCount.setText(String.valueOf(priv));  // Теперь это Приватные
+        likesCount.setText(String.valueOf(likes));  // Лайки
+
+        // Сохраняем общую статистику в профиль юзера (опционально)
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("memoriesCount", pub + priv); // Общее кол-во
+        updates.put("likesCount", likes);
+        userRef.updateChildren(updates);
     }
 
     private void updateMemoriesCountUI() {

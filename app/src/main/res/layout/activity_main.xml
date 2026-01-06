@@ -6,15 +6,14 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary"
-    android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
-        android:layout_height="56dp"
+        android:layout_height="?attr/actionBarSize"
         android:background="@color/primary"
-        android:minHeight="?attr/actionBarSize"
+        android:elevation="4dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
@@ -22,24 +21,27 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="8dp">
 
+            <!-- ПРОФИЛЬ (Прибит к левому краю) -->
             <ImageView
                 android:id="@+id/profileButton"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:src="@drawable/ic_profile_placeholder"
                 android:background="@drawable/circle_background"
+                android:layout_marginTop="10dp"
+                android:layout_marginStart="0dp"
                 android:scaleType="centerCrop"
+                android:clickable="true"
+                android:focusable="true"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                android:clickable="true"
-                android:focusable="true" />
+                app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
                 android:id="@+id/appTitle"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="MapMemories"
                 android:textColor="@color/text_primary"
@@ -47,28 +49,50 @@
                 android:textStyle="bold"
                 android:gravity="center"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/logoutButton"
-                app:layout_constraintStart_toEndOf="@id/profileButton"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <ImageView
-                android:id="@+id/logoutButton"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_logout"
+            <!-- КНОПКИ СПРАВА (Прибиты к правому краю) -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:tint="@color/offline_indicator" />
+                app:layout_constraintTop_toTopOf="parent">
+
+                <!-- Иконка "В очереди на загрузку" (Скрыта по умолчанию) -->
+                <ImageView
+                    android:id="@+id/offlineBadge"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_marginEnd="16dp"
+                    android:src="@drawable/ic_download_offline"
+                    android:visibility="gone"
+                    app:tint="@color/accent"
+                    tools:visibility="visible"/>
+
+                <ImageView
+                    android:id="@+id/logoutButton"
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_logout"
+                    app:tint="@color/offline_indicator"
+                    android:layout_marginEnd="12dp"
+                    android:clickable="true"
+                    android:focusable="true"/>
+            </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
+    <!-- SwipeRefreshLayout и список -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingTop="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -81,9 +105,9 @@
             android:background="@color/primary"
             android:clipToPadding="false"
             android:paddingBottom="80dp"/>
-
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
+    <!-- FABs -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabMap"
         android:layout_width="wrap_content"

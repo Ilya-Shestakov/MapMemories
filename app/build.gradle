@@ -67,4 +67,11 @@ dependencies {
     implementation 'de.hdodenhof:circleimageview:3.1.0'
 
     implementation 'com.cloudinary:cloudinary-android:2.3.1'
+
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+
+    implementation "androidx.work:work-runtime:2.9.0"
+
 }

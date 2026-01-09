@@ -13,16 +13,15 @@
         android:background="@color/primary"
         android:fitsSystemWindows="true">
 
-        <!-- HEADER CARD -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/headerCard"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp"
-            app:cardBackgroundColor="@color/secondary"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="8dp"
+            android:layout_marginHorizontal="0dp"
+            android:layout_marginTop="0dp"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="0dp"
+            app:cardElevation="0dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
@@ -30,66 +29,78 @@
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingBottom="20dp">
+                android:paddingBottom="16dp">
 
-                <!-- КНОПКА НАЗАД (Идеальное совпадение с Main) -->
-                <!-- 8dp отступ слева и сверху соответствует паддингу тулбара -->
+                <!-- КНОПКА НАЗАД -->
                 <ImageButton
                     android:id="@+id/buttonBack"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
-                    android:layout_marginStart="8dp"
-                    android:layout_marginTop="8dp"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginTop="16dp"
                     android:background="@drawable/circle_background"
+                    android:backgroundTint="@color/secondary"
                     android:contentDescription="Назад"
                     android:src="@drawable/ic_arrow_back"
-                    android:scaleType="centerInside"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
                     app:tint="@color/text_primary"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- Аватарка -->
-                <ImageView
-                    android:id="@+id/profileImage"
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
-                    android:layout_marginTop="24dp"
-                    android:src="@drawable/ic_profile_placeholder"
+                <!-- Аватарка (Больше и по центру) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/avatarContainer"
+                    android:layout_width="110dp"
+                    android:layout_height="110dp"
+                    app:cardCornerRadius="55dp"
+                    app:cardElevation="8dp"
+                    android:layout_marginTop="20dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toTopOf="parent">
+
+                    <ImageView
+                        android:id="@+id/profileImage"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_profile_placeholder" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- Имя и редактирование -->
                 <LinearLayout
                     android:id="@+id/nameContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/profileImage">
+                    app:layout_constraintTop_toBottomOf="@id/avatarContainer">
 
                     <TextView
                         android:id="@+id/usernameText"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:ellipsize="end"
-                        android:maxWidth="200dp"
+                        android:maxWidth="250dp"
                         android:singleLine="true"
-                        android:text="User"
+                        android:text="User Name"
                         android:textColor="@color/text_primary"
-                        android:textSize="22sp"
+                        android:textSize="24sp"
+                        android:fontFamily="sans-serif-medium"
                         android:textStyle="bold" />
 
                     <ImageButton
                         android:id="@+id/editNameButton"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
                         android:layout_marginStart="8dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_edit"
+                        android:padding="4dp"
                         app:tint="@color/text_secondary"
                         android:scaleType="fitCenter" />
                 </LinearLayout>
@@ -99,7 +110,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:text="email"
+                    android:text="user@email.com"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -109,16 +120,17 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- INFO CARD (Счетчики теперь здесь) -->
+        <!-- INFO CARD
+             Теперь это основная панель. Статистика перемещена сюда наверх. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/infoCard"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginTop="4dp"
             app:cardBackgroundColor="@color/secondary"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="2dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/headerCard">
@@ -127,85 +139,120 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:paddingVertical="20dp"
+                android:paddingHorizontal="16dp">
 
+                <!-- БЛОК СТАТИСТИКИ (ПЕРЕМЕЩЕН СЮДА + ДОБАВЛЕНЫ ДРУЗЬЯ) -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:baselineAligned="false">
 
-
-
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Информация" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
-                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_phone" app:tint="@color/accent" android:layout_marginEnd="12dp" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Телефон" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                        <TextView android:id="@+id/phoneText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Не указан" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <!-- НОВАЯ МЕТКА: ДРУЗЬЯ -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/friendsCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Друзей" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
-                    <ImageButton android:id="@+id/editPhoneButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
-                </LinearLayout>
 
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
-                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_info" app:tint="@color/accent" android:layout_marginEnd="12dp" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Обо мне" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                        <TextView android:id="@+id/aboutText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Расскажите о себе..." android:textColor="@color/text_primary" android:textSize="16sp" android:lineSpacingExtra="4dp" />
+                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+
+                    <!-- Публичные -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Открытые" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
-                    <ImageButton android:id="@+id/editAboutButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
-                </LinearLayout>
 
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
-                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_calendar" app:tint="@color/accent" android:layout_marginEnd="12dp" />
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="С нами с" android:textColor="@color/text_secondary" android:textSize="12sp" />
-                        <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+
+                    <!-- Приватные -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Личные" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+
+                    <!-- Лайки -->
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="18sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="#1AFFFFFF"
-                    android:layout_marginTop="10dp"
+                    android:background="#15FFFFFF"
                     android:layout_marginBottom="16dp"/>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="20dp"
-                    android:gravity="center"
-                    android:orientation="horizontal">
+                <!-- ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ -->
 
-                    <!-- Публичные -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Публичные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                <!-- Телефон -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/circle_background"
+                        android:backgroundTint="#10FFFFFF">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_phone" app:tint="@color/accent"/>
+                    </FrameLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
+                        <TextView android:id="@+id/phoneText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Не указан" android:textColor="@color/text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Телефон" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
+                    <ImageButton android:id="@+id/editPhoneButton" android:layout_width="24dp" android:layout_height="24dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" android:alpha="0.5"/>
+                </LinearLayout>
 
-                    <!-- Приватные -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Приватные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                <!-- О себе -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="top" android:layout_marginBottom="16dp">
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/circle_background"
+                        android:backgroundTint="#10FFFFFF">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_info" app:tint="@color/accent"/>
+                    </FrameLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
+                        <TextView android:id="@+id/aboutText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Расскажите о себе..." android:textColor="@color/text_primary" android:textSize="15sp" android:lineSpacingMultiplier="1.2" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Био" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
+                    <ImageButton android:id="@+id/editAboutButton" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginTop="4dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" android:alpha="0.5"/>
+                </LinearLayout>
 
-                    <!-- Лайки -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                <!-- Дата регистрации -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
+                    <FrameLayout
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="@drawable/circle_background"
+                        android:backgroundTint="#10FFFFFF">
+                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_calendar" app:tint="@color/accent"/>
+                    </FrameLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
+                        <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="15sp" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Дата регистрации" android:textColor="@color/text_secondary" android:textSize="11sp" />
                     </LinearLayout>
                 </LinearLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- MEMORIES CARD (Без изменений) -->
+        <!-- MEMORIES CARD -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/memoriesCard"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginHorizontal="12dp"
+            android:layout_marginBottom="-16dp"
             app:cardBackgroundColor="@color/secondary"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="24dp"
             app:cardElevation="4dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -216,55 +263,58 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:paddingHorizontal="20dp"
+                android:paddingTop="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:layout_marginBottom="16dp">
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="12dp">
 
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="Мои воспоминания"
+                        android:text="Мои Воспоминания"
                         android:textColor="@color/text_primary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
 
                     <ImageButton
                         android:id="@+id/viewAllMemories"
-                        android:layout_width="100dp"
-                        android:layout_height="match_parent"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:padding="8dp"
                         android:src="@drawable/ic_arrow_drop"
-                        android:background="@color/secondary" />
+                        app:tint="@color/text_secondary"
+                        android:background="?attr/selectableItemBackgroundBorderless" />
                 </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/memoriesRecyclerView"
                     android:layout_width="match_parent"
-                    android:layout_height="0dp"
-                    android:layout_weight="1"
+                    android:layout_height="match_parent"
                     android:clipToPadding="false"
-                    android:padding="4dp" />
+                    android:paddingBottom="24dp" />
 
                 <TextView
                     android:id="@+id/emptyMemoriesText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
-                    android:text="Пока нет воспоминаний\nСоздайте первое!"
+                    android:layout_marginTop="32dp"
+                    android:text="Пока нет воспоминаний"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp"
-                    android:gravity="center"
                     android:visibility="gone" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- EXPANDED IMAGE CONTAINER (Без изменений) -->
+    <!-- EXPANDED IMAGE CONTAINER (Осталось без изменений, так как это оверлей) -->
     <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"
@@ -276,7 +326,7 @@
             android:id="@+id/expandedBackground"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#99000000"
+            android:background="#DD000000"
             android:alpha="0" />
 
         <com.google.android.material.card.MaterialCardView

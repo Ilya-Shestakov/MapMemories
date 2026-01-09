@@ -274,6 +274,18 @@ public class MainActivity extends AppCompatActivity {
             overridePendingTransition(0, 0);
         });
 
+        offlineBadge.setOnClickListener(v -> {
+            VibratorHelper.vibrate(MainActivity.this, 30);
+
+            // Создаем и показываем наш BottomSheet
+
+            //OfflineQueueBottomSheet bottomSheet = new OfflineQueueBottomSheet();
+            //bottomSheet.show(getSupportFragmentManager(), "OfflineQueueTag");
+
+
+            DialogHelper.showOfflineQueue(this, null);
+        });
+
         logoutButton.setOnClickListener(v -> {
             DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
                 mAuth.signOut();

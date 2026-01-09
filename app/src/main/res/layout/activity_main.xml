@@ -23,7 +23,6 @@
             android:layout_height="match_parent"
             android:paddingHorizontal="8dp">
 
-            <!-- ПРОФИЛЬ (Прибит к левому краю) -->
             <ImageView
                 android:id="@+id/profileButton"
                 android:layout_width="40dp"
@@ -53,7 +52,6 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- КНОПКИ СПРАВА (Прибиты к правому краю) -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -63,7 +61,6 @@
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
-                <!-- Иконка "В очереди на загрузку" (Скрыта по умолчанию) -->
                 <ImageView
                     android:id="@+id/offlineBadge"
                     android:layout_width="24dp"
@@ -88,7 +85,6 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <!-- SwipeRefreshLayout и список -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
@@ -107,7 +103,6 @@
             android:paddingBottom="80dp"/>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- FABs -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabMap"
         android:layout_width="wrap_content"

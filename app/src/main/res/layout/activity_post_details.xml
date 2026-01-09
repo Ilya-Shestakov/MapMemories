@@ -6,200 +6,289 @@
     android:layout_height="match_parent"
     android:background="@color/primary">
 
-    <ScrollView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true"
-        android:id="@+id/mainContentScroll"
+        android:orientation="vertical"
         android:fitsSystemWindows="true">
 
+        <!-- ТУЛБАР (Классический, закрепленный сверху) -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="30dp">
+            android:layout_height="56dp"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp">
 
-            <!-- Картинка на весь верх -->
-            <FrameLayout
-                android:layout_width="match_parent"
-                android:layout_height="300dp">
+            <ImageButton
+                android:id="@+id/btnBackDetails"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_primary" />
 
-                <ImageView
-                    android:id="@+id/detailImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop"
-                    android:src="@color/secondary" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Редактирование"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:gravity="center"/>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="80dp"
-                    android:background="@drawable/gradient_bottom"
-                    android:visibility="gone"/>
+            <!-- Пустышка для баланса заголовка -->
+            <View android:layout_width="48dp" android:layout_height="48dp"/>
+        </LinearLayout>
 
-                <ImageButton
-                    android:id="@+id/btnBackDetails"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_margin="16dp"
-                    android:background="@drawable/rounded_button"
-                    android:src="@drawable/ic_arrow_back"
-                    app:tint="@color/text_primary"
-                    android:elevation="4dp"/>
-            </FrameLayout>
+        <ScrollView
+            android:id="@+id/mainContentScroll"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
+                android:padding="16dp">
 
-                <!-- Название -->
+                <!-- 1. КАРТИНКА (Отдельный блок) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="220dp"
+                    app:cardBackgroundColor="@color/secondary"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent">
+
+                        <ImageView
+                            android:id="@+id/detailImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@color/secondary" />
+
+                        <!-- Градиент снизу для иконки камеры -->
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="#20000000"/>
+
+
+                    </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- 2. ПОЛЯ ВВОДА (Блочный стиль) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Название"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
-                <EditText
-                    android:id="@+id/editTitle"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/transparent"
-                    android:hint="Введите название"
-                    android:paddingVertical="8dp"
-                    android:textColor="@color/text_primary"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/text_secondary"
-                    android:alpha="0.3"
-                    android:layout_marginBottom="16dp"/>
-
-                <!-- Описание -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Описание"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
-
-                <EditText
-                    android:id="@+id/editDescription"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:background="@android:color/transparent"
-                    android:gravity="top"
-                    android:hint="Опишите воспоминание..."
-                    android:minLines="3"
-                    android:paddingVertical="8dp"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="@color/text_secondary"
-                    android:alpha="0.3"
-                    android:layout_marginVertical="16dp"/>
-
-                <!-- Настройки приватности -->
-                <com.google.android.material.switchmaterial.SwitchMaterial
-                    android:id="@+id/switchPrivacy"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Публичное воспоминание"
-                    android:textColor="@color/text_primary"
-                    android:textSize="16sp"
-                    app:thumbTint="@color/accent"
-                    app:trackTint="@color/text_secondary" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Если включено, метку видят все пользователи"
+                    android:text="Основная информация"
                     android:textColor="@color/text_secondary"
                     android:textSize="12sp"
-                    android:layout_marginBottom="16dp"/>
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginStart="4dp"/>
 
-                <!-- Редактирование координат -->
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Координаты (Широта / Долгота)"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp"
-                    android:layout_marginBottom="8dp"/>
-
+                <!-- Блок Названия -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="24dp">
+                    android:background="@drawable/rounded_background_surface"
+                    android:backgroundTint="@color/secondary"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="4dp">
+                    <!-- rounded_background_surface - это просто shape rectangle с радиусом 12dp -->
 
                     <EditText
-                        android:id="@+id/editLatitude"
-                        android:layout_width="0dp"
+                        android:id="@+id/editTitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Lat"
-                        android:inputType="numberDecimal|numberSigned"
+                        android:background="@null"
+                        android:hint="Придумайте название"
+                        android:textColorHint="@color/text_secondary"
+                        android:minHeight="48dp"
                         android:textColor="@color/text_primary"
-                        android:layout_marginEnd="8dp"/>
-
-                    <EditText
-                        android:id="@+id/editLongitude"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:hint="Lng"
-                        android:inputType="numberDecimal|numberSigned"
-                        android:textColor="@color/text_primary" />
-
-                    <ImageButton
-                        android:id="@+id/btnPickOnMap"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:layout_marginStart="8dp"
-                        android:background="@drawable/rounded_button"
-                        android:backgroundTint="@color/surface_dark"
-                        app:tint="@color/online_indicator"
-                        android:src="@drawable/ic_my_location"
-                        android:scaleType="centerInside"
-                        android:padding="12dp" />
-
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Кнопки действий -->
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnSave"
+                <!-- Блок Описания -->
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:text="Сохранить изменения"
-                    app:cornerRadius="12dp"
-                    android:layout_marginBottom="12dp"
-                    app:backgroundTint="@color/accent"/>
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/rounded_background_surface"
+                    android:backgroundTint="@color/secondary"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <EditText
+                        android:id="@+id/editDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@null"
+                        android:gravity="top"
+                        android:hint="Расскажите подробнее..."
+                        android:textColorHint="@color/text_secondary"
+                        android:minLines="5"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+
+                <!-- 3. НАСТРОЙКИ (Список) -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Параметры"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="24dp"
+                    android:layout_marginBottom="8dp"
+                    android:layout_marginStart="4dp"/>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/secondary"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="4dp">
+
+                        <!-- Приватность -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
+
+                            <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_lock" app:tint="@color/accent"/>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="16dp"
+                                android:text="Публичная запись"
+                                android:textColor="@color/text_primary"
+                                android:textSize="16sp"/>
+
+                            <com.google.android.material.switchmaterial.SwitchMaterial
+                                android:id="@+id/switchPrivacy"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                app:thumbTint="@color/accent"
+                                app:trackTint="@color/text_secondary"/>
+                        </LinearLayout>
+
+                        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#10FFFFFF" android:layout_marginHorizontal="16dp"/>
+
+                        <!-- Координаты -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:padding="12dp">
+
+                            <ImageView
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
+                                android:src="@drawable/ic_my_location"
+                                app:tint="@color/accent"
+                                />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="16dp"
+                                android:orientation="vertical">
+
+                                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                                    <EditText
+                                        android:id="@+id/editLatitude"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:background="@null"
+                                        android:hint="Lat"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary"/>
+                                    <EditText
+                                        android:id="@+id/editLongitude"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:background="@null"
+                                        android:hint="Lng"
+                                        android:textSize="14sp"
+                                        android:textColor="@color/text_primary"/>
+                                </LinearLayout>
+                            </LinearLayout>
+
+                            <ImageButton
+                                android:id="@+id/btnPickOnMap"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:src="@drawable/ic_arrow_right"
+                                app:tint="@color/text_secondary"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <Space android:layout_width="match_parent" android:layout_height="30dp"/>
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDelete"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:text="Удалить воспоминание"
-                    android:textColor="@android:color/holo_red_light"
-                    app:strokeColor="@android:color/holo_red_light"
-                    app:strokeWidth="1dp"
+                    android:layout_height="56dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="Удалить"
+
+                    android:textColor="@color/accent"
+                    app:iconTint="#FF5252"
+                    app:backgroundTint="@color/secondary"
                     app:cornerRadius="12dp"
-                    app:backgroundTint="@android:color/transparent"
-                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
+                    android:gravity="center"
+                    app:elevation="0dp"/>
 
             </LinearLayout>
-        </LinearLayout>
-    </ScrollView>
+        </ScrollView>
 
+        <!-- КНОПКИ (Прижаты к низу) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:background="@color/secondary">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSave"
+                android:layout_width="0dp"
+                android:layout_height="56dp"
+                android:layout_weight="3"
+                android:text="Сохранить"
+                android:textStyle="bold"
+                app:backgroundTint="@color/accent"
+                app:cornerRadius="12dp"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ОВЕРЛЕЙ -->
     <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"
@@ -209,53 +298,19 @@
         android:focusable="true"
         android:elevation="100dp">
 
-        <View
-            android:id="@+id/expandedBackground"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:background="#E6000000"
-            android:alpha="0" />
-
-        <ImageView
-            android:id="@+id/expandedImage"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_margin="0dp"
-            android:scaleType="fitCenter"
-            android:src="@color/secondary" />
+        <View android:id="@+id/expandedBackground" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#F0000000" android:alpha="0"/>
+        <ImageView android:id="@+id/expandedImage" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter"/>
 
         <LinearLayout
             android:id="@+id/expandedControls"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="64dp"
-            android:orientation="horizontal"
+            android:layout_gravity="bottom"
+            android:padding="24dp"
+            android:gravity="center"
             android:alpha="0">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnChangeExpanded"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:text="Заменить"
-                android:textColor="@android:color/white"
-                app:icon="@drawable/ic_edit"
-                app:iconTint="@android:color/white"
-                app:backgroundTint="@color/secondary"
-                app:cornerRadius="30dp"
-                android:layout_marginEnd="16dp"/>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnDownloadExpanded"
-                android:layout_width="wrap_content"
-                android:layout_height="60dp"
-                android:text="Скачать"
-                android:textColor="@color/text_primary"
-                app:icon="@drawable/ic_download"
-                app:iconTint="@color/text_primary"
-                app:backgroundTint="@color/secondary"
-                app:cornerRadius="30dp"/>
-
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnChangeExpanded" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Изменить фото" app:cornerRadius="20dp" android:layout_marginEnd="12dp"/>
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnDownloadExpanded" android:layout_width="wrap_content" android:layout_height="wrap_content" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:text="Скачать" app:strokeColor="@android:color/white" android:textColor="@android:color/white" app:cornerRadius="20dp"/>
         </LinearLayout>
     </FrameLayout>
 </FrameLayout>

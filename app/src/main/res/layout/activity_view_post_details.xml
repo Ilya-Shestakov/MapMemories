@@ -6,146 +6,188 @@
     android:layout_height="match_parent"
     android:background="@color/primary">
 
-    <!-- СЛОЙ 1: ОСНОВНОЙ КОНТЕНТ -->
-    <!-- CoordinatorLayout с fitsSystemWindows="true" для корректного отступа -->
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
+    <!-- Основной контент (тот самый mainContentLayout для блюра) -->
+    <LinearLayout
+        android:id="@+id/mainContentLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fitsSystemWindows="true"
-        tools:context=".ViewPostDetailsActivity"
-        android:id="@+id/mainContentLayout"
-        >
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
-        <com.google.android.material.appbar.AppBarLayout
+        <!-- ТУЛБАР -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
-            android:background="@android:color/transparent"
-            app:elevation="0dp">
+            android:background="@color/primary"
+            app:navigationIcon="@drawable/ic_arrow_back"
+            app:title=""
+            android:elevation="0dp">
 
-            <androidx.appcompat.widget.Toolbar
-                android:id="@+id/toolbar"
-                android:layout_width="match_parent"
-                android:layout_height="?attr/actionBarSize"
-                android:background="@color/primary"
-                app:navigationIcon="@drawable/ic_arrow_back"
-                app:title="Воспоминание"
-                app:titleTextColor="@color/text_primary" />
-        </com.google.android.material.appbar.AppBarLayout>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Просмотр"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_gravity="center"/>
+        </androidx.appcompat.widget.Toolbar>
 
-        <androidx.core.widget.NestedScrollView
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layout_behavior="@string/appbar_scrolling_view_behavior">
+            android:fillViewport="true">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingBottom="30dp">
+                android:paddingHorizontal="16dp"
+                android:paddingBottom="40dp">
 
-                <!-- Картинка поста -->
-                <FrameLayout
+                <!-- 1. КАРТИНКА (В стиле карточки как при редактировании) -->
+                <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
-                    android:layout_height="300dp">
+                    android:layout_height="380dp"
+                    android:layout_marginTop="8dp"
+                    app:cardBackgroundColor="@color/secondary"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp">
 
-                    <ImageView
-                        android:id="@+id/detailImage"
+                    <FrameLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@color/secondary" />
+                        android:layout_height="match_parent">
 
-                    <ImageView
-                        android:id="@+id/detailVideoIcon"
-                        android:layout_width="64dp"
-                        android:layout_height="64dp"
-                        android:layout_gravity="center"
-                        android:src="@drawable/ic_play_circle"
-                        android:visibility="gone"
-                        app:tint="@android:color/white" />
-                </FrameLayout>
+                        <ImageView
+                            android:id="@+id/detailImage"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="centerCrop"
+                            android:src="@color/secondary" />
 
-                <!-- Информация об авторе -->
+                        <!-- Иконка видео -->
+                        <ImageView
+                            android:id="@+id/detailVideoIcon"
+                            android:layout_width="64dp"
+                            android:layout_height="64dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_play_circle"
+                            android:visibility="gone"
+                            app:tint="@android:color/white" />
+
+
+                    </FrameLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Отступ -->
+                <Space android:layout_width="match_parent" android:layout_height="24dp"/>
+
+                <!-- 2. БЛОК ИНФОРМАЦИИ (В стиле surface) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:padding="16dp"
-                    android:background="@color/secondary">
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:id="@+id/detailAuthorAvatar"
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
-                        android:src="@drawable/ic_profile_placeholder"
-                        android:background="@drawable/circle_background"
-                        android:padding="1dp"/>
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
+                    <!-- Заголовок -->
+                    <TextView
+                        android:id="@+id/detailTitle"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginStart="16dp">
+                        android:text="Заголовок истории"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp"/>
 
-                        <TextView
-                            android:id="@+id/detailAuthorName"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Загрузка..."
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold"
-                            android:textSize="16sp"/>
-
-                        <TextView
-                            android:id="@+id/detailDate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Дата публикации"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="14sp"/>
-                    </LinearLayout>
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
-
-                    <!-- Заголовок и лайк -->
+                    <!-- Автор и Дата (Row) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="top">
+                        android:gravity="center_vertical"
+                        android:background="@drawable/rounded_background_surface"
+                        android:backgroundTint="@color/secondary"
+                        android:padding="12dp">
 
-                        <TextView
-                            android:id="@+id/detailTitle"
+                        <com.google.android.material.imageview.ShapeableImageView
+                            android:id="@+id/detailAuthorAvatar"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:src="@drawable/ic_profile_placeholder"
+                            android:scaleType="centerCrop"
+                            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                        <LinearLayout
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:text="Название"
-                            android:textColor="@color/text_primary"
-                            android:textSize="24sp"
-                            android:textStyle="bold" />
+                            android:layout_marginStart="12dp"
+                            android:orientation="vertical">
 
+                            <TextView
+                                android:id="@+id/detailAuthorName"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Username"
+                                android:textColor="@color/text_primary"
+                                android:textStyle="bold"
+                                android:textSize="15sp"/>
+
+                            <TextView
+                                android:id="@+id/detailDate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="20 Oct, 2023"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Описание -->
+                    <TextView
+                        android:id="@+id/detailDescription"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="20dp"
+                        android:text="Описание..."
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:lineSpacingExtra="4dp"
+                        android:alpha="0.85"/>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="@color/text_secondary"
+                        android:alpha="0.1"
+                        android:layout_marginVertical="20dp"/>
+
+                    <!-- Нижний ряд: Лайки и Локация -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Лайки -->
                         <LinearLayout
                             android:id="@+id/detailLikeContainer"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:gravity="center"
-                            android:padding="8dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/rounded_button"
+                            android:backgroundTint="@color/secondary"
+                            android:paddingHorizontal="16dp"
+                            android:paddingVertical="10dp"
                             android:clickable="true"
-                            android:focusable="true"
-                            android:background="?attr/selectableItemBackgroundBorderless">
+                            android:focusable="true">
 
                             <ImageView
                                 android:id="@+id/detailLikeIcon"
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
+                                android:layout_width="24dp"
+                                android:layout_height="24dp"
                                 android:src="@drawable/ic_favorite_border"
                                 app:tint="@color/accent"/>
 
@@ -154,75 +196,57 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="0"
+                                android:layout_marginStart="8dp"
                                 android:textColor="@color/text_primary"
-                                android:textSize="14sp"
-                                android:textStyle="bold"/>
+                                android:textStyle="bold"
+                                android:textSize="16sp"/>
+                        </LinearLayout>
+
+                        <Space android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"/>
+
+                        <!-- Локация -->
+                        <LinearLayout
+                            android:id="@+id/layoutLocation"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/rounded_button"
+                            android:backgroundTint="@color/secondary"
+                            android:paddingHorizontal="12dp"
+                            android:paddingVertical="10dp"
+                            android:clickable="true"
+                            android:focusable="true">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_my_location"
+                                app:tint="@color/text_secondary"
+                                android:layout_marginEnd="6dp"/>
+
+                            <TextView
+                                android:id="@+id/detailCoordinates"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Lat, Lng"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                android:maxWidth="150dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"/>
                         </LinearLayout>
                     </LinearLayout>
 
-                    <!-- Локация -->
-                    <LinearLayout
-                        android:id="@+id/layoutLocation"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="center_vertical"
-                        android:layout_marginTop="8dp"
-                        android:layout_marginBottom="16dp"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:padding="8dp">
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_my_location"
-                            app:tint="@color/accent"
-                            android:layout_marginEnd="8dp"/>
-
-                        <TextView
-                            android:id="@+id/detailCoordinates"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="0.0000, 0.0000"
-                            android:textColor="@color/accent"
-                            android:textSize="14sp"
-                            android:textStyle="bold"/>
-
-                        <TextView
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:gravity="end"
-                            android:text="На карте >"
-                            android:textSize="12sp"
-                            android:alpha="0.7"
-                            android:textColor="@color/text_secondary"/>
-                    </LinearLayout>
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Описание"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp"
-                        android:layout_marginBottom="4dp"/>
-
-                    <TextView
-                        android:id="@+id/detailDescription"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Текст описания..."
-                        android:textColor="@color/text_primary"
-                        android:textSize="16sp"
-                        android:lineSpacingExtra="4dp"/>
-
                 </LinearLayout>
-            </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+            </LinearLayout>
+        </ScrollView>
+    </LinearLayout>
+
+    <!-- ОВЕРЛЕЙ ЗУМА (ПОВЕРХ ВСЕГО) -->
+    <!-- Важно: id совпадают с Java кодом -->
     <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"
@@ -236,30 +260,27 @@
             android:id="@+id/expandedBackground"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#E6000000"
-            android:alpha="0" />
+            android:background="#D9000000"
+            android:alpha="0"/>
 
         <ImageView
             android:id="@+id/expandedImage"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_margin="0dp"
-            android:scaleType="fitCenter"
-            android:src="@color/secondary" />
+            android:scaleType="fitCenter"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDownloadExpanded"
             android:layout_width="wrap_content"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="64dp"
-            android:text="Скачать фото"
+            android:layout_marginBottom="40dp"
+            android:text="Скачать"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            app:strokeColor="@android:color/white"
             android:textColor="@android:color/white"
-            app:icon="@drawable/ic_download"
-            app:iconTint="@android:color/white"
-            app:backgroundTint="@color/secondary"
-            app:cornerRadius="30dp"
-            android:alpha="0" />
-
+            app:cornerRadius="20dp"
+            android:alpha="0"/>
     </FrameLayout>
+
 </FrameLayout>

@@ -229,7 +229,6 @@ public class Profile extends AppCompatActivity {
                         InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE, R.drawable.ic_info,
                         newValue -> updateUserField("about", newValue)));
 
-        // !!! ИЗМЕНЕНО: Редактирование имени по нажатию на карандашик рядом с именем
         editNameButton.setOnClickListener(v ->
                 DialogHelper.showInput(this, "Изменить имя", usernameText.getText().toString(),
                         InputType.TYPE_CLASS_TEXT, R.drawable.ic_edit,
@@ -430,21 +429,25 @@ public class Profile extends AppCompatActivity {
                     String username = snapshot.child("username").getValue(String.class);
                     String phone = snapshot.child("phone").getValue(String.class);
                     String about = snapshot.child("about").getValue(String.class);
-
                     String remoteImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
-
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
+
+                    // --- УДАЛИ ИЛИ ЗАКОММЕНТИРУЙ ЭТОТ БЛОК ---
+                    // Мы не берем счетчики отсюда, потому что loadMemories считает их лучше (разделяет на Public/Private)
+                    /*
                     Long memories = snapshot.child("memoriesCount").getValue(Long.class);
                     Long places = snapshot.child("placesCount").getValue(Long.class);
                     Long likes = snapshot.child("likesCount").getValue(Long.class);
 
-                    usernameText.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
-                    phoneText.setText(TextUtils.isEmpty(phone) ? "Не указан" : phone);
-                    aboutText.setText(TextUtils.isEmpty(about) ? "Расскажите о себе..." : about);
-
                     memoriesCount.setText(String.valueOf(memories != null ? memories : 0));
                     placesCount.setText(String.valueOf(places != null ? places : 0));
                     likesCount.setText(String.valueOf(likes != null ? likes : 0));
+                    */
+                    // ------------------------------------------
+
+                    usernameText.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
+                    phoneText.setText(TextUtils.isEmpty(phone) ? "Не указан" : phone);
+                    aboutText.setText(TextUtils.isEmpty(about) ? "Расскажите о себе..." : about);
 
                     if (joinDate != null) {
                         SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", new Locale("ru"));
@@ -453,8 +456,7 @@ public class Profile extends AppCompatActivity {
                         joinDateText.setText("Недавно");
                     }
 
-                    // Обновляем ссылку, но картинку грузим только если она изменилась на сервере,
-                    // чтобы не моргало после нашей локальной установки
+                    // Обновляем картинку
                     if (remoteImageUrl != null && !remoteImageUrl.equals(currentProfileImageUrl)) {
                         currentProfileImageUrl = remoteImageUrl;
                         Glide.with(Profile.this)
@@ -463,7 +465,6 @@ public class Profile extends AppCompatActivity {
                                 .circleCrop()
                                 .into(profileImage);
                     } else if (currentProfileImageUrl == null && remoteImageUrl != null) {
-                        // Первый запуск
                         currentProfileImageUrl = remoteImageUrl;
                         Glide.with(Profile.this)
                                 .load(currentProfileImageUrl)
@@ -485,10 +486,7 @@ public class Profile extends AppCompatActivity {
             }
         });
     }
-
-    // ... Остальные методы (createUserProfile, loadMemories, updateMemoriesCountUI, updateUserField, onBackPressed, Close, revealActivity, unRevealActivity, toggleMemoriesState) без изменений ...
-
-    // (Копируй их из предыдущего ответа, если нужно, но они не менялись)
+    
     private void createUserProfile() {
         Map<String, Object> userData = new HashMap<>();
         userData.put("username", currentUser.getDisplayName() != null ? currentUser.getDisplayName() : "Пользователь");
@@ -684,3 +682,323 @@ public class Profile extends AppCompatActivity {
         constraintSet.applyTo(rootLayout);
     }
 }
+
+
+
+
+
+
+
+/*
+старый   дизайн
+
+
+
+
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/transparent">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/mainContentLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/primary"
+        android:fitsSystemWindows="true">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/headerCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            app:cardBackgroundColor="@color/secondary"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="8dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingBottom="20dp">
+
+
+                <ImageButton
+                    android:id="@+id/buttonBack"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/circle_background"
+                    android:contentDescription="Назад"
+                    android:src="@drawable/ic_arrow_back"
+                    android:scaleType="centerInside"
+                    app:tint="@color/text_primary"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <ImageView
+                    android:id="@+id/profileImage"
+                    android:layout_width="100dp"
+                    android:layout_height="100dp"
+                    android:layout_marginTop="24dp"
+                    android:src="@drawable/ic_profile_placeholder"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <LinearLayout
+                    android:id="@+id/nameContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/profileImage">
+
+                    <TextView
+                        android:id="@+id/usernameText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:ellipsize="end"
+                        android:maxWidth="200dp"
+                        android:singleLine="true"
+                        android:text="User"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/editNameButton"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="8dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_edit"
+                        app:tint="@color/text_secondary"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/emailText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="email"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/nameContainer" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/infoCard"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            app:cardBackgroundColor="@color/secondary"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/headerCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+
+
+
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Информация" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp" />
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_phone" app:tint="@color/accent" android:layout_marginEnd="12dp" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Телефон" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                        <TextView android:id="@+id/phoneText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Не указан" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    </LinearLayout>
+                    <ImageButton android:id="@+id/editPhoneButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:layout_marginBottom="12dp">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_info" app:tint="@color/accent" android:layout_marginEnd="12dp" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Обо мне" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                        <TextView android:id="@+id/aboutText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Расскажите о себе..." android:textColor="@color/text_primary" android:textSize="16sp" android:lineSpacingExtra="4dp" />
+                    </LinearLayout>
+                    <ImageButton android:id="@+id/editAboutButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+                    <ImageView android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_calendar" app:tint="@color/accent" android:layout_marginEnd="12dp" />
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="С нами с" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                        <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="16sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1AFFFFFF"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="16dp"/>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Публичные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Приватные" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="20sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="12sp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/memoriesCard"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            app:cardBackgroundColor="@color/secondary"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/infoCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Мои воспоминания"
+                        android:textColor="@color/text_primary"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <ImageButton
+                        android:id="@+id/viewAllMemories"
+                        android:layout_width="100dp"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_arrow_drop"
+                        android:background="@color/secondary" />
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/memoriesRecyclerView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:clipToPadding="false"
+                    android:padding="4dp" />
+
+                <TextView
+                    android:id="@+id/emptyMemoriesText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:text="Пока нет воспоминаний\nСоздайте первое!"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:gravity="center"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <FrameLayout
+        android:id="@+id/expandedContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        android:elevation="100dp">
+
+        <View
+            android:id="@+id/expandedBackground"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:alpha="0" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/expandedCard"
+            android:layout_width="320dp"
+            android:layout_height="320dp"
+            android:layout_gravity="center"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="12dp"
+            app:cardBackgroundColor="@android:color/transparent">
+
+            <ImageView
+                android:id="@+id/expandedImage"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_profile_placeholder" />
+
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/btnEditExpanded"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|bottom"
+            android:layout_marginBottom="64dp"
+            android:text="Изменить фото"
+            android:textColor="@android:color/white"
+            app:icon="@drawable/ic_edit"
+            app:iconTint="@android:color/white"
+            app:backgroundTint="@color/secondary"
+            android:alpha="0" />
+
+    </FrameLayout>
+</FrameLayout>
+
+
+ */

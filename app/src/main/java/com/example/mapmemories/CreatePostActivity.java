@@ -22,11 +22,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.work.ExistingWorkPolicy;
-
-import java.io.File;
-import java.io.InputStream;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,18 +40,17 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import androidx.work.Constraints;
+import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
-import com.example.mapmemories.database.AppDatabase;
-import com.example.mapmemories.database.OfflinePost;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -64,7 +58,7 @@ import java.util.concurrent.Executors;
 public class CreatePostActivity extends AppCompatActivity {
 
     // --- UI Элементы ---
-    private ConstraintLayout rootLayout; // Главный контейнер для анимации
+    private ConstraintLayout rootLayout;
     private ImageButton btnClose;
     private CardView btnAddMedia;
     private ImageView previewImage;
@@ -74,8 +68,8 @@ public class CreatePostActivity extends AppCompatActivity {
     private TextView textLocation;
     private MaterialButton btnSavePost;
 
-    // Элементы переключателя приватности
-    private CardView btnPrivacyToggle;
+    // Элементы переключателя приватности (ИЗМЕНЕНО: теперь LinearLayout)
+    private LinearLayout btnPrivacyToggle;
     private ImageView ivPrivacyIcon, ivPrivacyStateIndicator;
     private TextView tvPrivacyText;
 
@@ -169,13 +163,15 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // Находим корневой элемент (не забудь добавить ID в XML!)
+        // Находим корневой элемент
         rootLayout = findViewById(R.id.rootLayout);
 
         btnClose = findViewById(R.id.btnClose);
         btnAddMedia = findViewById(R.id.btnAddMedia);
         previewImage = findViewById(R.id.previewImage);
-        layoutAddMediaPlaceholder = (LinearLayout) btnAddMedia.getChildAt(0);
+
+        // ИСПРАВЛЕНИЕ: Ищем по ID, а не через getChildAt, чтобы избежать ClassCastException
+        layoutAddMediaPlaceholder = findViewById(R.id.layoutAddMediaPlaceholder);
 
         inputTitle = findViewById(R.id.inputTitle);
         inputDescription = findViewById(R.id.inputDescription);
@@ -183,6 +179,7 @@ public class CreatePostActivity extends AppCompatActivity {
         textLocation = findViewById(R.id.textLocation);
         btnSavePost = findViewById(R.id.btnSavePost);
 
+        // ИСПРАВЛЕНИЕ: btnPrivacyToggle в XML теперь LinearLayout
         btnPrivacyToggle = findViewById(R.id.btnPrivacyToggle);
         ivPrivacyIcon = findViewById(R.id.ivPrivacyIcon);
         tvPrivacyText = findViewById(R.id.tvPrivacyText);
@@ -224,7 +221,9 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void showPreview() {
-        layoutAddMediaPlaceholder.setVisibility(View.GONE);
+        if (layoutAddMediaPlaceholder != null) {
+            layoutAddMediaPlaceholder.setVisibility(View.GONE);
+        }
         previewImage.setVisibility(View.VISIBLE);
         Glide.with(this)
                 .load(selectedMediaUri)
@@ -244,16 +243,8 @@ public class CreatePostActivity extends AppCompatActivity {
         });
 
         btnSelectLocation.setOnClickListener(v -> {
-            // Заглушка
-
             Intent intent = new Intent(CreatePostActivity.this, PickLocationActivity.class);
             locationPickerLauncher.launch(intent);
-
-//            Toast.makeText(this, "Выбор локации (заглушка)", Toast.LENGTH_SHORT).show();
-//            selectedLat = 55.7558;
-//            selectedLng = 37.6173;
-//            textLocation.setText("Москва, Кремль");
-
         });
 
         btnPrivacyToggle.setOnClickListener(v -> togglePrivacy());
@@ -262,19 +253,25 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private void togglePrivacy() {
         isPublic = !isPublic;
-        int colorPrivate = ContextCompat.getColor(this, R.color.surface_dark);
+        int colorPrivate = ContextCompat.getColor(this, android.R.color.transparent); // Или R.color.secondary если нужен цвет
         int colorPublic = ContextCompat.getColor(this, R.color.online_indicator);
-        int colorTextPrivate = ContextCompat.getColor(this, R.color.text_secondary);
+        // В дизайне из XML фон кнопки прозрачный/selectableItemBackground.
+        // Если хотите менять цвет фона всей строки:
+        // Используем прозрачный для "приватно" (как дефолт) и подкрашенный для "публично".
+        // Но лучше просто менять иконку и текст, как в новом дизайне.
 
+        // Для упрощения под новый дизайн - меняем только иконки и текст.
+        // Если хотите менять цвет фона LinearLayout:
+        /*
         int startColor = isPublic ? colorPrivate : colorPublic;
         int endColor = isPublic ? colorPublic : colorPrivate;
-
         ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), startColor, endColor);
         colorAnimation.setDuration(300);
         colorAnimation.addUpdateListener(animator ->
-                btnPrivacyToggle.setCardBackgroundColor((int) animator.getAnimatedValue())
+                btnPrivacyToggle.setBackgroundColor((int) animator.getAnimatedValue()) // ИСПРАВЛЕНО на setBackgroundColor
         );
         colorAnimation.start();
+        */
 
         ivPrivacyIcon.animate()
                 .rotationY(90f)
@@ -282,16 +279,13 @@ public class CreatePostActivity extends AppCompatActivity {
                 .withEndAction(() -> {
                     if (isPublic) {
                         ivPrivacyIcon.setImageResource(R.drawable.ic_public);
-                        ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.white));
-                        tvPrivacyText.setTextColor(ContextCompat.getColor(this, R.color.white));
-                        ivPrivacyStateIndicator.setColorFilter(ContextCompat.getColor(this, R.color.white));
+                        ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.online_indicator));
+                        tvPrivacyText.setText("Публично (видят все)");
                     } else {
                         ivPrivacyIcon.setImageResource(R.drawable.ic_lock);
-                        ivPrivacyIcon.setColorFilter(colorTextPrivate);
-                        tvPrivacyText.setTextColor(colorTextPrivate);
-                        ivPrivacyStateIndicator.setColorFilter(colorTextPrivate);
+                        ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent));
+                        tvPrivacyText.setText("Приватно (только я)");
                     }
-                    tvPrivacyText.setText(isPublic ? "Публично (видят все)" : "Приватно (только я)");
                     ivPrivacyIcon.setRotationY(-90f);
                     ivPrivacyIcon.animate().rotationY(0f).setDuration(150).start();
                 })
@@ -301,21 +295,13 @@ public class CreatePostActivity extends AppCompatActivity {
 
     private void updatePrivacyUI(boolean animate) {
         if (isPublic) {
-            btnPrivacyToggle.setCardBackgroundColor(ContextCompat.getColor(this, R.color.online_indicator));
             ivPrivacyIcon.setImageResource(R.drawable.ic_public);
             tvPrivacyText.setText("Публично (видят все)");
-            int white = ContextCompat.getColor(this, R.color.white);
-            ivPrivacyIcon.setColorFilter(white);
-            tvPrivacyText.setTextColor(white);
-            ivPrivacyStateIndicator.setColorFilter(white);
+            ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.online_indicator));
         } else {
-            btnPrivacyToggle.setCardBackgroundColor(ContextCompat.getColor(this, R.color.surface_dark));
             ivPrivacyIcon.setImageResource(R.drawable.ic_lock);
             tvPrivacyText.setText("Приватно (только я)");
-            int secondary = ContextCompat.getColor(this, R.color.text_secondary);
-            ivPrivacyIcon.setColorFilter(secondary);
-            tvPrivacyText.setTextColor(secondary);
-            ivPrivacyStateIndicator.setColorFilter(secondary);
+            ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent));
         }
     }
 
@@ -332,12 +318,10 @@ public class CreatePostActivity extends AppCompatActivity {
             return;
         }
 
-        // ПРОВЕРКА СЕТИ
         if (NetworkUtils.isConnected(this)) {
             progressDialog.show();
             uploadToCloudinary(title, desc);
         } else {
-            // ОФЛАЙН РЕЖИМ
             savePostOffline(title, desc);
         }
     }
@@ -345,22 +329,17 @@ public class CreatePostActivity extends AppCompatActivity {
     private void savePostOffline(String title, String desc) {
         new Thread(() -> {
             try {
-                // 1. Копируем файл во внутреннее хранилище приложения, чтобы WorkManager точно имел к нему доступ
                 File localFile = copyUriToInternalStorage(selectedMediaUri);
-
-                // 2. Сохраняем в Room
                 OfflinePost offlinePost = new OfflinePost(
                         title, desc, localFile.getAbsolutePath(), selectedMediaType,
                         selectedLat, selectedLng, isPublic, System.currentTimeMillis()
                 );
                 AppDatabase.getDatabase(this).offlinePostDao().insert(offlinePost);
-
-                // 3. Запускаем WorkManager
                 scheduleUploadWorker();
 
                 runOnUiThread(() -> {
                     Toast.makeText(this, "Нет интернета. Сохранено в черновики!", Toast.LENGTH_LONG).show();
-                    finish(); // Закрываем экран
+                    finish();
                 });
 
             } catch (Exception e) {
@@ -379,10 +358,6 @@ public class CreatePostActivity extends AppCompatActivity {
                 .setConstraints(constraints)
                 .build();
 
-        // ИСПОЛЬЗУЕМ enqueueUniqueWork
-        // "UPLOAD_POSTS_WORK" — это уникальное имя очереди.
-        // ExistingWorkPolicy.APPEND_OR_REPLACE — если задача уже висит, новая добавится в хвост очереди.
-        // Это гарантирует, что одновременно работает только один загрузчик.
         WorkManager.getInstance(this).enqueueUniqueWork(
                 "UPLOAD_POSTS_WORK",
                 ExistingWorkPolicy.APPEND_OR_REPLACE,
@@ -390,7 +365,6 @@ public class CreatePostActivity extends AppCompatActivity {
         );
     }
 
-    // Хелпер копирования файла
     private File copyUriToInternalStorage(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
         File destinationFile = new File(getFilesDir(), "offline_media_" + System.currentTimeMillis());
@@ -459,8 +433,6 @@ public class CreatePostActivity extends AppCompatActivity {
                     .addOnSuccessListener(aVoid -> {
                         progressDialog.dismiss();
                         Toast.makeText(CreatePostActivity.this, "Воспоминание сохранено!", Toast.LENGTH_SHORT).show();
-                        // Здесь тоже лучше использовать onBackPressed() если хочешь анимацию сворачивания,
-                        // но finish() быстрее для пользователя после успеха. Оставлю finish().
                         finish();
                     })
                     .addOnFailureListener(e -> {
@@ -470,15 +442,9 @@ public class CreatePostActivity extends AppCompatActivity {
         }
     }
 
-
     @Override
     public void onBackPressed() {
         if (getIntent().hasExtra("revealX")) {
-            // --- ХИТРОСТЬ ---
-            // Перед тем как начать сворачивать круг, мы меняем фон самого ОКНА на основной цвет.
-            // Теперь, когда круг будет сужаться, вокруг него будет не MainActivity, а сплошной цвет.
-            //getWindow().getDecorView().setBackgroundColor(ContextCompat.getColor(this, R.color.primary));
-
             int revealX = getIntent().getIntExtra("revealX", 0);
             int revealY = getIntent().getIntExtra("revealY", 0);
             unRevealActivity(revealX, revealY);
@@ -486,5 +452,4 @@ public class CreatePostActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
-
 }

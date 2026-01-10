@@ -8,6 +8,7 @@
     android:background="@color/primary"
     tools:context=".MainActivity">
 
+    <!-- Верхняя панель (без изменений) -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
@@ -30,7 +31,6 @@
                 android:src="@drawable/ic_profile_placeholder"
                 android:background="@drawable/circle_background"
                 android:layout_marginTop="10dp"
-                android:layout_marginStart="0dp"
                 android:scaleType="centerCrop"
                 android:clickable="true"
                 android:focusable="true"
@@ -68,8 +68,7 @@
                     android:layout_marginEnd="16dp"
                     android:src="@drawable/ic_download_offline"
                     android:visibility="gone"
-                    app:tint="@color/accent"
-                    tools:visibility="visible"/>
+                    app:tint="@color/accent" />
 
                 <ImageView
                     android:id="@+id/logoutButton"
@@ -81,10 +80,10 @@
                     android:clickable="true"
                     android:focusable="true"/>
             </LinearLayout>
-
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
+    <!-- Список постов -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
@@ -100,31 +99,54 @@
             android:layout_height="match_parent"
             android:background="@color/primary"
             android:clipToPadding="false"
-            android:paddingBottom="80dp"/>
+            android:paddingBottom="100dp"/> <!-- Отступ снизу для кнопок -->
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabMap"
-        android:layout_width="wrap_content"
+    <!-- НОВАЯ НИЖНЯЯ ПАНЕЛЬ С КНОПКАМИ -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="24dp"
-        android:layout_marginBottom="16dp"
-        android:src="@drawable/ic_setting"
-        app:backgroundTint="@color/surface_dark"
-        app:tint="@color/text_primary"
-        app:fabSize="mini"
-        app:layout_constraintBottom_toTopOf="@id/fabAdd"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:paddingBottom="24dp"
+        android:paddingTop="10dp"
+        android:background="@drawable/gradient_bottom"
+        app:layout_constraintBottom_toBottomOf="parent">
+        <!-- gradient_bottom_overlay - это градиент от прозрачного к черному,
+             если нет, можно просто убрать background или поставить цвет -->
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabAdd"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:src="@drawable/ic_add"
-        app:backgroundTint="@color/accent"
-        app:tint="@color/white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <!-- 1. Кнопка ЧАТЫ -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabChats"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:src="@drawable/ic_chat"
+            app:backgroundTint="@color/surface_dark"
+            app:tint="@color/text_primary"
+            app:fabSize="normal" />
+        <!-- ic_chat - найди иконку сообщения -->
+
+        <!-- 2. Кнопка КАРТА (бывшая fabMap) -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabMap"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="24dp"
+            android:src="@drawable/ic_map"
+            app:backgroundTint="@color/surface_dark"
+            app:tint="@color/text_primary"
+            app:fabSize="normal" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabAdd"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_add"
+            app:backgroundTint="@color/surface_dark"
+            app:tint="@color/text_primary"
+            app:fabSize="normal" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

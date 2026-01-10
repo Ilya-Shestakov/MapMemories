@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
 
     private SwipeRefreshLayout swipeRefreshLayout; // Добавили
     private RecyclerView memoriesRecyclerView;
-    private FloatingActionButton fabAdd, fabMap;
+    private FloatingActionButton fabAdd, fabMap, fabChats;
     private ImageView logoutButton;
     private ImageView profileButton;
 
@@ -106,6 +106,7 @@ public class MainActivity extends AppCompatActivity {
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
         fabAdd = findViewById(R.id.fabAdd);
         fabMap = findViewById(R.id.fabMap);
+        fabChats = findViewById(R.id.fabChats);
         profileButton = findViewById(R.id.profileButton);
         logoutButton = findViewById(R.id.logoutButton);
         offlineBadge = findViewById(R.id.offlineBadge);
@@ -263,29 +264,19 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
+        // 1. ПРОФИЛЬ
         profileButton.setOnClickListener(view -> {
             VibratorHelper.vibrate(MainActivity.this, 50);
-            int revealX = (int) (view.getX() + view.getWidth() / 2);
-            int revealY = (int) (view.getY() + view.getHeight() / 2);
-            Intent intent = new Intent(this, Profile.class);
-            intent.putExtra("revealX", revealX);
-            intent.putExtra("revealY", revealY);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
+            startActivityWithAnimation(Profile.class, view);
         });
 
+        // 2. ОФФЛАЙН
         offlineBadge.setOnClickListener(v -> {
             VibratorHelper.vibrate(MainActivity.this, 30);
-
-            // Создаем и показываем наш BottomSheet
-
-            //OfflineQueueBottomSheet bottomSheet = new OfflineQueueBottomSheet();
-            //bottomSheet.show(getSupportFragmentManager(), "OfflineQueueTag");
-
-
             DialogHelper.showOfflineQueue(this, null);
         });
 
+        // 3. ВЫХОД
         logoutButton.setOnClickListener(v -> {
             DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
                 mAuth.signOut();
@@ -294,24 +285,47 @@ public class MainActivity extends AppCompatActivity {
             });
         });
 
-        fabAdd.setOnClickListener(v -> {
+        // 4. ЧАТЫ (Слева)
+        fabChats.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            fabAdd.animate().rotationBy(180f).setDuration(300).start();
-            new android.os.Handler().postDelayed(() -> {
-                int revealX = (int) (v.getX() + v.getWidth() / 2);
-                int revealY = (int) (v.getY() + v.getHeight() / 2);
-                Intent intent = new Intent(this, CreatePostActivity.class);
-                intent.putExtra("revealX", revealX);
-                intent.putExtra("revealY", revealY);
-                startActivity(intent);
-                overridePendingTransition(0, 0);
-            }, 250);
+            startActivityWithAnimation(ChatListActivity.class, v);
         });
 
+        // 5. НАСТРОЙКИ/КАРТА (По центру)
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivity(new Intent(this, Setting.class));
+            startActivityWithAnimation(Setting.class, v);
         });
+
+        // 6. ДОБАВИТЬ (Справа) - С задержкой для вращения
+        fabAdd.setOnClickListener(v -> {
+            VibratorHelper.vibrate(this, 50);
+            // Анимация вращения
+            fabAdd.animate().rotationBy(180f).setDuration(300).start();
+
+            // Запускаем переход с небольшой задержкой, чтобы было видно вращение
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                startActivityWithAnimation(CreatePostActivity.class, v);
+            }, 250);
+        });
+    }
+
+    // УНИВЕРСАЛЬНЫЙ МЕТОД ЗАПУСКА
+    private void startActivityWithAnimation(Class<?> targetActivity, View sourceView) {
+        int[] location = new int[2];
+        sourceView.getLocationOnScreen(location);
+
+        // Вычисляем центр нажатой кнопки
+        int revealX = location[0] + sourceView.getWidth() / 2;
+        int revealY = location[1] + sourceView.getHeight() / 2;
+
+        Intent intent = new Intent(this, targetActivity);
+        intent.putExtra("revealX", revealX);
+        intent.putExtra("revealY", revealY);
+
+        startActivity(intent);
+        // Убираем стандартную анимацию перехода, чтобы было видно наш круг
+        overridePendingTransition(0, 0);
     }
 
     private void setupSecretGesture() {
@@ -358,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
         // Самый обычный, системный AlertDialog без дизайна
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Пасхалочка")
-                .setMessage("Скиньте денег на сервера...\n\nРазработчик: +7(912)702-36-64.\n\nМодерация: +7(996)045-85-29")
+                .setMessage("Скиньте денег на сервера...\n\nРазработчик: +7(912)702-36-64. (тинь) \n\nМодерация: +7(996)045-85-29. (сбер)")
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
                 .setNegativeButton("Отмена", null)
                 .setCancelable(true)

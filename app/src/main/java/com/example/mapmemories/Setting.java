@@ -1,11 +1,16 @@
 package com.example.mapmemories;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewAnimationUtils;
+import android.view.ViewTreeObserver;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -14,6 +19,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 
@@ -30,6 +36,8 @@ public class Setting extends AppCompatActivity {
     private MapView mapView;
     private ExtendedFloatingActionButton fabDownloadMap;
     private ImageButton btnClose;
+
+    private ConstraintLayout mainContentLayout;
 
     // Настройки зума для скачивания
     // 10 - видно города, 16 - видно дома и тропинки.
@@ -51,6 +59,7 @@ public class Setting extends AppCompatActivity {
         mapView = findViewById(R.id.mapView);
         fabDownloadMap = findViewById(R.id.fabDownloadMap);
         btnClose = findViewById(R.id.btnClose);
+        mainContentLayout = findViewById(R.id.mainContentLayout);
 
         // Настройка Toolbar (если нужно программно, хотя у тебя в XML он есть)
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -61,7 +70,27 @@ public class Setting extends AppCompatActivity {
 
         setupMap();
         setupClickListeners();
+
+
+        if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
+            mainContentLayout.setVisibility(View.INVISIBLE);
+            ViewTreeObserver viewTreeObserver = mainContentLayout.getViewTreeObserver();
+            if (viewTreeObserver.isAlive()) {
+                viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                    @Override
+                    public void onGlobalLayout() {
+                        mainContentLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                        revealActivity(getIntent().getIntExtra("revealX", 0),
+                                getIntent().getIntExtra("revealY", 0));
+                    }
+                });
+            }
+        }
+
+
     }
+
+
 
     private void setupMap() {
         mapView.setTileSource(new XYTileSource("Mapnik", 0, 19, 256, ".png",
@@ -79,7 +108,7 @@ public class Setting extends AppCompatActivity {
     private void setupClickListeners() {
         // Кнопка "Назад"
         btnClose.setOnClickListener(v -> {
-            finish(); // Просто закрываем активити
+            Close();
         });
 
         // Кнопка "Загрузить"
@@ -177,6 +206,12 @@ public class Setting extends AppCompatActivity {
     }
 
     @Override
+    public void onBackPressed() {
+
+        Close();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
         if (mapView != null) mapView.onResume();
@@ -187,4 +222,35 @@ public class Setting extends AppCompatActivity {
         super.onPause();
         if (mapView != null) mapView.onPause();
     }
+
+    private void revealActivity(int x, int y) {
+        float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
+        Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, 0, finalRadius);
+        circularReveal.setDuration(400);
+        circularReveal.setInterpolator(new AccelerateInterpolator());
+        mainContentLayout.setVisibility(View.VISIBLE);
+        circularReveal.start();
+    }
+
+    private void unRevealActivity(int x, int y) {
+        float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
+        Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
+        circularReveal.setDuration(500);
+        circularReveal.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                mainContentLayout.setVisibility(View.INVISIBLE);
+                finish();
+                overridePendingTransition(0, 0);
+            }
+        });
+        circularReveal.start();
+    }
+
+    public void Close() {
+        int revealX = getIntent().getIntExtra("revealX", 0);
+        int revealY = getIntent().getIntExtra("revealY", 0);
+        unRevealActivity(revealX, revealY);
+    }
+
 }

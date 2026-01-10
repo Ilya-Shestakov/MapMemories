@@ -24,6 +24,10 @@
             android:name=".UserProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
+        <activity android:name=".ChatActivity"
+            android:exported="false"/>
+        <activity android:name=".PickPostActivity"
+            android:exported="false"/>
         <activity
             android:name=".AllMemoriesActivity"
             android:exported="false" />
@@ -33,7 +37,9 @@
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
         <activity
             android:name=".Setting"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.Transparent"
+            />
         <activity
             android:name=".CreatePostActivity"
             android:exported="false"
@@ -65,6 +71,10 @@
         <activity android:name=".RegisterActivity" />
         <activity android:name=".OnboardingActivity" />
         <activity android:name=".MainActivity" />
+        <activity android:name=".ChatListActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Transparent"
+            />
     </application>
 
 </manifest>

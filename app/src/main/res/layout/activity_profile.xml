@@ -48,7 +48,6 @@
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
-                <!-- Аватарка (Больше и по центру) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/avatarContainer"
                     android:layout_width="110dp"
@@ -65,10 +64,11 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
-                        android:src="@drawable/ic_profile_placeholder" />
+                        android:src="@drawable/ic_add_camera_black"
+
+                        />
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Имя и редактирование -->
                 <LinearLayout
                     android:id="@+id/nameContainer"
                     android:layout_width="wrap_content"
@@ -120,8 +120,6 @@
             </androidx.constraintlayout.widget.ConstraintLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- INFO CARD
-             Теперь это основная панель. Статистика перемещена сюда наверх. -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/infoCard"
             android:layout_width="match_parent"
@@ -142,7 +140,7 @@
                 android:paddingVertical="20dp"
                 android:paddingHorizontal="16dp">
 
-                <!-- БЛОК СТАТИСТИКИ (ПЕРЕМЕЩЕН СЮДА + ДОБАВЛЕНЫ ДРУЗЬЯ) -->
+                <!-- БЛОК СТАТИСТИКИ -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -151,34 +149,70 @@
                     android:orientation="horizontal"
                     android:baselineAligned="false">
 
-                    <!-- НОВАЯ МЕТКА: ДРУЗЬЯ -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/friendsCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Друзей" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <!-- Друзья -->
+                    <LinearLayout
+                        android:id="@+id/friendsCountContainer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:background="?attr/selectableItemBackground">
+                        <TextView android:id="@+id/friendsCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Друзей" android:textColor="@color/text_secondary" android:textSize="10sp" />
                     </LinearLayout>
 
-                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
 
-                    <!-- Публичные -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Открытые" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <!-- Подписчики (Новое) -->
+                    <LinearLayout
+                        android:id="@+id/followersCountContainer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView android:id="@+id/followersCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписчики" android:textColor="@color/text_secondary" android:textSize="10sp" />
                     </LinearLayout>
 
-                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
 
-                    <!-- Приватные -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/placesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="18sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Личные" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <!-- Подписки (Новое) -->
+                    <LinearLayout
+                        android:id="@+id/followingCountContainer"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView android:id="@+id/followingCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписки" android:textColor="@color/text_secondary" android:textSize="10sp" />
                     </LinearLayout>
 
-                    <View android:layout_width="1dp" android:layout_height="24dp" android:background="#20888888" />
+                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Посты" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
 
                     <!-- Лайки -->
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
-                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="18sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:orientation="vertical">
+                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="16sp" android:textStyle="bold" />
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="10sp" />
                     </LinearLayout>
                 </LinearLayout>
 
@@ -188,9 +222,7 @@
                     android:background="#15FFFFFF"
                     android:layout_marginBottom="16dp"/>
 
-                <!-- ИНФОРМАЦИЯ О ПОЛЬЗОВАТЕЛЕ -->
 
-                <!-- Телефон -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
                     <FrameLayout
                         android:layout_width="36dp"
@@ -361,4 +393,5 @@
             android:alpha="0" />
 
     </FrameLayout>
+
 </FrameLayout>

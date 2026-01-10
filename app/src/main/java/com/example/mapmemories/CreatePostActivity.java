@@ -106,19 +106,33 @@ public class CreatePostActivity extends AppCompatActivity {
 
         // --- ЛОГИКА АНИМАЦИИ ОТКРЫТИЯ (Circular Reveal) ---
         if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
+            final View rootLayout = findViewById(android.R.id.content);
             rootLayout.setVisibility(View.INVISIBLE);
 
-            ViewTreeObserver viewTreeObserver = rootLayout.getViewTreeObserver();
+            android.view.ViewTreeObserver viewTreeObserver = rootLayout.getViewTreeObserver();
             if (viewTreeObserver.isAlive()) {
-                viewTreeObserver.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                viewTreeObserver.addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
                     @Override
                     public void onGlobalLayout() {
                         rootLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                        revealActivity(getIntent().getIntExtra("revealX", 0),
-                                getIntent().getIntExtra("revealY", 0));
+
+                        int revealX = getIntent().getIntExtra("revealX", 0);
+                        int revealY = getIntent().getIntExtra("revealY", 0);
+
+                        float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
+
+                        android.animation.Animator circularReveal = android.view.ViewAnimationUtils.createCircularReveal(rootLayout, revealX, revealY, 0, finalRadius);
+                        circularReveal.setDuration(400);
+                        circularReveal.setInterpolator(new android.view.animation.AccelerateInterpolator());
+
+                        rootLayout.setVisibility(View.VISIBLE);
+                        circularReveal.start();
                     }
                 });
             }
+        } else {
+            // Если анимации нет, просто показываем контент (на всякий случай)
+            findViewById(android.R.id.content).setVisibility(View.VISIBLE);
         }
     }
 

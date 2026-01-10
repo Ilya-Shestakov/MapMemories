@@ -167,7 +167,8 @@
                         android:layout_height="wrap_content"
                         android:hint="Название места"
                         app:boxBackgroundMode="none"
-                        app:hintTextColor="@color/text_secondary"
+                        app:hintTextColor="@color/text_primary"
+                        android:textColorHint="@color/text_primary"
                         app:boxStrokeWidth="0dp"
                         app:boxStrokeWidthFocused="0dp">
 
@@ -194,6 +195,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Ваши мысли и впечатления..."
                         app:boxBackgroundMode="none"
+                        android:textColorHint="@color/text_primary"
                         app:hintTextColor="@color/text_secondary"
                         app:boxStrokeWidth="0dp"
                         app:boxStrokeWidthFocused="0dp">

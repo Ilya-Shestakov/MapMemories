@@ -46,7 +46,7 @@
                 android:paddingHorizontal="16dp"
                 android:paddingBottom="40dp">
 
-                <!-- 1. КАРТИНКА (В стиле карточки как при редактировании) -->
+
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="380dp"
@@ -80,27 +80,14 @@
                     </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Отступ -->
                 <Space android:layout_width="match_parent" android:layout_height="24dp"/>
 
-                <!-- 2. БЛОК ИНФОРМАЦИИ (В стиле surface) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical">
 
-                    <!-- Заголовок -->
-                    <TextView
-                        android:id="@+id/detailTitle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Заголовок истории"
-                        android:textColor="@color/text_primary"
-                        android:textSize="22sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="16dp"/>
 
-                    <!-- Автор и Дата (Row) -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
@@ -143,6 +130,20 @@
                                 android:textSize="12sp"/>
                         </LinearLayout>
                     </LinearLayout>
+                    <!-- Заголовок -->
+
+                    <Space android:layout_width="match_parent" android:layout_height="24dp"/>
+
+                    <TextView
+                        android:id="@+id/detailTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Заголовок истории"
+                        android:textColor="@color/text_primary"
+                        android:textSize="22sp"
+                        android:textStyle="bold"
+                        android:layout_marginBottom="16dp"/>
+
 
                     <!-- Описание -->
                     <TextView

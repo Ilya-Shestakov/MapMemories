@@ -8,7 +8,6 @@
     android:background="@color/primary"
     tools:context=".MainActivity">
 
-    <!-- Верхняя панель (без изменений) -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/topAppBar"
         android:layout_width="0dp"
@@ -83,7 +82,6 @@
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <!-- Список постов -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefreshLayout"
         android:layout_width="0dp"
@@ -99,35 +97,24 @@
             android:layout_height="match_parent"
             android:background="@color/primary"
             android:clipToPadding="false"
-            android:paddingBottom="100dp"/> <!-- Отступ снизу для кнопок -->
+            android:paddingBottom="100dp"/>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- НОВАЯ НИЖНЯЯ ПАНЕЛЬ С КНОПКАМИ -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center"
-        android:paddingBottom="24dp"
-        android:paddingTop="10dp"
-        android:background="@drawable/gradient_bottom"
-        app:layout_constraintBottom_toBottomOf="parent">
-        <!-- gradient_bottom_overlay - это градиент от прозрачного к черному,
-             если нет, можно просто убрать background или поставить цвет -->
-
-        <!-- 1. Кнопка ЧАТЫ -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabChats"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="24dp"
             android:src="@drawable/ic_chat"
             app:backgroundTint="@color/surface_dark"
             app:tint="@color/text_primary"
-            app:fabSize="normal" />
-        <!-- ic_chat - найди иконку сообщения -->
+            app:fabSize="normal"
 
-        <!-- 2. Кнопка КАРТА (бывшая fabMap) -->
+            app:layout_constraintStart_toEndOf="@id/fabMap"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginStart="24dp"
+            android:layout_marginBottom="24dp"
+            />
+
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fabMap"
             android:layout_width="wrap_content"
@@ -136,17 +123,30 @@
             android:src="@drawable/ic_map"
             app:backgroundTint="@color/surface_dark"
             app:tint="@color/text_primary"
-            app:fabSize="normal" />
+            app:fabSize="normal"
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabAdd"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_add"
-            app:backgroundTint="@color/surface_dark"
-            app:tint="@color/text_primary"
-            app:fabSize="normal" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginBottom="24dp"
+            android:layout_marginStart="24dp"
+            />
 
-    </LinearLayout>
+    <!-- Замени старый fabAdd на этот код -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabAdd"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Создать"
+        android:textColor="@color/text_primary"
+        android:gravity="center"
+        app:icon="@drawable/ic_add"
+        app:iconTint="@color/text_primary"
+        app:backgroundTint="@color/surface_dark"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="24dp"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -30,6 +30,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
+
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
@@ -45,7 +47,8 @@ public class MainActivity extends AppCompatActivity {
 
     private SwipeRefreshLayout swipeRefreshLayout; // Добавили
     private RecyclerView memoriesRecyclerView;
-    private FloatingActionButton fabAdd, fabMap, fabChats;
+    private FloatingActionButton fabMap, fabChats;
+    private ExtendedFloatingActionButton fabAdd;
     private ImageView logoutButton;
     private ImageView profileButton;
 
@@ -153,13 +156,32 @@ public class MainActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Привязываем контроллер анимации
+        // Привязываем контроллер анимации (твой старый код)
         int resId = R.anim.layout_animation_fall_down;
         LayoutAnimationController animation = AnimationUtils.loadLayoutAnimation(this, resId);
         memoriesRecyclerView.setLayoutAnimation(animation);
 
+        // --- НОВЫЙ КОД ДЛЯ АНИМАЦИИ КНОПКИ ---
+        memoriesRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                // dy > 0: скролл вниз (лента идет вверх)
+                // dy < 0: скролл вверх
+
+                if (dy > 0 && fabAdd.isExtended()) {
+                    // Если скроллим вниз и кнопка широкая -> сжимаем
+                    fabAdd.shrink();
+                } else if (dy < 0 && !fabAdd.isExtended()) {
+                    // Если скроллим вверх и кнопка сжата -> расширяем
+                    fabAdd.extend();
+                }
+            }
+        });
+        // -------------------------------------
+
         publicPostList = new ArrayList<>();
         publicAdapter = new PublicMemoriesAdapter(this, publicPostList, post -> {
+            // ... твой код адаптера ...
             FirebaseUser currentUser = mAuth.getCurrentUser();
             if (currentUser != null && post.getUserId().equals(currentUser.getUid())) {
                 Intent intent = new Intent(MainActivity.this, PostDetailsActivity.class);

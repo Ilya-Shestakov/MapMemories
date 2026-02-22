@@ -139,7 +139,7 @@
         android:text="Создать"
         android:textColor="@color/text_primary"
         android:gravity="center"
-        app:icon="@drawable/ic_add"
+        app:icon="@drawable/avd_add_rotate"
         app:iconTint="@color/text_primary"
         app:backgroundTint="@color/surface_dark"
 

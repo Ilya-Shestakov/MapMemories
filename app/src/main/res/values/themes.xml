@@ -14,7 +14,6 @@
         <item name="android:textColor">@color/white</item>
     </style>
 
-    <!-- Добавь это в конец файла themes.xml, перед закрывающим тегом </resources> -->
     <style name="Theme.Transparent" parent="Theme.MaterialComponents.Light.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -22,6 +21,11 @@
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <style name="Theme.MapMemories.Transparent" parent="Theme.MapMemories">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
     </style>
 
 </resources>

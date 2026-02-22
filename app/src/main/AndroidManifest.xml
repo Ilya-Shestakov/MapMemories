@@ -43,11 +43,11 @@
         <activity
             android:name=".CreatePostActivity"
             android:exported="false"
-            android:theme="@style/Theme.Transparent" />
+            android:theme="@style/Theme.MapMemories.Transparent"/>
         <activity
             android:name=".Profile"
             android:exported="false"
-            android:theme="@style/Theme.Transparent" />
+            android:theme="@style/Theme.MapMemories.Transparent" />
 
         <meta-data
             android:name="osmdroid.basePath"
@@ -57,7 +57,7 @@
             android:value="MapMemoriesApp/1.0" />
 
         <activity android:name=".PostDetailsActivity" />
-        <activity android:name=".ViewPostDetailsActivity" />
+        <activity android:name=".ViewPostDetailsActivity" android:theme="@style/Theme.MapMemories.Transparent"/>
         <activity
             android:name=".SplashActivity"
             android:exported="true">

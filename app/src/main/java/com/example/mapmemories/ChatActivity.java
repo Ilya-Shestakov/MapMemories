@@ -3,6 +3,7 @@ package com.example.mapmemories;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -31,10 +32,15 @@ public class ChatActivity extends AppCompatActivity {
     private String currentUserId;
     private String chatId;
 
+    private String editingMessageId = null;
+
     private RecyclerView chatRecyclerView;
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
     private ImageButton btnSendPost; // Кнопка "Скрепка" или "Плюс"
+
+    private EditText etMessageInput;
+    private ImageButton btnSendText;
 
     private DatabaseReference chatRef;
     private ActivityResultLauncher<Intent> pickPostLauncher;
@@ -74,13 +80,43 @@ public class ChatActivity extends AppCompatActivity {
 
         chatRecyclerView = findViewById(R.id.chatRecyclerView);
         btnSendPost = findViewById(R.id.btnSendPost);
+        etMessageInput = findViewById(R.id.etMessageInput);
+        btnSendText = findViewById(R.id.btnSendText);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true); // Сообщения снизу
         chatRecyclerView.setLayoutManager(layoutManager);
 
         messageList = new ArrayList<>();
-        chatAdapter = new ChatAdapter(this, messageList);
+
+        // ИНИЦИАЛИЗИРУЕМ АДАПТЕР ОДИН РАЗ (С 3 ПАРАМЕТРАМИ)
+        chatAdapter = new ChatAdapter(this, messageList, new ChatAdapter.ChatActionListener() {
+            @Override
+            public void onEditMessage(ChatMessage message) {
+                // Переносим текст в поле ввода
+                etMessageInput.setText(message.getText());
+                etMessageInput.setSelection(message.getText().length()); // Курсор в конец
+                editingMessageId = message.getMessageId(); // Запоминаем, что мы редактируем
+                Toast.makeText(ChatActivity.this, "Редактирование сообщения", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onDeleteMessage(ChatMessage message, boolean forEveryone) {
+                if (forEveryone) {
+                    // Удаляем из базы полностью
+                    chatRef.child(message.getMessageId()).removeValue();
+                } else {
+                    // Удаляем только для себя
+                    if (message.getDeletedBy() != null && !message.getDeletedBy().equals(currentUserId)) {
+                        // Если собеседник уже удалил у себя, а теперь удаляем мы -> удаляем из базы совсем
+                        chatRef.child(message.getMessageId()).removeValue();
+                    } else {
+                        // Помечаем, что мы скрыли это сообщение
+                        chatRef.child(message.getMessageId()).child("deletedBy").setValue(currentUserId);
+                    }
+                }
+            }
+        });
         chatRecyclerView.setAdapter(chatAdapter);
 
         // Кнопка отправки поста
@@ -88,6 +124,59 @@ public class ChatActivity extends AppCompatActivity {
             Intent intent = new Intent(ChatActivity.this, PickPostActivity.class);
             pickPostLauncher.launch(intent);
         });
+
+        // Кнопка отправки текста (ОДИН РАЗ)
+        btnSendText.setOnClickListener(v -> {
+            String text = etMessageInput.getText().toString().trim();
+            if (!text.isEmpty()) {
+                if (editingMessageId != null) {
+                    // Если мы в режиме редактирования - обновляем текст
+                    chatRef.child(editingMessageId).child("text").setValue(text);
+                    editingMessageId = null; // Выходим из режима редактирования
+                } else {
+                    // Иначе отправляем новое
+                    sendTextMessage(text);
+                }
+                etMessageInput.setText("");
+            }
+        });
+    }
+
+    private void loadMessages() {
+        chatRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                messageList.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    ChatMessage msg = ds.getValue(ChatMessage.class);
+                    if (msg != null) {
+                        // Проверяем, не удалил ли текущий юзер это сообщение для себя
+                        if (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId)) {
+                            messageList.add(msg);
+                        }
+                    }
+                }
+                chatAdapter.notifyDataSetChanged();
+                if (!messageList.isEmpty()) {
+                    chatRecyclerView.scrollToPosition(messageList.size() - 1);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void sendTextMessage(String text) {
+        String messageId = chatRef.push().getKey();
+        long timestamp = System.currentTimeMillis();
+
+        ChatMessage message = new ChatMessage(currentUserId, targetUserId, text, timestamp, "text");
+        message.setMessageId(messageId);
+
+        if (messageId != null) {
+            chatRef.child(messageId).setValue(message);
+        }
     }
 
     private void setupPostPicker() {
@@ -108,34 +197,12 @@ public class ChatActivity extends AppCompatActivity {
         String messageId = chatRef.push().getKey();
         long timestamp = System.currentTimeMillis();
 
+        // Используем конструктор для поста (он сам ставит type = "post")
         ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, timestamp);
         message.setMessageId(messageId);
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);
-            // Можно добавить прокрутку вниз
         }
-    }
-
-    private void loadMessages() {
-        chatRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                messageList.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    ChatMessage msg = ds.getValue(ChatMessage.class);
-                    if (msg != null) {
-                        messageList.add(msg);
-                    }
-                }
-                chatAdapter.notifyDataSetChanged();
-                if (!messageList.isEmpty()) {
-                    chatRecyclerView.smoothScrollToPosition(messageList.size() - 1);
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
     }
 }

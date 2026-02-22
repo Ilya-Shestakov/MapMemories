@@ -1,6 +1,7 @@
 package com.example.mapmemories;
 
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,6 +13,9 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import com.example.mapmemories.database.AppDatabase;
+
+import android.graphics.drawable.Animatable;
+import android.graphics.drawable.Drawable;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -42,6 +46,7 @@ import org.osmdroid.config.Configuration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -322,8 +327,12 @@ public class MainActivity extends AppCompatActivity {
         // 6. ДОБАВИТЬ (Справа) - С задержкой для вращения
         fabAdd.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            // Анимация вращения
-            fabAdd.animate().rotationBy(180f).setDuration(300).start();
+
+            // Получаем иконку из кнопки и запускаем её анимацию
+            Drawable icon = fabAdd.getIcon();
+            if (icon instanceof Animatable) {
+                ((Animatable) icon).start();
+            }
 
             // Запускаем переход с небольшой задержкой, чтобы было видно вращение
             new Handler(Looper.getMainLooper()).postDelayed(() -> {

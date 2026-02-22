@@ -12,6 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewTreeObserver;
@@ -68,6 +69,8 @@ public class CreatePostActivity extends AppCompatActivity {
     private TextView textLocation;
     private MaterialButton btnSavePost;
 
+    private SwipeBackHelper swipeBackHelper;
+
     // Элементы переключателя приватности (ИЗМЕНЕНО: теперь LinearLayout)
     private LinearLayout btnPrivacyToggle;
     private ImageView ivPrivacyIcon, ivPrivacyStateIndicator;
@@ -103,6 +106,8 @@ public class CreatePostActivity extends AppCompatActivity {
 
         // UI приватности
         updatePrivacyUI(false);
+
+        swipeBackHelper = new SwipeBackHelper(this);
 
         // --- ЛОГИКА АНИМАЦИИ ОТКРЫТИЯ (Circular Reveal) ---
         if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
@@ -466,4 +471,13 @@ public class CreatePostActivity extends AppCompatActivity {
             super.onBackPressed();
         }
     }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeBackHelper != null) {
+            return swipeBackHelper.dispatchTouchEvent(ev, event -> super.dispatchTouchEvent(event));
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
 }

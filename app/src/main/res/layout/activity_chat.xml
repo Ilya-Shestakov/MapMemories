@@ -30,31 +30,45 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical"
-        android:background="@color/secondary"
+        android:padding="8dp"
+        android:gravity="bottom"
+        android:background="@color/primary"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Текст слева -->
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Выберите воспоминание..."
-            android:textColor="@color/text_secondary"
-            android:textSize="16sp"
-            android:layout_marginStart="8dp"/>
-
-        <!-- Кнопка справа -->
         <ImageButton
             android:id="@+id/btnSendPost"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_add_camera_black"
-            app:tint="@color/accent"
-            android:background="@drawable/circle_background"
-            android:backgroundTint="#10FFFFFF"
-            android:contentDescription="Отправить пост"/>
+            android:src="@drawable/ic_add"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/accent" />
+
+        <EditText
+            android:id="@+id/etMessageInput"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Сообщение..."
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/text_secondary"
+            android:background="@drawable/bg_chat_bubble_other"
+            android:backgroundTint="#1AFFFFFF"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:layout_marginHorizontal="4dp"
+            android:layout_marginBottom="2dp"
+            android:minHeight="44dp"
+            android:maxLines="5"
+            android:inputType="textMultiLine|textCapSentences"/>
+
+        <ImageButton
+            android:id="@+id/btnSendText"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_arrow_right"
+            android:rotation="-95"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            app:tint="@color/accent" />
 
     </LinearLayout>
 

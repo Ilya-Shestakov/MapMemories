@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_bottom_sheet"
+    android:paddingTop="-12dp"
+    android:paddingBottom="24dp"
+    >
+
+    <!-- Маленькая полосочка сверху (как в iOS/Telegram) -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:background="#4DFFFFFF"
+        android:layout_marginBottom="12dp"/>
+
+    <TextView
+        android:id="@+id/btnOpenPost"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Открыть пост"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/btnEdit"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Изменить"
+        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/btnDeleteMe"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Удалить у меня"
+        android:textColor="#FF5252"
+        android:textSize="16sp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp"
+        android:background="?attr/selectableItemBackground"/>
+
+    <TextView
+        android:id="@+id/btnDeleteAll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Удалить у всех"
+        android:textColor="#FF5252"
+        android:textSize="16sp"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="16dp"
+        android:background="?attr/selectableItemBackground"
+        android:visibility="gone"/>
+
+</LinearLayout>

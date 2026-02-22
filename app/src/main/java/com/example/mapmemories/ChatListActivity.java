@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewTreeObserver;
@@ -35,12 +36,13 @@ public class ChatListActivity extends AppCompatActivity {
     private List<User> chatUsers;
     private TextView emptyText;
     private String currentUserId;
+    private SwipeBackHelper swipeBackHelper;
     private LinearLayout mainContentLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat_list); // См. XML ниже
+        setContentView(R.layout.activity_chat_list);
 
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -51,6 +53,7 @@ public class ChatListActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.chatsRecyclerView);
         emptyText = findViewById(R.id.emptyChatsText);
         mainContentLayout = findViewById(R.id.mainContentLayout);
+        swipeBackHelper = new SwipeBackHelper(this);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         chatUsers = new ArrayList<>();
@@ -170,4 +173,13 @@ public class ChatListActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {Close();}
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeBackHelper != null) {
+            return swipeBackHelper.dispatchTouchEvent(ev, event -> super.dispatchTouchEvent(event));
+        }
+        return super.dispatchTouchEvent(ev);
+    }
+
 }

@@ -1,8 +1,11 @@
 package com.example.mapmemories;
 
+import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
@@ -15,7 +18,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -39,6 +43,8 @@ public class ChatListActivity extends AppCompatActivity {
     private SwipeBackHelper swipeBackHelper;
     private LinearLayout mainContentLayout;
 
+    private static final int NOTIFICATION_PERMISSION_CODE = 123;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,7 +65,6 @@ public class ChatListActivity extends AppCompatActivity {
         chatUsers = new ArrayList<>();
 
         adapter = new ChatListAdapter(this, chatUsers, user -> {
-            // Открываем чат с выбранным пользователем
             Intent intent = new Intent(ChatListActivity.this, ChatActivity.class);
             intent.putExtra("targetUserId", user.getId());
             startActivity(intent);
@@ -83,13 +88,42 @@ public class ChatListActivity extends AppCompatActivity {
             }
         }
 
+        // ЗАПРАШИВАЕМ РАЗРЕШЕНИЕ И ЗАПУСКАЕМ СЕРВИС
+        checkNotificationPermissionAndStartService();
+    }
+
+    private void checkNotificationPermissionAndStartService() {
+        // Для Android 13 и выше нужно спросить разрешение у пользователя
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_CODE);
+            } else {
+                startBackgroundService();
+            }
+        } else {
+            // Для старых Android разрешение не нужно, просто запускаем
+            startBackgroundService();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startBackgroundService();
+            }
+        }
+    }
+
+    private void startBackgroundService() {
+        Intent serviceIntent = new Intent(this, MessageListenerService.class);
+        startService(serviceIntent);
     }
 
     private void loadChats() {
         DatabaseReference chatsRef = FirebaseDatabase.getInstance().getReference("chats");
 
-        // ВАЖНО: Это простой способ. Мы перебираем все чаты и ищем те, где есть наш ID.
-        // Для продакшена лучше хранить список чатов пользователя в users/{uid}/active_chats
         chatsRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -97,7 +131,7 @@ public class ChatListActivity extends AppCompatActivity {
                 List<String> targetUserIds = new ArrayList<>();
 
                 for (DataSnapshot chatSnapshot : snapshot.getChildren()) {
-                    String chatKey = chatSnapshot.getKey(); // Например: "uid1_uid2"
+                    String chatKey = chatSnapshot.getKey();
 
                     if (chatKey != null && chatKey.contains(currentUserId)) {
                         String targetId = chatKey.replace(currentUserId, "").replace("_", "");
@@ -111,7 +145,6 @@ public class ChatListActivity extends AppCompatActivity {
                     emptyText.setVisibility(View.VISIBLE);
                 } else {
                     emptyText.setVisibility(View.GONE);
-                    // Загружаем профили собеседников
                     for (String id : targetUserIds) {
                         loadUserProfile(id);
                     }
@@ -181,5 +214,4 @@ public class ChatListActivity extends AppCompatActivity {
         }
         return super.dispatchTouchEvent(ev);
     }
-
 }

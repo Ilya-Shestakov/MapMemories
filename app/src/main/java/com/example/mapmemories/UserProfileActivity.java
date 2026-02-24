@@ -218,12 +218,30 @@ public class UserProfileActivity extends AppCompatActivity {
             if (!isFinishing()) {
                 if (task.isSuccessful()) {
                     Toast.makeText(this, "Заявка отправлена", Toast.LENGTH_SHORT).show();
+
+                    // ВЫЗЫВАЕМ ОТПРАВКУ УВЕДОМЛЕНИЯ
+                    sendFriendRequestNotification();
+
                 } else {
                     btnFriendAction.setEnabled(true);
                     Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
                 }
             }
         });
+    }
+
+    private void sendFriendRequestNotification() {
+        DatabaseReference notifRef = FirebaseDatabase.getInstance()
+                .getReference("notifications")
+                .child(targetUserId)
+                .push();
+
+        HashMap<String, String> notifData = new HashMap<>();
+        notifData.put("senderId", currentUserId);
+        notifData.put("text", "Хочет добавить вас в друзья"); // Текст уведомления
+        notifData.put("type", "friend_request"); // Указываем тип
+
+        notifRef.setValue(notifData);
     }
 
     private void cancelFriendRequest() {

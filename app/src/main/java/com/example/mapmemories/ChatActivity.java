@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -16,6 +17,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,9 +26,12 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class ChatActivity extends AppCompatActivity {
+
+    public static String currentChatUserId = null;
 
     private String targetUserId;
     private String currentUserId;
@@ -34,10 +39,14 @@ public class ChatActivity extends AppCompatActivity {
 
     private String editingMessageId = null;
 
+    // Новые элементы для верхней панели
+    private ImageView ivChatAvatar;
+    private TextView tvChatUsername;
+
     private RecyclerView chatRecyclerView;
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
-    private ImageButton btnSendPost; // Кнопка "Скрепка" или "Плюс"
+    private ImageButton btnSendPost;
 
     private EditText etMessageInput;
     private ImageButton btnSendText;
@@ -48,7 +57,7 @@ public class ChatActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat); // См. XML ниже
+        setContentView(R.layout.activity_chat);
 
         targetUserId = getIntent().getStringExtra("targetUserId");
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -58,7 +67,6 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        // Генерируем ID чата: всегда "меньшийID_большийID"
         if (currentUserId.compareTo(targetUserId) < 0) {
             chatId = currentUserId + "_" + targetUserId;
         } else {
@@ -69,13 +77,35 @@ public class ChatActivity extends AppCompatActivity {
 
         initViews();
         setupPostPicker();
+
+        // Загружаем данные собеседника (имя и фото)
+        loadTargetUserData();
+
+        // Загружаем сами сообщения
         loadMessages();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        currentChatUserId = targetUserId;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        currentChatUserId = null;
+    }
+
     private void initViews() {
+        // Находим новые элементы
+        ivChatAvatar = findViewById(R.id.ivChatAvatar);
+        tvChatUsername = findViewById(R.id.tvChatUsername);
+
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setTitle("Чат");
+        // Отключаем стандартный заголовок, так как мы сделали свой
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
         toolbar.setNavigationOnClickListener(v -> finish());
 
         chatRecyclerView = findViewById(R.id.chatRecyclerView);
@@ -84,34 +114,28 @@ public class ChatActivity extends AppCompatActivity {
         btnSendText = findViewById(R.id.btnSendText);
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        layoutManager.setStackFromEnd(true); // Сообщения снизу
+        layoutManager.setStackFromEnd(true);
         chatRecyclerView.setLayoutManager(layoutManager);
 
         messageList = new ArrayList<>();
 
-        // ИНИЦИАЛИЗИРУЕМ АДАПТЕР ОДИН РАЗ (С 3 ПАРАМЕТРАМИ)
         chatAdapter = new ChatAdapter(this, messageList, new ChatAdapter.ChatActionListener() {
             @Override
             public void onEditMessage(ChatMessage message) {
-                // Переносим текст в поле ввода
                 etMessageInput.setText(message.getText());
-                etMessageInput.setSelection(message.getText().length()); // Курсор в конец
-                editingMessageId = message.getMessageId(); // Запоминаем, что мы редактируем
+                etMessageInput.setSelection(message.getText().length());
+                editingMessageId = message.getMessageId();
                 Toast.makeText(ChatActivity.this, "Редактирование сообщения", Toast.LENGTH_SHORT).show();
             }
 
             @Override
             public void onDeleteMessage(ChatMessage message, boolean forEveryone) {
                 if (forEveryone) {
-                    // Удаляем из базы полностью
                     chatRef.child(message.getMessageId()).removeValue();
                 } else {
-                    // Удаляем только для себя
                     if (message.getDeletedBy() != null && !message.getDeletedBy().equals(currentUserId)) {
-                        // Если собеседник уже удалил у себя, а теперь удаляем мы -> удаляем из базы совсем
                         chatRef.child(message.getMessageId()).removeValue();
                     } else {
-                        // Помечаем, что мы скрыли это сообщение
                         chatRef.child(message.getMessageId()).child("deletedBy").setValue(currentUserId);
                     }
                 }
@@ -119,26 +143,55 @@ public class ChatActivity extends AppCompatActivity {
         });
         chatRecyclerView.setAdapter(chatAdapter);
 
-        // Кнопка отправки поста
         btnSendPost.setOnClickListener(v -> {
             Intent intent = new Intent(ChatActivity.this, PickPostActivity.class);
             pickPostLauncher.launch(intent);
         });
 
-        // Кнопка отправки текста (ОДИН РАЗ)
         btnSendText.setOnClickListener(v -> {
             String text = etMessageInput.getText().toString().trim();
             if (!text.isEmpty()) {
                 if (editingMessageId != null) {
-                    // Если мы в режиме редактирования - обновляем текст
                     chatRef.child(editingMessageId).child("text").setValue(text);
-                    editingMessageId = null; // Выходим из режима редактирования
+                    editingMessageId = null;
                 } else {
-                    // Иначе отправляем новое
                     sendTextMessage(text);
                 }
                 etMessageInput.setText("");
             }
+        });
+    }
+
+    // НОВЫЙ МЕТОД: Загрузка имени и аватарки собеседника
+    private void loadTargetUserData() {
+        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(targetUserId);
+        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    String username = snapshot.child("username").getValue(String.class);
+                    String avatarUrl = snapshot.child("profileImageUrl").getValue(String.class);
+
+                    // Устанавливаем имя
+                    if (username != null && !username.isEmpty()) {
+                        tvChatUsername.setText(username);
+                    } else {
+                        tvChatUsername.setText("Пользователь");
+                    }
+
+                    // Устанавливаем аватарку через Glide
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
+                        Glide.with(ChatActivity.this)
+                                .load(avatarUrl)
+                                .circleCrop() // Делаем круглой
+                                .placeholder(R.drawable.ic_launcher_background) // Пока грузится, показываем стандартную
+                                .into(ivChatAvatar);
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
@@ -150,7 +203,6 @@ public class ChatActivity extends AppCompatActivity {
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     ChatMessage msg = ds.getValue(ChatMessage.class);
                     if (msg != null) {
-                        // Проверяем, не удалил ли текущий юзер это сообщение для себя
                         if (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId)) {
                             messageList.add(msg);
                         }
@@ -176,6 +228,7 @@ public class ChatActivity extends AppCompatActivity {
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);
+            sendNotificationTrigger(text);
         }
     }
 
@@ -197,12 +250,26 @@ public class ChatActivity extends AppCompatActivity {
         String messageId = chatRef.push().getKey();
         long timestamp = System.currentTimeMillis();
 
-        // Используем конструктор для поста (он сам ставит type = "post")
         ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, timestamp);
         message.setMessageId(messageId);
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);
+            sendNotificationTrigger("Отправил(а) воспоминание 🗺️");
         }
+    }
+
+    private void sendNotificationTrigger(String text) {
+        DatabaseReference notifRef = FirebaseDatabase.getInstance()
+                .getReference("notifications")
+                .child(targetUserId)
+                .push();
+
+        HashMap<String, String> notifData = new HashMap<>();
+        notifData.put("senderId", currentUserId);
+        notifData.put("text", text);
+        notifData.put("type", "chat");
+
+        notifRef.setValue(notifData);
     }
 }

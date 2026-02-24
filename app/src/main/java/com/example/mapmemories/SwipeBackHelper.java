@@ -24,7 +24,6 @@ public class SwipeBackHelper {
         this.touchSlop = ViewConfiguration.get(activity).getScaledTouchSlop();
     }
 
-    // Метод для отключения свайпа (пригодится при зуме картинок)
     public void setSwipeEnabled(boolean enabled) {
         this.isEnabled = enabled;
     }

@@ -6,15 +6,42 @@
     android:layout_height="match_parent"
     android:background="@color/primary">
 
-    <!-- 1. Добавлена кнопка НАЗАД (navigationIcon) -->
+    <!-- ОБНОВЛЕННЫЙ TOOLBAR С АВАТАРКОЙ И ИМЕНЕМ -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/secondary"
-        app:titleTextColor="@color/text_primary"
         app:navigationIcon="@drawable/ic_arrow_back"
-        app:layout_constraintTop_toTopOf="parent"/>
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Контейнер для аватарки и имени -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/ivChatAvatar"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="12dp"
+                android:src="@drawable/ic_launcher_background" /> <!-- Заглушка, пока грузится фото -->
+
+            <TextView
+                android:id="@+id/tvChatUsername"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:text="Загрузка..."
+                android:maxLines="1"
+                android:ellipsize="end"/>
+        </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/chatRecyclerView"
@@ -24,7 +51,6 @@
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintBottom_toTopOf="@id/bottomPanel"/>
 
-    <!-- 2. Обновленная нижняя панель -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:layout_width="match_parent"

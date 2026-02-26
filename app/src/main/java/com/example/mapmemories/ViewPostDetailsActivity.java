@@ -1,12 +1,6 @@
 package com.example.mapmemories;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
-import android.animation.AnimatorSet;
-import android.animation.ObjectAnimator;
 import android.content.Intent;
-import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.RenderEffect;
 import android.graphics.Shader;
 import android.os.Build;
@@ -15,8 +9,6 @@ import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -26,44 +18,45 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
+import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class ViewPostDetailsActivity extends AppCompatActivity {
 
     private String postId;
     private Post currentPost;
-
     private SwipeBackHelper swipeBackHelper;
 
-    // UI
-    private ImageView detailImage, detailVideoIcon, detailAuthorAvatar;
+    private ImageView detailAuthorAvatar;
     private TextView detailAuthorName, detailDate, detailTitle, detailCoordinates, detailDescription;
     private LinearLayout layoutLocation;
-
-    // Лайки
     private ImageView detailLikeIcon;
     private TextView detailLikeCount;
     private LinearLayout detailLikeContainer;
-
     private View mainContentLayout;
 
-    // Элементы ZOOM
+    private ViewPager2 viewPagerMedia;
+    private TabLayout tabLayoutDots;
+
     private FrameLayout expandedContainer;
-    private ImageView expandedImage;
-    private View expandedBackground;
+    private PhotoView expandedImage;
     private MaterialButton btnDownloadExpanded;
-    private Animator currentAnimator;
-    private long shortAnimationDuration = 200;
+    private String currentZoomedUrl = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,8 +79,6 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        detailImage = findViewById(R.id.detailImage);
-        detailVideoIcon = findViewById(R.id.detailVideoIcon);
         detailAuthorAvatar = findViewById(R.id.detailAuthorAvatar);
         detailAuthorName = findViewById(R.id.detailAuthorName);
         detailDate = findViewById(R.id.detailDate);
@@ -95,20 +86,19 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         detailCoordinates = findViewById(R.id.detailCoordinates);
         detailDescription = findViewById(R.id.detailDescription);
         layoutLocation = findViewById(R.id.layoutLocation);
-
-        swipeBackHelper = new SwipeBackHelper(this);
-
         mainContentLayout = findViewById(R.id.mainContentLayout);
-
         detailLikeIcon = findViewById(R.id.detailLikeIcon);
         detailLikeCount = findViewById(R.id.detailLikeCount);
         detailLikeContainer = findViewById(R.id.detailLikeContainer);
 
-        // Zoom elements
+        viewPagerMedia = findViewById(R.id.viewPagerMedia);
+        tabLayoutDots = findViewById(R.id.tabLayoutDots);
+
         expandedContainer = findViewById(R.id.expandedContainer);
         expandedImage = findViewById(R.id.expandedImage);
-        expandedBackground = findViewById(R.id.expandedBackground);
         btnDownloadExpanded = findViewById(R.id.btnDownloadExpanded);
+
+        swipeBackHelper = new SwipeBackHelper(this);
 
         layoutLocation.setOnClickListener(v -> {
             if (currentPost != null) {
@@ -120,28 +110,17 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
             }
         });
 
-        // Открытие зума по клику
-        detailImage.setOnClickListener(v -> {
-            if (currentPost != null && currentPost.getMediaUrl() != null) {
-                zoomImageFromThumb(detailImage, currentPost.getMediaUrl());
-            }
-        });
-
-        // Скачивание
         btnDownloadExpanded.setOnClickListener(v -> {
-            if (currentPost != null && currentPost.getMediaUrl() != null) {
-                DownloadHelper.downloadImage(this, currentPost.getMediaUrl());
+            if (!currentZoomedUrl.isEmpty()) {
+                DownloadHelper.downloadImage(this, currentZoomedUrl);
             }
         });
 
-        // Закрытие зума
-        expandedBackground.setOnClickListener(v -> closeZoom());
         expandedImage.setOnClickListener(v -> closeZoom());
     }
 
     private void loadPostData() {
         DatabaseReference postRef = FirebaseDatabase.getInstance().getReference("posts").child(postId);
-
         postRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -156,34 +135,37 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
                 }
             }
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(ViewPostDetailsActivity.this, "Ошибка загрузки", Toast.LENGTH_SHORT).show();
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
     private void updateUI(Post post) {
         detailTitle.setText(post.getTitle());
         detailDescription.setText(post.getDescription());
+        detailDate.setText(DateFormat.format("dd MMMM yyyy, HH:mm", new Date(post.getTimestamp())).toString());
+        detailCoordinates.setText(String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude()));
 
-        String dateString = DateFormat.format("dd MMMM yyyy, HH:mm", new Date(post.getTimestamp())).toString();
-        detailDate.setText(dateString);
-
-        String coords = String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude());
-        detailCoordinates.setText(coords);
-
-        if (!TextUtils.isEmpty(post.getMediaUrl())) {
-            Glide.with(this).load(post.getMediaUrl()).into(detailImage);
+        List<String> urls = post.getMediaUrls();
+        if (urls == null || urls.isEmpty()) {
+            urls = new ArrayList<>();
+            if (post.getMediaUrl() != null && !post.getMediaUrl().isEmpty()) {
+                urls.add(post.getMediaUrl());
+            }
         }
 
-        if ("video".equals(post.getMediaType())) {
-            detailVideoIcon.setVisibility(View.VISIBLE);
-        } else {
-            detailVideoIcon.setVisibility(View.GONE);
+        if (!urls.isEmpty()) {
+            ImageCarouselAdapter adapter = new ImageCarouselAdapter(this, urls, (pos, url) -> openFullScreenZoom(url));
+            viewPagerMedia.setAdapter(adapter);
+
+            if (urls.size() > 1) {
+                tabLayoutDots.setVisibility(View.VISIBLE);
+                new TabLayoutMediator(tabLayoutDots, viewPagerMedia, (tab, pos) -> {}).attach();
+            } else {
+                tabLayoutDots.setVisibility(View.GONE);
+            }
         }
 
         PostUtils.bindLikeButton(post.getId(), detailLikeIcon, detailLikeCount);
-
         detailLikeContainer.setOnClickListener(v -> {
             detailLikeIcon.animate().scaleX(0.8f).scaleY(0.8f).setDuration(100).withEndAction(() -> {
                 detailLikeIcon.animate().scaleX(1f).scaleY(1f).setDuration(100).start();
@@ -201,8 +183,7 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         };
         detailAuthorAvatar.setOnClickListener(openProfile);
         detailAuthorName.setOnClickListener(openProfile);
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userId);
-        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        FirebaseDatabase.getInstance().getReference("users").child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
@@ -210,11 +191,7 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
                     String avatar = snapshot.child("profileImageUrl").getValue(String.class);
                     detailAuthorName.setText(TextUtils.isEmpty(name) ? "Неизвестный" : name);
                     if (!TextUtils.isEmpty(avatar)) {
-                        Glide.with(ViewPostDetailsActivity.this)
-                                .load(avatar)
-                                .placeholder(R.drawable.ic_profile_placeholder)
-                                .circleCrop()
-                                .into(detailAuthorAvatar);
+                        Glide.with(ViewPostDetailsActivity.this).load(avatar).placeholder(R.drawable.ic_profile_placeholder).circleCrop().into(detailAuthorAvatar);
                     }
                 }
             }
@@ -223,60 +200,15 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         });
     }
 
-    private void zoomImageFromThumb(final View thumbView, String imageUrl) {
+    private void openFullScreenZoom(String imageUrl) {
         if (swipeBackHelper != null) swipeBackHelper.setSwipeEnabled(false);
-        if (currentAnimator != null) currentAnimator.cancel();
+        currentZoomedUrl = imageUrl;
+
+        expandedContainer.setVisibility(View.VISIBLE);
+        expandedContainer.setAlpha(0f);
+        expandedContainer.animate().alpha(1f).setDuration(200).start();
 
         Glide.with(this).load(imageUrl).into(expandedImage);
-
-        final Rect startBounds = new Rect();
-        final Rect finalBounds = new Rect();
-        final Point globalOffset = new Point();
-
-        thumbView.getGlobalVisibleRect(startBounds);
-        findViewById(android.R.id.content).getGlobalVisibleRect(finalBounds, globalOffset);
-        startBounds.offset(-globalOffset.x, -globalOffset.y);
-        finalBounds.offset(-globalOffset.x, -globalOffset.y);
-
-        float startScale;
-        if ((float) finalBounds.width() / finalBounds.height() > (float) startBounds.width() / startBounds.height()) {
-            startScale = (float) startBounds.height() / finalBounds.height();
-            float startWidth = startScale * finalBounds.width();
-            float deltaWidth = (startWidth - startBounds.width()) / 2;
-            startBounds.left -= deltaWidth;
-            startBounds.right += deltaWidth;
-        } else {
-            startScale = (float) startBounds.width() / finalBounds.width();
-            float startHeight = startScale * finalBounds.height();
-            float deltaHeight = (startHeight - startBounds.height()) / 2;
-            startBounds.top -= deltaHeight;
-            startBounds.bottom += deltaHeight;
-        }
-
-        thumbView.setAlpha(0f);
-        expandedContainer.setVisibility(View.VISIBLE);
-
-        expandedImage.setPivotX(0f);
-        expandedImage.setPivotY(0f);
-
-        AnimatorSet set = new AnimatorSet();
-        set.play(ObjectAnimator.ofFloat(expandedImage, View.X, startBounds.left, finalBounds.left))
-                .with(ObjectAnimator.ofFloat(expandedImage, View.Y, startBounds.top, finalBounds.top))
-                .with(ObjectAnimator.ofFloat(expandedImage, View.SCALE_X, startScale, 1f))
-                .with(ObjectAnimator.ofFloat(expandedImage, View.SCALE_Y, startScale, 1f))
-                .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f, 1f))
-                .with(ObjectAnimator.ofFloat(btnDownloadExpanded, View.ALPHA, 0f, 1f));
-
-        set.setDuration(shortAnimationDuration);
-        set.setInterpolator(new DecelerateInterpolator());
-        set.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                currentAnimator = null;
-            }
-        });
-        set.start();
-        currentAnimator = set;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             mainContentLayout.setRenderEffect(RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.MIRROR));
@@ -286,14 +218,12 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
     private void closeZoom() {
         if (swipeBackHelper != null) swipeBackHelper.setSwipeEnabled(true);
 
-        if (currentAnimator != null) currentAnimator.cancel();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            mainContentLayout.setRenderEffect(null);
-        }
-
-        expandedContainer.setVisibility(View.GONE);
-        detailImage.setAlpha(1f);
+        expandedContainer.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+            expandedContainer.setVisibility(View.GONE);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                mainContentLayout.setRenderEffect(null);
+            }
+        }).start();
     }
 
     @Override
@@ -312,5 +242,4 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         }
         return super.dispatchTouchEvent(ev);
     }
-
 }

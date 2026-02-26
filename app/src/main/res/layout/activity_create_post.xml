@@ -8,14 +8,12 @@
     android:background="@color/primary"
     tools:context=".CreatePostActivity">
 
-    <!-- HEADER -->
+    <!-- МИНИМАЛИСТИЧНЫЙ HEADER -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/headerLayout"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
+        android:layout_height="60dp"
         android:paddingHorizontal="8dp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
@@ -24,7 +22,6 @@
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_arrow_back"
-            android:contentDescription="Закрыть"
             app:tint="@color/text_primary"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -33,7 +30,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Создание"
+            android:text="Новая запись"
             android:textColor="@color/text_primary"
             android:textSize="18sp"
             android:textStyle="bold"
@@ -42,48 +39,54 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSavePostTop"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Готово"
+            android:textColor="@color/accent"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- ОСНОВНОЙ КОНТЕНТ -->
     <ScrollView
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:clipToPadding="false"
         android:fillViewport="true"
         android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/headerLayout">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="32dp">
+            android:paddingBottom="40dp">
 
-            <!-- 1. ЗОНА МЕДИА -->
+            <!-- ЗОНА ФОТО (Крупная, без лишних рамок) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btnAddMedia"
                 android:layout_width="match_parent"
-                android:layout_height="240dp"
-                android:layout_marginTop="12dp"
+                android:layout_height="400dp"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="8dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="@color/secondary"
-                app:cardCornerRadius="24dp"
+                app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:rippleColor="#20FFFFFF"
-                app:strokeColor="#15FFFFFF"
+                app:strokeColor="#1A000000"
                 app:strokeWidth="1dp">
 
                 <FrameLayout
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
 
-                    <!-- Плейсхолдер -->
-                    <!-- ДОБАВЛЕН ID: layoutAddMediaPlaceholder -->
+                    <!-- Плейсхолдер (когда нет фото) -->
                     <LinearLayout
                         android:id="@+id/layoutAddMediaPlaceholder"
                         android:layout_width="wrap_content"
@@ -92,25 +95,17 @@
                         android:gravity="center"
                         android:orientation="vertical">
 
-                        <FrameLayout
-                            android:layout_width="64dp"
-                            android:layout_height="64dp"
-                            android:background="@drawable/circle_background"
-                            android:backgroundTint="#10FFFFFF">
-
-                            <ImageView
-                                android:layout_width="32dp"
-                                android:layout_height="32dp"
-                                android:layout_gravity="center"
-                                android:src="@drawable/ic_add_camera"
-                                app:tint="@color/text_primary" />
-                        </FrameLayout>
+                        <ImageView
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@drawable/ic_add_camera"
+                            app:tint="@color/accent" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="16dp"
-                            android:text="Добавить фото/видео"
+                            android:layout_marginTop="12dp"
+                            android:text="Выбрать фото"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -119,229 +114,208 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="4dp"
-                            android:text="Нажмите для выбора"
+                            android:text="Можно выбрать несколько"
                             android:textColor="@color/text_secondary"
                             android:textSize="12sp" />
                     </LinearLayout>
 
-                    <!-- Превью -->
-                    <ImageView
-                        android:id="@+id/previewImage"
+                    <!-- Карусель -->
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/viewPagerMedia"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
                         android:visibility="gone" />
+
+                    <!-- Точки -->
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/tabLayoutDots"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="bottom"
+                        android:background="@android:color/transparent"
+                        app:tabBackground="@drawable/tab_selector"
+                        app:tabGravity="center"
+                        app:tabIndicatorHeight="0dp"
+                        android:layout_marginBottom="8dp"
+                        android:visibility="gone"/>
+
+                    <!-- Панель управления фото (появляется после выбора) -->
+                    <LinearLayout
+                        android:id="@+id/layoutMediaControls"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="top|end"
+                        android:layout_margin="12dp"
+                        android:orientation="horizontal"
+                        android:visibility="gone">
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnClearMedia"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="Сбросить"
+                            android:textSize="12sp"
+                            app:cornerRadius="20dp"
+                            app:backgroundTint="#B3000000"
+                            android:textColor="@android:color/white"
+                            android:layout_marginEnd="8dp"/>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnAddMoreMedia"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="+ Ещё"
+                            android:textSize="12sp"
+                            app:cornerRadius="20dp"
+                            app:backgroundTint="#B3000000"
+                            android:textColor="@android:color/white"/>
+                    </LinearLayout>
 
                 </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                android:layout_marginStart="4dp"
-                android:text="Детали"
-                android:textColor="@color/text_secondary"
-                android:textSize="12sp"
-                android:textAllCaps="true"
-                android:letterSpacing="0.1"
-                android:textStyle="bold"/>
-
-            <!-- 2. БЛОК ВВОДА -->
-            <com.google.android.material.card.MaterialCardView
+            <!-- ЧИСТЫЕ ПОЛЯ ВВОДА (Без рамок) -->
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                app:cardBackgroundColor="@color/secondary"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp">
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:layout_marginTop="24dp">
 
-                <LinearLayout
+                <EditText
+                    android:id="@+id/inputTitle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:paddingVertical="8dp">
+                    android:background="@null"
+                    android:hint="Название места..."
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:inputType="textCapSentences"
+                    android:paddingVertical="8dp"/>
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1A000000"
+                    android:layout_marginVertical="8dp"/>
+
+                <EditText
+                    android:id="@+id/inputDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@null"
+                    android:hint="Поделитесь впечатлениями..."
+                    android:textColorHint="@color/text_secondary"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:gravity="top"
+                    android:minLines="3"
+                    android:inputType="textMultiLine|textCapSentences"
+                    android:paddingVertical="8dp"/>
+            </LinearLayout>
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="8dp"
+                android:background="@color/secondary"
+                android:layout_marginVertical="16dp"/>
+
+            <!-- НАСТРОЙКИ (Локация и Приватность) -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp">
+
+                <!-- Локация -->
+                <LinearLayout
+                    android:id="@+id/btnSelectLocation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_my_location"
+                        app:tint="@color/accent" />
+
+                    <TextView
+                        android:id="@+id/textLocation"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:hint="Название места"
-                        app:boxBackgroundMode="none"
-                        app:hintTextColor="@color/text_primary"
-                        android:textColorHint="@color/text_primary"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="0dp">
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:text="Указать локацию"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/inputTitle"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:inputType="textCapSentences"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp"
-                            android:textStyle="bold"
-                            android:paddingStart="16dp"
-                            android:background="@android:color/transparent"/>
-                    </com.google.android.material.textfield.TextInputLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginHorizontal="16dp"
-                        android:background="#15FFFFFF"/>
-
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:hint="Ваши мысли и впечатления..."
-                        app:boxBackgroundMode="none"
-                        android:textColorHint="@color/text_primary"
-                        app:hintTextColor="@color/text_secondary"
-                        app:boxStrokeWidth="0dp"
-                        app:boxStrokeWidthFocused="0dp">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/inputDescription"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="top"
-                            android:minLines="3"
-                            android:paddingStart="16dp"
-                            android:inputType="textMultiLine|textCapSentences"
-                            android:textColor="@color/text_primary"
-                            android:background="@android:color/transparent"/>
-                    </com.google.android.material.textfield.TextInputLayout>
-
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:src="@drawable/ic_arrow_right"
+                        app:tint="@color/text_secondary"/>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
 
-            <!-- 3. НАСТРОЙКИ -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                app:cardBackgroundColor="@color/secondary"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp">
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#1A000000"
+                    android:layout_marginStart="40dp"/>
 
+                <!-- Приватность (Теперь со свитчом) -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingVertical="16dp">
 
-                    <!-- Локация -->
+                    <ImageView
+                        android:id="@+id/ivPrivacyIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_lock"
+                        app:tint="@color/accent" />
+
                     <LinearLayout
-                        android:id="@+id/btnSelectLocation"
-                        android:layout_width="match_parent"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_my_location"
-                            app:tint="@color/accent" />
+                        android:layout_weight="1"
+                        android:layout_marginStart="16dp"
+                        android:orientation="vertical">
 
                         <TextView
-                            android:id="@+id/textLocation"
-                            android:layout_width="0dp"
+                            android:id="@+id/tvPrivacyText"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:text="Добавить локацию"
+                            android:text="Приватно"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp" />
-
-                        <ImageView
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_arrow_right"
-                            app:tint="@color/text_secondary"
-                            android:alpha="0.5"/>
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:layout_marginStart="56dp"
-                        android:background="#15FFFFFF"/>
-
-                    <!-- Приватность (ВНИМАНИЕ: это LinearLayout, а не CardView теперь) -->
-                    <LinearLayout
-                        android:id="@+id/btnPrivacyToggle"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:background="?attr/selectableItemBackground"
-                        android:clickable="true"
-                        android:focusable="true"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="16dp">
-
-                        <ImageView
-                            android:id="@+id/ivPrivacyIcon"
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_lock"
-                            app:tint="@color/accent" />
-
-                        <LinearLayout
-                            android:layout_width="0dp"
+                        <TextView
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:layout_marginStart="16dp"
-                            android:orientation="vertical">
-
-                            <TextView
-                                android:id="@+id/tvPrivacyText"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Приватно (только я)"
-                                android:textColor="@color/text_primary"
-                                android:textSize="16sp" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="Кто видит эту запись"
-                                android:textColor="@color/text_secondary"
-                                android:textSize="12sp" />
-                        </LinearLayout>
-
-                        <ImageView
-                            android:id="@+id/ivPrivacyStateIndicator"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:src="@drawable/ic_refresh"
-                            app:tint="@color/text_secondary"
-                            android:alpha="0.5"/>
+                            android:text="Видите только вы"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="12sp" />
                     </LinearLayout>
 
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switchPrivacy"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:thumbTint="@color/accent"
+                        app:trackTint="@color/text_secondary"/>
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- 4. КНОПКА СОХРАНИТЬ -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSavePost"
-                android:layout_width="match_parent"
-                android:layout_height="60dp"
-                android:layout_marginTop="32dp"
-                android:text="Опубликовать"
-                android:textAllCaps="false"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@android:color/white"
-                app:backgroundTint="@color/online_indicator"
-                app:cornerRadius="20dp"
-                app:elevation="4dp"
-                android:stateListAnimator="@null"/>
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

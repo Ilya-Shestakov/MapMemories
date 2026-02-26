@@ -13,7 +13,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +27,7 @@ public class UploadWorker extends Worker {
         super(context, workerParams);
         db = AppDatabase.getDatabase(context);
 
-        // Инициализация Cloudinary (скопируй свои ключи сюда)
+        // Инициализация Cloudinary
         Map<String, String> config = new HashMap<>();
         config.put("cloud_name", "dvbjhturp");
         config.put("api_key", "149561293632228");
@@ -55,16 +55,19 @@ public class UploadWorker extends Worker {
                     continue;
                 }
 
-                Map params = new HashMap<>();
+                Map<String, Object> params = new HashMap<>();
                 params.put("resource_type", "auto");
                 Map uploadResult = cloudinary.uploader().upload(mediaFile, params);
                 String uploadedUrl = (String) uploadResult.get("secure_url");
 
-                // 2. Сохранение в Firebase
+                // СОЗДАЕМ СПИСОК ИЗ ОДНОЙ ССЫЛКИ ДЛЯ НОВОГО КОНСТРУКТОРА
+                List<String> mediaUrls = Collections.singletonList(uploadedUrl);
+
+                // 2. Сохранение в Firebase (теперь передаем mediaUrls)
                 String postId = postsRef.push().getKey();
                 Post firebasePost = new Post(
                         postId, userId, post.title, post.description,
-                        uploadedUrl, post.mediaType, post.latitude, post.longitude,
+                        uploadedUrl, mediaUrls, post.mediaType, post.latitude, post.longitude,
                         post.isPublic, post.timestamp
                 );
 

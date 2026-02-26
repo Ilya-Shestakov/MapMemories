@@ -49,6 +49,8 @@ dependencies {
 
     implementation 'de.hdodenhof:circleimageview:3.1.0'
 
+    implementation libs.photoview
+
     implementation libs.circleimageview
     implementation libs.recyclerview
 

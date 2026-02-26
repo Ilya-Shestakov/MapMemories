@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/primary">
 
     <LinearLayout
+        android:id="@+id/mainContentLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:fitsSystemWindows="true">
 
-        <!-- ТУЛБАР (Классический, закрепленный сверху) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -37,12 +36,10 @@
                 android:textStyle="bold"
                 android:gravity="center"/>
 
-            <!-- Пустышка для баланса заголовка -->
             <View android:layout_width="48dp" android:layout_height="48dp"/>
         </LinearLayout>
 
         <ScrollView
-            android:id="@+id/mainContentScroll"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
@@ -54,7 +51,6 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <!-- 1. КАРТИНКА (Отдельный блок) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="220dp"
@@ -66,24 +62,24 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent">
 
-                        <ImageView
-                            android:id="@+id/detailImage"
+                        <androidx.viewpager2.widget.ViewPager2
+                            android:id="@+id/viewPagerMedia"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:scaleType="centerCrop"
-                            android:src="@color/secondary" />
+                            android:layout_height="match_parent" />
 
-                        <!-- Градиент снизу для иконки камеры -->
-                        <View
+                        <com.google.android.material.tabs.TabLayout
+                            android:id="@+id/tabLayoutDots"
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:background="#20000000"/>
-
-
+                            android:layout_height="15dp"
+                            android:layout_gravity="bottom"
+                            android:background="@android:color/transparent"
+                            app:tabBackground="@drawable/tab_selector"
+                            app:tabGravity="center"
+                            app:tabIndicatorHeight="0dp"
+                            android:layout_marginBottom="8dp" />
                     </FrameLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- 2. ПОЛЯ ВВОДА (Блочный стиль) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -94,7 +90,6 @@
                     android:layout_marginBottom="8dp"
                     android:layout_marginStart="4dp"/>
 
-                <!-- Блок Названия -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -103,7 +98,6 @@
                     android:orientation="vertical"
                     android:paddingHorizontal="16dp"
                     android:paddingVertical="4dp">
-                    <!-- rounded_background_surface - это просто shape rectangle с радиусом 12dp -->
 
                     <EditText
                         android:id="@+id/editTitle"
@@ -118,7 +112,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <!-- Блок Описания -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -141,7 +134,6 @@
                         android:textSize="15sp" />
                 </LinearLayout>
 
-                <!-- 3. НАСТРОЙКИ (Список) -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -165,7 +157,6 @@
                         android:orientation="vertical"
                         android:padding="4dp">
 
-                        <!-- Приватность -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -193,7 +184,6 @@
 
                         <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#10FFFFFF" android:layout_marginHorizontal="16dp"/>
 
-                        <!-- Координаты -->
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
@@ -204,8 +194,7 @@
                                 android:layout_width="24dp"
                                 android:layout_height="24dp"
                                 android:src="@drawable/ic_my_location"
-                                app:tint="@color/accent"
-                                />
+                                app:tint="@color/accent" />
 
                             <LinearLayout
                                 android:layout_width="0dp"
@@ -244,7 +233,6 @@
                                 android:src="@drawable/ic_arrow_right"
                                 app:tint="@color/text_secondary"/>
                         </LinearLayout>
-
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -254,21 +242,16 @@
                     android:id="@+id/btnDelete"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
-                    android:layout_weight="1"
-                    android:layout_marginEnd="8dp"
                     android:text="Удалить"
-
                     android:textColor="@color/accent"
                     app:iconTint="#FF5252"
                     app:backgroundTint="@color/secondary"
                     app:cornerRadius="12dp"
                     android:gravity="center"
                     app:elevation="0dp"/>
-
             </LinearLayout>
         </ScrollView>
 
-        <!-- КНОПКИ (Прижаты к низу) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -278,9 +261,8 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSave"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:layout_weight="3"
                 android:text="Сохранить"
                 android:textStyle="bold"
                 app:backgroundTint="@color/accent"
@@ -288,7 +270,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- ОВЕРЛЕЙ -->
+    <!-- ОВЕРЛЕЙ ЗУМА -->
     <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"
@@ -298,19 +280,28 @@
         android:focusable="true"
         android:elevation="100dp">
 
-        <View android:id="@+id/expandedBackground" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#F0000000" android:alpha="0"/>
-        <ImageView android:id="@+id/expandedImage" android:layout_width="match_parent" android:layout_height="match_parent" android:scaleType="fitCenter"/>
+        <View android:id="@+id/expandedBackground" android:layout_width="match_parent" android:layout_height="match_parent" android:background="#FF000000" />
+
+        <com.github.chrisbanes.photoview.PhotoView
+            android:id="@+id/expandedImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
 
         <LinearLayout
-            android:id="@+id/expandedControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_gravity="bottom"
             android:padding="24dp"
-            android:gravity="center"
-            android:alpha="0">
-            <com.google.android.material.button.MaterialButton android:id="@+id/btnChangeExpanded" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Изменить фото" app:cornerRadius="20dp" android:layout_marginEnd="12dp"/>
-            <com.google.android.material.button.MaterialButton android:id="@+id/btnDownloadExpanded" android:layout_width="wrap_content" android:layout_height="wrap_content" style="@style/Widget.MaterialComponents.Button.OutlinedButton" android:text="Скачать" app:strokeColor="@android:color/white" android:textColor="@android:color/white" app:cornerRadius="20dp"/>
+            android:gravity="center">
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnDownloadExpanded"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:text="Скачать"
+                app:strokeColor="@android:color/white"
+                android:textColor="@android:color/white"
+                app:cornerRadius="20dp"/>
         </LinearLayout>
     </FrameLayout>
 </FrameLayout>

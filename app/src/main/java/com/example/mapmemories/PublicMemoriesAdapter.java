@@ -9,12 +9,13 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
-
+import androidx.viewpager2.widget.ViewPager2;
 import com.bumptech.glide.Glide;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -22,23 +23,20 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
 public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAdapter.ViewHolder> {
 
-    private Context context;
-    private List<Post> postList;
-    private OnPostClickListener listener;
+    private final Context context;
+    private final List<Post> postList;
+    private final OnPostClickListener listener;
+    private final String currentUserId;
+    private final DatabaseReference usersRef;
+    private final DatabaseReference postsRef;
 
-    // Firebase references
-    private String currentUserId;
-    private DatabaseReference usersRef;
-    private DatabaseReference postsRef;
-
-    // !!! НОВОЕ ПОЛЕ: Флаг, можно ли кликать по автору !!!
     private boolean isAuthorClickable = true;
 
     public interface OnPostClickListener {
@@ -49,23 +47,10 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
         this.context = context;
         this.postList = postList;
         this.listener = listener;
-
-        setHasStableIds(true);
-
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-        if (user != null) {
-            this.currentUserId = user.getUid();
-        } else {
-            this.currentUserId = "";
-        }
-
+        this.currentUserId = (user != null) ? user.getUid() : "";
         this.usersRef = FirebaseDatabase.getInstance().getReference("users");
         this.postsRef = FirebaseDatabase.getInstance().getReference("posts");
-    }
-
-    // !!! НОВЫЙ МЕТОД: Сеттер для отключения кликов !!!
-    public void setAuthorClickable(boolean clickable) {
-        this.isAuthorClickable = clickable;
     }
 
     @NonNull
@@ -75,66 +60,70 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
         return new ViewHolder(view);
     }
 
-    @Override
-    public long getItemId(int position) {
-        return postList.get(position).getId().hashCode();
+    public void setAuthorClickable(boolean clickable) {
+        this.isAuthorClickable = clickable;
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Post post = postList.get(position);
 
-        // ... (Твой код заполнения текстов и картинок без изменений) ...
         holder.title.setText(post.getTitle());
-        String dateString = DateFormat.format("dd MMM yyyy, HH:mm", new Date(post.getTimestamp())).toString();
-        holder.date.setText(dateString);
-        String coords = String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude());
-        holder.coordinates.setText(coords);
+        holder.date.setText(DateFormat.format("dd MMM yyyy, HH:mm", new Date(post.getTimestamp())).toString());
+        holder.coordinates.setText(String.format(Locale.US, "%.4f, %.4f", post.getLatitude(), post.getLongitude()));
 
-        Glide.with(context)
-                .load(post.getMediaUrl())
-                .placeholder(R.color.secondary)
-                .centerCrop()
-                .into(holder.postImage);
+        // Настройка карусели
+        List<String> urls = post.getMediaUrls();
+        if (urls == null || urls.isEmpty()) {
+            urls = new ArrayList<>();
+            if (post.getMediaUrl() != null && !post.getMediaUrl().isEmpty()) {
+                urls.add(post.getMediaUrl()); // Совместимость со старыми постами
+            }
+        }
+
+        ImageCarouselAdapter carouselAdapter = new ImageCarouselAdapter(context, urls, (pos, url) -> listener.onPostClick(post));
+        holder.viewPagerMedia.setAdapter(carouselAdapter);
+
+        if (urls.size() > 1) {
+            holder.tabLayoutDots.setVisibility(View.VISIBLE);
+            new TabLayoutMediator(holder.tabLayoutDots, holder.viewPagerMedia, (tab, pos) -> {}).attach();
+        } else {
+            holder.tabLayoutDots.setVisibility(View.GONE);
+        }
 
         holder.videoIcon.setVisibility("video".equals(post.getMediaType()) ? View.VISIBLE : View.GONE);
-
         loadAuthorInfo(post.getUserId(), holder);
 
-        // ... (Логика лайков без изменений) ...
-        int count = post.getLikeCount();
-        holder.likeCount.setText(String.valueOf(count));
-
-        boolean isLikedByMe = false;
-        if (post.getLikes() != null && currentUserId != null) {
-            isLikedByMe = post.getLikes().containsKey(currentUserId);
-        }
+        // Лайки
+        holder.likeCount.setText(String.valueOf(post.getLikeCount()));
+        boolean isLikedByMe = post.getLikes() != null && !currentUserId.isEmpty() && post.getLikes().containsKey(currentUserId);
         updateLikeIconState(holder.likeIcon, isLikedByMe);
 
         holder.likeContainer.setOnClickListener(v -> {
             if (currentUserId.isEmpty()) return;
-            boolean currentStatus = false;
-            if (post.getLikes() != null) {
-                currentStatus = post.getLikes().containsKey(currentUserId);
-            }
-            boolean newStatus = !currentStatus;
+
+            boolean isCurrentlyLiked = post.getLikes() != null && post.getLikes().containsKey(currentUserId);
+            boolean newStatus = !isCurrentlyLiked;
+
             updateLikeIconState(holder.likeIcon, newStatus);
-            int currentCount = post.getLikeCount();
-            if (newStatus) currentCount++; else currentCount--;
-            holder.likeCount.setText(String.valueOf(currentCount));
+            holder.likeCount.setText(String.valueOf(newStatus ? post.getLikeCount() + 1 : post.getLikeCount() - 1));
             AnimUtils.animateLike(holder.likeIcon, newStatus);
-            postsRef.child(post.getId()).child("likes").child(currentUserId)
-                    .setValue(newStatus ? true : null);
+
+            postsRef.child(post.getId()).child("likes").child(currentUserId).setValue(newStatus ? true : null);
+
+            DatabaseReference authorRef = usersRef.child(post.getUserId()).child("likesCount");
+            if (newStatus) {
+                authorRef.setValue(com.google.firebase.database.ServerValue.increment(1));
+            } else {
+                authorRef.setValue(com.google.firebase.database.ServerValue.increment(-1));
+            }
         });
 
+        // Клик по карточке (кроме карусели, она обрабатывается внутри адаптера)
         holder.itemView.setOnClickListener(v -> listener.onPostClick(post));
 
-        // !!! ИЗМЕНЕНИЕ ЗДЕСЬ: Проверяем флаг перед установкой слушателя !!!
         if (isAuthorClickable) {
             View.OnClickListener authorClick = v -> {
-                // Проверка, чтобы не открывать свой же профиль, если мы в ленте (опционально)
-                // if (post.getUserId().equals(currentUserId)) return;
-
                 Intent intent = new Intent(context, UserProfileActivity.class);
                 intent.putExtra("targetUserId", post.getUserId());
                 context.startActivity(intent);
@@ -142,16 +131,13 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
             holder.authorAvatar.setOnClickListener(authorClick);
             holder.authorName.setOnClickListener(authorClick);
         } else {
-            // Если клики запрещены, убираем слушатели (на случай переиспользования View)
             holder.authorAvatar.setOnClickListener(null);
             holder.authorName.setOnClickListener(null);
-            // Можно также убрать эффект нажатия (ripple), если нужно:
             holder.authorAvatar.setClickable(false);
             holder.authorName.setClickable(false);
         }
     }
 
-    // ... (Остальные методы без изменений) ...
     private void updateLikeIconState(ImageView icon, boolean isLiked) {
         if (isLiked) {
             icon.setImageResource(R.drawable.ic_favorite_red);
@@ -167,13 +153,10 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (!snapshot.exists()) return;
-                String name = snapshot.child("username").getValue(String.class);
+                holder.authorName.setText(snapshot.child("username").getValue(String.class));
                 String avatar = snapshot.child("profileImageUrl").getValue(String.class);
-                holder.authorName.setText(name != null ? name : "Пользователь");
                 if (avatar != null && !avatar.isEmpty()) {
                     Glide.with(context).load(avatar).placeholder(R.drawable.ic_profile_placeholder).circleCrop().into(holder.authorAvatar);
-                } else {
-                    holder.authorAvatar.setImageResource(R.drawable.ic_profile_placeholder);
                 }
             }
             @Override
@@ -182,18 +165,19 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
     }
 
     @Override
-    public int getItemCount() {
-        return postList.size();
-    }
+    public int getItemCount() { return postList.size(); }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView postImage, videoIcon, authorAvatar, likeIcon;
+        ImageView videoIcon, authorAvatar, likeIcon;
         TextView title, date, coordinates, authorName, likeCount;
         LinearLayout likeContainer;
+        ViewPager2 viewPagerMedia;
+        TabLayout tabLayoutDots;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            postImage = itemView.findViewById(R.id.postImage);
+            viewPagerMedia = itemView.findViewById(R.id.viewPagerMedia);
+            tabLayoutDots = itemView.findViewById(R.id.tabLayoutDots);
             videoIcon = itemView.findViewById(R.id.videoIcon);
             authorAvatar = itemView.findViewById(R.id.authorAvatarInPublic);
             authorName = itemView.findViewById(R.id.authorNameInPublic);

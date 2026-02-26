@@ -2,8 +2,6 @@ package com.example.mapmemories;
 
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
-import android.animation.ArgbEvaluator;
-import android.animation.ValueAnimator;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -15,8 +13,8 @@ import android.provider.MediaStore;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
-import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,22 +27,23 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
-
-import com.bumptech.glide.Glide;
-import com.cloudinary.Cloudinary;
-import com.example.mapmemories.database.AppDatabase;
-import com.example.mapmemories.database.OfflinePost;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-
+import androidx.viewpager2.widget.ViewPager2;
 import androidx.work.Constraints;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.NetworkType;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
+
+import com.cloudinary.Cloudinary;
+import com.example.mapmemories.database.AppDatabase;
+import com.example.mapmemories.database.OfflinePost;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.switchmaterial.SwitchMaterial;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -52,44 +51,45 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class CreatePostActivity extends AppCompatActivity {
 
-    // --- UI Элементы ---
     private ConstraintLayout rootLayout;
     private ImageButton btnClose;
+    private MaterialButton btnSavePostTop;
+
     private CardView btnAddMedia;
-    private ImageView previewImage;
     private LinearLayout layoutAddMediaPlaceholder;
-    private TextInputEditText inputTitle, inputDescription;
+    private ViewPager2 viewPagerMedia;
+    private TabLayout tabLayoutDots;
+    private LinearLayout layoutMediaControls;
+    private MaterialButton btnAddMoreMedia, btnClearMedia;
+
+    private EditText inputTitle, inputDescription;
     private LinearLayout btnSelectLocation;
-    private TextView textLocation;
-    private MaterialButton btnSavePost;
+    private TextView textLocation, tvPrivacyText;
+    private ImageView ivPrivacyIcon;
+    private SwitchMaterial switchPrivacy;
 
     private SwipeBackHelper swipeBackHelper;
 
-    // Элементы переключателя приватности (ИЗМЕНЕНО: теперь LinearLayout)
-    private LinearLayout btnPrivacyToggle;
-    private ImageView ivPrivacyIcon, ivPrivacyStateIndicator;
-    private TextView tvPrivacyText;
-
-    // --- Данные ---
-    private Uri selectedMediaUri;
+    // СПИСОК ВЫБРАННЫХ ФОТО
+    private List<Uri> selectedMediaUris = new ArrayList<>();
     private String selectedMediaType = "image";
     private double selectedLat = 0.0;
     private double selectedLng = 0.0;
-    private boolean isPublic = false;
 
-    // --- Сервисы ---
     private Cloudinary cloudinary;
     private DatabaseReference postsRef;
     private FirebaseAuth mAuth;
     private ProgressDialog progressDialog;
 
-    // --- Лаунчеры ---
     private ActivityResultLauncher<Intent> mediaPickerLauncher;
     private ActivityResultLauncher<Intent> locationPickerLauncher;
 
@@ -104,68 +104,29 @@ public class CreatePostActivity extends AppCompatActivity {
         setupLaunchers();
         setupListeners();
 
-        // UI приватности
-        updatePrivacyUI(false);
-
         swipeBackHelper = new SwipeBackHelper(this);
 
-        // --- ЛОГИКА АНИМАЦИИ ОТКРЫТИЯ (Circular Reveal) ---
+        // Анимация появления
         if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
-            final View rootLayout = findViewById(android.R.id.content);
-            rootLayout.setVisibility(View.INVISIBLE);
-
-            android.view.ViewTreeObserver viewTreeObserver = rootLayout.getViewTreeObserver();
-            if (viewTreeObserver.isAlive()) {
-                viewTreeObserver.addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
-                    @Override
-                    public void onGlobalLayout() {
-                        rootLayout.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-
-                        int revealX = getIntent().getIntExtra("revealX", 0);
-                        int revealY = getIntent().getIntExtra("revealY", 0);
-
-                        float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
-
-                        android.animation.Animator circularReveal = android.view.ViewAnimationUtils.createCircularReveal(rootLayout, revealX, revealY, 0, finalRadius);
-                        circularReveal.setDuration(400);
-                        circularReveal.setInterpolator(new android.view.animation.AccelerateInterpolator());
-
-                        rootLayout.setVisibility(View.VISIBLE);
-                        circularReveal.start();
-                    }
-                });
-            }
+            final View root = findViewById(android.R.id.content);
+            root.setVisibility(View.INVISIBLE);
+            root.getViewTreeObserver().addOnGlobalLayoutListener(new android.view.ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    root.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                    int revealX = getIntent().getIntExtra("revealX", 0);
+                    int revealY = getIntent().getIntExtra("revealY", 0);
+                    float finalRadius = (float) (Math.max(root.getWidth(), root.getHeight()) * 1.1);
+                    Animator circularReveal = ViewAnimationUtils.createCircularReveal(root, revealX, revealY, 0, finalRadius);
+                    circularReveal.setDuration(400);
+                    circularReveal.setInterpolator(new AccelerateInterpolator());
+                    root.setVisibility(View.VISIBLE);
+                    circularReveal.start();
+                }
+            });
         } else {
-            // Если анимации нет, просто показываем контент (на всякий случай)
             findViewById(android.R.id.content).setVisibility(View.VISIBLE);
         }
-    }
-
-    private void revealActivity(int x, int y) {
-        float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
-
-        Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, x, y, 0, finalRadius);
-        circularReveal.setDuration(400);
-        circularReveal.setInterpolator(new AccelerateInterpolator());
-
-        rootLayout.setVisibility(View.VISIBLE);
-        circularReveal.start();
-    }
-
-    private void unRevealActivity(int x, int y) {
-        float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
-        Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, x, y, finalRadius, 0);
-
-        circularReveal.setDuration(500);
-        circularReveal.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                rootLayout.setVisibility(View.INVISIBLE);
-                finish();
-                overridePendingTransition(0, 0);
-            }
-        });
-        circularReveal.start();
     }
 
     private void initFirebase() {
@@ -182,30 +143,29 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // Находим корневой элемент
         rootLayout = findViewById(R.id.rootLayout);
-
         btnClose = findViewById(R.id.btnClose);
-        btnAddMedia = findViewById(R.id.btnAddMedia);
-        previewImage = findViewById(R.id.previewImage);
+        btnSavePostTop = findViewById(R.id.btnSavePostTop);
 
-        // ИСПРАВЛЕНИЕ: Ищем по ID, а не через getChildAt, чтобы избежать ClassCastException
+        btnAddMedia = findViewById(R.id.btnAddMedia);
         layoutAddMediaPlaceholder = findViewById(R.id.layoutAddMediaPlaceholder);
+        viewPagerMedia = findViewById(R.id.viewPagerMedia);
+        tabLayoutDots = findViewById(R.id.tabLayoutDots);
+        layoutMediaControls = findViewById(R.id.layoutMediaControls);
+        btnAddMoreMedia = findViewById(R.id.btnAddMoreMedia);
+        btnClearMedia = findViewById(R.id.btnClearMedia);
 
         inputTitle = findViewById(R.id.inputTitle);
         inputDescription = findViewById(R.id.inputDescription);
         btnSelectLocation = findViewById(R.id.btnSelectLocation);
         textLocation = findViewById(R.id.textLocation);
-        btnSavePost = findViewById(R.id.btnSavePost);
 
-        // ИСПРАВЛЕНИЕ: btnPrivacyToggle в XML теперь LinearLayout
-        btnPrivacyToggle = findViewById(R.id.btnPrivacyToggle);
         ivPrivacyIcon = findViewById(R.id.ivPrivacyIcon);
         tvPrivacyText = findViewById(R.id.tvPrivacyText);
-        ivPrivacyStateIndicator = findViewById(R.id.ivPrivacyStateIndicator);
+        switchPrivacy = findViewById(R.id.switchPrivacy);
 
         progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Публикация воспоминания...");
+        progressDialog.setMessage("Публикация...");
         progressDialog.setCancelable(false);
     }
 
@@ -214,14 +174,17 @@ public class CreatePostActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        selectedMediaUri = result.getData().getData();
-                        String mimeType = getContentResolver().getType(selectedMediaUri);
-                        if (mimeType != null && mimeType.startsWith("video")) {
-                            selectedMediaType = "video";
-                        } else {
-                            selectedMediaType = "image";
+                        // ВАЖНО: Мы НЕ очищаем список (selectedMediaUris.clear()), а ДОБАВЛЯЕМ к нему
+                        if (result.getData().getClipData() != null) {
+                            int count = result.getData().getClipData().getItemCount();
+                            for (int i = 0; i < count; i++) {
+                                selectedMediaUris.add(result.getData().getClipData().getItemAt(i).getUri());
+                            }
+                        } else if (result.getData().getData() != null) {
+                            selectedMediaUris.add(result.getData().getData());
                         }
-                        showPreview();
+                        selectedMediaType = "image";
+                        updateMediaUI();
                     }
                 }
         );
@@ -239,26 +202,52 @@ public class CreatePostActivity extends AppCompatActivity {
         );
     }
 
-    private void showPreview() {
-        if (layoutAddMediaPlaceholder != null) {
+    private void updateMediaUI() {
+        if (selectedMediaUris.isEmpty()) {
+            // Показываем плейсхолдер
+            layoutAddMediaPlaceholder.setVisibility(View.VISIBLE);
+            viewPagerMedia.setVisibility(View.GONE);
+            layoutMediaControls.setVisibility(View.GONE);
+            tabLayoutDots.setVisibility(View.GONE);
+        } else {
+            // Показываем карусель и кнопки управления
             layoutAddMediaPlaceholder.setVisibility(View.GONE);
+            viewPagerMedia.setVisibility(View.VISIBLE);
+            layoutMediaControls.setVisibility(View.VISIBLE);
+
+            ImageCarouselAdapter adapter = new ImageCarouselAdapter(this, selectedMediaUris);
+            viewPagerMedia.setAdapter(adapter);
+
+            if (selectedMediaUris.size() > 1) {
+                tabLayoutDots.setVisibility(View.VISIBLE);
+                new TabLayoutMediator(tabLayoutDots, viewPagerMedia, (tab, position) -> {}).attach();
+            } else {
+                tabLayoutDots.setVisibility(View.GONE);
+            }
         }
-        previewImage.setVisibility(View.VISIBLE);
-        Glide.with(this)
-                .load(selectedMediaUri)
-                .centerCrop()
-                .into(previewImage);
     }
 
     private void setupListeners() {
-
         btnClose.setOnClickListener(v -> onBackPressed());
 
-        btnAddMedia.setOnClickListener(v -> {
+        // Открытие галереи
+        View.OnClickListener openPicker = v -> {
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-            intent.setType("*/*");
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {"image/*", "video/*"});
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             mediaPickerLauncher.launch(intent);
+        };
+
+        // Клик по пустой зоне или кнопке "Добавить еще"
+        btnAddMedia.setOnClickListener(v -> {
+            if (selectedMediaUris.isEmpty()) openPicker.onClick(v);
+        });
+        btnAddMoreMedia.setOnClickListener(openPicker);
+
+        // Кнопка очистки
+        btnClearMedia.setOnClickListener(v -> {
+            selectedMediaUris.clear();
+            updateMediaUI();
         });
 
         btnSelectLocation.setOnClickListener(v -> {
@@ -266,89 +255,48 @@ public class CreatePostActivity extends AppCompatActivity {
             locationPickerLauncher.launch(intent);
         });
 
-        btnPrivacyToggle.setOnClickListener(v -> togglePrivacy());
-        btnSavePost.setOnClickListener(v -> validateAndUpload());
-    }
+        // Логика свитча приватности
+        switchPrivacy.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                ivPrivacyIcon.setImageResource(R.drawable.ic_public);
+                tvPrivacyText.setText("Публично");
+                ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.online_indicator));
+            } else {
+                ivPrivacyIcon.setImageResource(R.drawable.ic_lock);
+                tvPrivacyText.setText("Приватно");
+                ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent));
+            }
+        });
 
-    private void togglePrivacy() {
-        isPublic = !isPublic;
-        int colorPrivate = ContextCompat.getColor(this, android.R.color.transparent); // Или R.color.secondary если нужен цвет
-        int colorPublic = ContextCompat.getColor(this, R.color.online_indicator);
-        // В дизайне из XML фон кнопки прозрачный/selectableItemBackground.
-        // Если хотите менять цвет фона всей строки:
-        // Используем прозрачный для "приватно" (как дефолт) и подкрашенный для "публично".
-        // Но лучше просто менять иконку и текст, как в новом дизайне.
-
-        // Для упрощения под новый дизайн - меняем только иконки и текст.
-        // Если хотите менять цвет фона LinearLayout:
-        /*
-        int startColor = isPublic ? colorPrivate : colorPublic;
-        int endColor = isPublic ? colorPublic : colorPrivate;
-        ValueAnimator colorAnimation = ValueAnimator.ofObject(new ArgbEvaluator(), startColor, endColor);
-        colorAnimation.setDuration(300);
-        colorAnimation.addUpdateListener(animator ->
-                btnPrivacyToggle.setBackgroundColor((int) animator.getAnimatedValue()) // ИСПРАВЛЕНО на setBackgroundColor
-        );
-        colorAnimation.start();
-        */
-
-        ivPrivacyIcon.animate()
-                .rotationY(90f)
-                .setDuration(150)
-                .withEndAction(() -> {
-                    if (isPublic) {
-                        ivPrivacyIcon.setImageResource(R.drawable.ic_public);
-                        ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.online_indicator));
-                        tvPrivacyText.setText("Публично (видят все)");
-                    } else {
-                        ivPrivacyIcon.setImageResource(R.drawable.ic_lock);
-                        ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent));
-                        tvPrivacyText.setText("Приватно (только я)");
-                    }
-                    ivPrivacyIcon.setRotationY(-90f);
-                    ivPrivacyIcon.animate().rotationY(0f).setDuration(150).start();
-                })
-                .start();
-        ivPrivacyStateIndicator.animate().rotationBy(180f).setDuration(300).start();
-    }
-
-    private void updatePrivacyUI(boolean animate) {
-        if (isPublic) {
-            ivPrivacyIcon.setImageResource(R.drawable.ic_public);
-            tvPrivacyText.setText("Публично (видят все)");
-            ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.online_indicator));
-        } else {
-            ivPrivacyIcon.setImageResource(R.drawable.ic_lock);
-            tvPrivacyText.setText("Приватно (только я)");
-            ivPrivacyIcon.setColorFilter(ContextCompat.getColor(this, R.color.accent));
-        }
+        btnSavePostTop.setOnClickListener(v -> validateAndUpload());
     }
 
     private void validateAndUpload() {
         String title = inputTitle.getText().toString().trim();
         String desc = inputDescription.getText().toString().trim();
+        boolean isPublic = switchPrivacy.isChecked();
 
         if (title.isEmpty()) {
             inputTitle.setError("Введите название");
             return;
         }
-        if (selectedMediaUri == null) {
-            Toast.makeText(this, "Пожалуйста, выберите фото или видео", Toast.LENGTH_SHORT).show();
+        if (selectedMediaUris.isEmpty()) {
+            Toast.makeText(this, "Пожалуйста, выберите хотя бы одно фото", Toast.LENGTH_SHORT).show();
             return;
         }
 
         if (NetworkUtils.isConnected(this)) {
             progressDialog.show();
-            uploadToCloudinary(title, desc);
+            uploadToCloudinary(title, desc, isPublic);
         } else {
-            savePostOffline(title, desc);
+            savePostOffline(title, desc, isPublic);
         }
     }
 
-    private void savePostOffline(String title, String desc) {
+    private void savePostOffline(String title, String desc, boolean isPublic) {
         new Thread(() -> {
             try {
-                File localFile = copyUriToInternalStorage(selectedMediaUri);
+                File localFile = copyUriToInternalStorage(selectedMediaUris.get(0));
                 OfflinePost offlinePost = new OfflinePost(
                         title, desc, localFile.getAbsolutePath(), selectedMediaType,
                         selectedLat, selectedLng, isPublic, System.currentTimeMillis()
@@ -360,7 +308,6 @@ public class CreatePostActivity extends AppCompatActivity {
                     Toast.makeText(this, "Нет интернета. Сохранено в черновики!", Toast.LENGTH_LONG).show();
                     finish();
                 });
-
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> Toast.makeText(this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show());
@@ -369,25 +316,14 @@ public class CreatePostActivity extends AppCompatActivity {
     }
 
     private void scheduleUploadWorker() {
-        Constraints constraints = new Constraints.Builder()
-                .setRequiredNetworkType(NetworkType.CONNECTED)
-                .build();
-
-        OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(UploadWorker.class)
-                .setConstraints(constraints)
-                .build();
-
-        WorkManager.getInstance(this).enqueueUniqueWork(
-                "UPLOAD_POSTS_WORK",
-                ExistingWorkPolicy.APPEND_OR_REPLACE,
-                uploadWork
-        );
+        Constraints constraints = new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
+        OneTimeWorkRequest uploadWork = new OneTimeWorkRequest.Builder(UploadWorker.class).setConstraints(constraints).build();
+        WorkManager.getInstance(this).enqueueUniqueWork("UPLOAD_POSTS_WORK", ExistingWorkPolicy.APPEND_OR_REPLACE, uploadWork);
     }
 
     private File copyUriToInternalStorage(Uri uri) throws IOException {
         InputStream inputStream = getContentResolver().openInputStream(uri);
         File destinationFile = new File(getFilesDir(), "offline_media_" + System.currentTimeMillis());
-
         try (FileOutputStream outputStream = new FileOutputStream(destinationFile)) {
             byte[] buffer = new byte[1024];
             int length;
@@ -399,30 +335,36 @@ public class CreatePostActivity extends AppCompatActivity {
         return destinationFile;
     }
 
-    private void uploadToCloudinary(String title, String desc) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            try {
-                InputStream inputStream;
-                if (selectedMediaType.equals("image")) {
-                    inputStream = getCompressedImageStream(selectedMediaUri);
-                } else {
-                    inputStream = getContentResolver().openInputStream(selectedMediaUri);
+    private void uploadToCloudinary(String title, String desc, boolean isPublic) {
+        List<String> uploadedUrls = new ArrayList<>();
+        AtomicInteger uploadCount = new AtomicInteger(0);
+
+        for (Uri uri : selectedMediaUris) {
+            Executors.newSingleThreadExecutor().execute(() -> {
+                try {
+                    InputStream inputStream = getCompressedImageStream(uri);
+                    Map<String, Object> uploadParams = new HashMap<>();
+                    uploadParams.put("resource_type", "image");
+
+                    Map uploadResult = cloudinary.uploader().upload(inputStream, uploadParams);
+                    String uploadedUrl = (String) uploadResult.get("secure_url");
+
+                    synchronized (uploadedUrls) {
+                        uploadedUrls.add(uploadedUrl);
+                    }
+
+                    if (uploadCount.incrementAndGet() == selectedMediaUris.size()) {
+                        runOnUiThread(() -> savePostToFirebase(title, desc, isPublic, uploadedUrls));
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(CreatePostActivity.this, "Ошибка загрузки фото", Toast.LENGTH_LONG).show();
+                    });
                 }
-                Map<String, Object> uploadParams = new HashMap<>();
-                uploadParams.put("resource_type", "auto");
-
-                Map uploadResult = cloudinary.uploader().upload(inputStream, uploadParams);
-                String uploadedUrl = (String) uploadResult.get("secure_url");
-                savePostToFirebase(title, desc, uploadedUrl);
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> {
-                    progressDialog.dismiss();
-                    Toast.makeText(CreatePostActivity.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                });
-            }
-        });
+            });
+        }
     }
 
     private InputStream getCompressedImageStream(Uri uri) throws IOException {
@@ -437,12 +379,13 @@ public class CreatePostActivity extends AppCompatActivity {
         return new ByteArrayInputStream(bos.toByteArray());
     }
 
-    private void savePostToFirebase(String title, String desc, String mediaUrl) {
+    private void savePostToFirebase(String title, String desc, boolean isPublic, List<String> mediaUrls) {
         String postId = postsRef.push().getKey();
         String userId = mAuth.getCurrentUser() != null ? mAuth.getCurrentUser().getUid() : "anon";
+        String mainUrl = mediaUrls.isEmpty() ? "" : mediaUrls.get(0);
 
         Post newPost = new Post(
-                postId, userId, title, desc, mediaUrl,
+                postId, userId, title, desc, mainUrl, mediaUrls,
                 selectedMediaType, selectedLat, selectedLng,
                 isPublic, System.currentTimeMillis()
         );
@@ -450,13 +393,18 @@ public class CreatePostActivity extends AppCompatActivity {
         if (postId != null) {
             postsRef.child(postId).setValue(newPost)
                     .addOnSuccessListener(aVoid -> {
+                        // УВЕЛИЧИВАЕМ СЧЕТЧИК ПОСТОВ В ПРОФИЛЕ
+                        FirebaseDatabase.getInstance().getReference("users")
+                                .child(userId).child("memoriesCount")
+                                .setValue(com.google.firebase.database.ServerValue.increment(1));
+
                         progressDialog.dismiss();
-                        Toast.makeText(CreatePostActivity.this, "Воспоминание сохранено!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CreatePostActivity.this, "Опубликовано!", Toast.LENGTH_SHORT).show();
                         finish();
                     })
                     .addOnFailureListener(e -> {
                         progressDialog.dismiss();
-                        Toast.makeText(CreatePostActivity.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CreatePostActivity.this, "Ошибка сохранения", Toast.LENGTH_SHORT).show();
                     });
         }
     }
@@ -466,7 +414,18 @@ public class CreatePostActivity extends AppCompatActivity {
         if (getIntent().hasExtra("revealX")) {
             int revealX = getIntent().getIntExtra("revealX", 0);
             int revealY = getIntent().getIntExtra("revealY", 0);
-            unRevealActivity(revealX, revealY);
+            float finalRadius = (float) (Math.max(rootLayout.getWidth(), rootLayout.getHeight()) * 1.1);
+            Animator circularReveal = ViewAnimationUtils.createCircularReveal(rootLayout, revealX, revealY, finalRadius, 0);
+            circularReveal.setDuration(400);
+            circularReveal.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    rootLayout.setVisibility(View.INVISIBLE);
+                    finish();
+                    overridePendingTransition(0, 0);
+                }
+            });
+            circularReveal.start();
         } else {
             super.onBackPressed();
         }
@@ -479,5 +438,4 @@ public class CreatePostActivity extends AppCompatActivity {
         }
         return super.dispatchTouchEvent(ev);
     }
-
 }

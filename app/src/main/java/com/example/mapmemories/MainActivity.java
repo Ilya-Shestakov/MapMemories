@@ -1,21 +1,19 @@
 package com.example.mapmemories;
 
 import android.content.Intent;
+import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.ImageView;
+import android.widget.TextView;
 import android.widget.Toast;
-
-import com.example.mapmemories.database.AppDatabase;
-
-import android.graphics.drawable.Animatable;
-import android.graphics.drawable.Drawable;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
@@ -25,7 +23,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.bumptech.glide.Glide;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.example.mapmemories.database.AppDatabase;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -34,28 +33,23 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
-
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.TextView;
-import androidx.appcompat.app.AlertDialog;
-
 import org.osmdroid.config.Configuration;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 public class MainActivity extends AppCompatActivity {
 
-    private SwipeRefreshLayout swipeRefreshLayout; // Добавили
+    private SwipeRefreshLayout swipeRefreshLayout;
     private RecyclerView memoriesRecyclerView;
-    private FloatingActionButton fabMap, fabChats;
-    private ExtendedFloatingActionButton fabAdd;
+    private ImageView fabMap, fabChats, fabAddIcon;
+    private MaterialCardView fabAdd, bottomDock;
     private ImageView logoutButton;
     private ImageView profileButton;
+    private ImageView fabSettings;
+    private ImageView offlineBadge;
+    private TextView appTitle;
 
     // Firebase
     private FirebaseAuth mAuth;
@@ -69,9 +63,6 @@ public class MainActivity extends AppCompatActivity {
     // Для двойного нажатия "Назад"
     private long backPressedTime;
     private Toast backToast;
-
-    private ImageView offlineBadge;
-
     private boolean isFirstLoad = true;
 
     @Override
@@ -89,13 +80,11 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         setupClickListeners();
         setupRecyclerView();
-        setupSwipeRefresh(); // НОВЫЙ МЕТОД
-
+        setupSwipeRefresh();
         setupDoubleBackExit();
         loadUserAvatar();
         loadPublicPosts();
         observeOfflinePosts();
-
         setupSecretGesture();
     }
 
@@ -110,38 +99,27 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout); // Инициализация
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
+        bottomDock = findViewById(R.id.bottomDock);
         fabAdd = findViewById(R.id.fabAdd);
+        fabAddIcon = findViewById(R.id.fabAddIcon);
         fabMap = findViewById(R.id.fabMap);
         fabChats = findViewById(R.id.fabChats);
-        profileButton = findViewById(R.id.profileButton);
-        logoutButton = findViewById(R.id.logoutButton);
+        profileButton = findViewById(R.id.profileButton); // Ссылка на аватарку внизу
+        //logoutButton = findViewById(R.id.logoutButton);
         offlineBadge = findViewById(R.id.offlineBadge);
+        appTitle = findViewById(R.id.appTitle);
+        fabSettings = findViewById(R.id.fabSettings);
     }
 
     private void setupSwipeRefresh() {
-        // Настраиваем цвета кружка (сделай под свои цвета theme colors)
-        swipeRefreshLayout.setColorSchemeResources(
-                R.color.accent,
-                R.color.text_primary,
-                R.color.secondary
-        );
-
-        // Логика "потяни вниз"
+        swipeRefreshLayout.setColorSchemeResources(R.color.accent, R.color.text_primary, R.color.secondary);
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            // Фейковая задержка для красоты (1.5 секунды)
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-
-                // 1. Останавливаем кружок
                 swipeRefreshLayout.setRefreshing(false);
-
-                // 2. Перезапускаем анимацию списка (то самое "проседание")
                 runLayoutAnimation();
-
-                // 3. Можно вибру добавить для кайфа
                 VibratorHelper.vibrate(MainActivity.this, 30);
-
             }, 1200);
         });
     }
@@ -150,7 +128,6 @@ public class MainActivity extends AppCompatActivity {
         AppDatabase.getDatabase(this).offlinePostDao().getAllPostsLive().observe(this, posts -> {
             if (posts != null && !posts.isEmpty()) {
                 offlineBadge.setVisibility(View.VISIBLE);
-                // Можно добавить анимацию мигания, чтобы привлекало внимание
                 offlineBadge.animate().alpha(1f).setDuration(500);
             } else {
                 offlineBadge.setVisibility(View.GONE);
@@ -161,32 +138,24 @@ public class MainActivity extends AppCompatActivity {
     private void setupRecyclerView() {
         memoriesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Привязываем контроллер анимации (твой старый код)
         int resId = R.anim.layout_animation_fall_down;
         LayoutAnimationController animation = AnimationUtils.loadLayoutAnimation(this, resId);
         memoriesRecyclerView.setLayoutAnimation(animation);
 
-        // --- НОВЫЙ КОД ДЛЯ АНИМАЦИИ КНОПКИ ---
+        // Прячем Floating Dock при скролле вниз, чтобы освободить весь экран
         memoriesRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                // dy > 0: скролл вниз (лента идет вверх)
-                // dy < 0: скролл вверх
-
-                if (dy > 0 && fabAdd.isExtended()) {
-                    // Если скроллим вниз и кнопка широкая -> сжимаем
-                    fabAdd.shrink();
-                } else if (dy < 0 && !fabAdd.isExtended()) {
-                    // Если скроллим вверх и кнопка сжата -> расширяем
-                    fabAdd.extend();
+                if (dy > 15 && bottomDock.getTranslationY() == 0) {
+                    bottomDock.animate().translationY(bottomDock.getHeight() + 100).setDuration(250).start();
+                } else if (dy < -15 && bottomDock.getTranslationY() > 0) {
+                    bottomDock.animate().translationY(0).setDuration(250).start();
                 }
             }
         });
-        // -------------------------------------
 
         publicPostList = new ArrayList<>();
         publicAdapter = new PublicMemoriesAdapter(this, publicPostList, post -> {
-            // ... твой код адаптера ...
             FirebaseUser currentUser = mAuth.getCurrentUser();
             if (currentUser != null && post.getUserId().equals(currentUser.getUid())) {
                 Intent intent = new Intent(MainActivity.this, PostDetailsActivity.class);
@@ -199,29 +168,21 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
         memoriesRecyclerView.setAdapter(publicAdapter);
     }
 
-    // Вспомогательный метод для запуска анимации
     private void runLayoutAnimation() {
-        final LayoutAnimationController controller =
-                AnimationUtils.loadLayoutAnimation(this, R.anim.layout_animation_fall_down);
-
+        final LayoutAnimationController controller = AnimationUtils.loadLayoutAnimation(this, R.anim.layout_animation_fall_down);
         memoriesRecyclerView.setLayoutAnimation(controller);
         memoriesRecyclerView.getAdapter().notifyDataSetChanged();
         memoriesRecyclerView.scheduleLayoutAnimation();
     }
 
     private void loadPublicPosts() {
-        // Показываем кружок при первой загрузке (если хочешь)
-        // swipeRefreshLayout.setRefreshing(true);
-
         postsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 publicPostList.clear();
-
                 if (snapshot.exists()) {
                     for (DataSnapshot postSnap : snapshot.getChildren()) {
                         Post post = postSnap.getValue(Post.class);
@@ -231,19 +192,15 @@ public class MainActivity extends AppCompatActivity {
                     }
                     Collections.reverse(publicPostList);
                 }
-
                 publicAdapter.notifyDataSetChanged();
-
                 if (isFirstLoad) {
                     memoriesRecyclerView.scheduleLayoutAnimation();
                     isFirstLoad = false;
                 }
-
                 if (swipeRefreshLayout.isRefreshing()) {
                     swipeRefreshLayout.setRefreshing(false);
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
                 if (swipeRefreshLayout.isRefreshing()) swipeRefreshLayout.setRefreshing(false);
@@ -251,8 +208,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-    // ... Остальные методы (setupDoubleBackExit, loadUserAvatar, setupClickListeners, logoutUser) без изменений ...
 
     private void setupDoubleBackExit() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
@@ -291,85 +246,76 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        // 1. ПРОФИЛЬ
+        // НОВЫЙ ВХОД В ПРОФИЛЬ (клик по аватарке в док-панели)
         profileButton.setOnClickListener(view -> {
-            VibratorHelper.vibrate(MainActivity.this, 50);
+            VibratorHelper.vibrate(this, 50);
             startActivityWithAnimation(Profile.class, view);
         });
 
-        // 2. ОФФЛАЙН
         offlineBadge.setOnClickListener(v -> {
-            VibratorHelper.vibrate(MainActivity.this, 30);
+            VibratorHelper.vibrate(this, 30);
             DialogHelper.showOfflineQueue(this, null);
         });
 
-        // 3. ВЫХОД
-        logoutButton.setOnClickListener(v -> {
-            DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
-                mAuth.signOut();
-                startActivity(new Intent(this, LoginActivity.class));
-                finish();
-            });
-        });
+        // Кнопка выхода осталась наверху
+//        logoutButton.setOnClickListener(v -> {
+//            DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
+//                mAuth.signOut();
+//                startActivity(new Intent(this, LoginActivity.class));
+//                finish();
+//            });
+//        });
 
-        // 4. ЧАТЫ (Слева)
         fabChats.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
             startActivityWithAnimation(ChatListActivity.class, v);
         });
 
-        // 5. НАСТРОЙКИ/КАРТА (По центру)
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivityWithAnimation(Setting.class, v);
+            startActivityWithAnimation(Map.class, v); // Поменяй на свою Activity карты
         });
 
-        // 6. ДОБАВИТЬ (Справа) - С задержкой для вращения
+        fabSettings.setOnClickListener(v -> {
+            VibratorHelper.vibrate(this, 50);
+            startActivityWithAnimation(Setting.class, v); // Переход в Настройки
+        });
+
         fabAdd.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-
-            // Получаем иконку из кнопки и запускаем её анимацию
-            Drawable icon = fabAdd.getIcon();
+            Drawable icon = fabAddIcon.getDrawable();
             if (icon instanceof Animatable) {
                 ((Animatable) icon).start();
             }
-
-            // Запускаем переход с небольшой задержкой, чтобы было видно вращение
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                startActivityWithAnimation(CreatePostActivity.class, v);
+                startActivityWithAnimation(CreatePostActivity.class, bottomDock);
             }, 250);
         });
     }
 
-    // УНИВЕРСАЛЬНЫЙ МЕТОД ЗАПУСКА
     private void startActivityWithAnimation(Class<?> targetActivity, View sourceView) {
         int[] location = new int[2];
         sourceView.getLocationOnScreen(location);
 
-        // Вычисляем центр нажатой кнопки
+        // Переход будет начинаться из центра иконки, на которую нажали (например, аватарки)
         int revealX = location[0] + sourceView.getWidth() / 2;
         int revealY = location[1] + sourceView.getHeight() / 2;
 
         Intent intent = new Intent(this, targetActivity);
         intent.putExtra("revealX", revealX);
         intent.putExtra("revealY", revealY);
-
         startActivity(intent);
-        // Убираем стандартную анимацию перехода, чтобы было видно наш круг
-        overridePendingTransition(0, 0);
+        overridePendingTransition(0, 0); // Без стандартного слайда Android
     }
 
     private void setupSecretGesture() {
-        TextView appTitle = findViewById(R.id.appTitle);
-
         appTitle.setOnTouchListener(new View.OnTouchListener() {
-            private Handler handler = new Handler(Looper.getMainLooper());
-            private long lastUpTime = 0; // Время, когда палец был поднят в последний раз
-
+            private final Handler handler = new Handler(Looper.getMainLooper());
+            private long lastUpTime = 0;
             private static final int DOUBLE_CLICK_DELAY = 400;
             private static final int LONG_PRESS_DURATION = 1000;
 
-            private Runnable secretAction = () -> {
+            private final Runnable secretAction = () -> {
                 VibratorHelper.vibrate(MainActivity.this, 100);
                 showSecretDialog();
             };
@@ -379,18 +325,13 @@ public class MainActivity extends AppCompatActivity {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         long currentTime = System.currentTimeMillis();
-
                         if (currentTime - lastUpTime <= DOUBLE_CLICK_DELAY) {
-
                             handler.postDelayed(secretAction, LONG_PRESS_DURATION);
                         }
                         break;
-
                     case MotionEvent.ACTION_UP:
                     case MotionEvent.ACTION_CANCEL:
-
                         handler.removeCallbacks(secretAction);
-
                         lastUpTime = System.currentTimeMillis();
                         break;
                 }
@@ -400,14 +341,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showSecretDialog() {
-        // Самый обычный, системный AlertDialog без дизайна
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Пасхалочка")
                 .setMessage("Скиньте денег на сервера...\n\nРазработчик: +7(912)702-36-64. (тинь) \n\nМодерация: +7(996)045-85-29. (сбер)")
                 .setPositiveButton("OK", (dialog, which) -> dialog.dismiss())
-                .setNegativeButton("Отмена", null)
                 .setCancelable(true)
                 .show();
     }
-
 }

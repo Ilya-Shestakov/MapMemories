@@ -22,13 +22,18 @@
         android:theme="@style/Theme.MapMemories"
         android:usesCleartextTraffic="true">
         <activity
+            android:name=".Setting"
+            android:exported="false" />
+        <activity
             android:name=".UserProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
-        <activity android:name=".ChatActivity"
-            android:exported="false"/>
-        <activity android:name=".PickPostActivity"
-            android:exported="false"/>
+        <activity
+            android:name=".ChatActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PickPostActivity"
+            android:exported="false" />
         <activity
             android:name=".AllMemoriesActivity"
             android:exported="false" />
@@ -37,14 +42,13 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
         <activity
-            android:name=".Setting"
+            android:name=".Map"
             android:exported="false"
-            android:theme="@style/Theme.Transparent"
-            />
+            android:theme="@style/Theme.Transparent" />
         <activity
             android:name=".CreatePostActivity"
             android:exported="false"
-            android:theme="@style/Theme.MapMemories.Transparent"/>
+            android:theme="@style/Theme.MapMemories.Transparent" />
         <activity
             android:name=".Profile"
             android:exported="false"
@@ -58,7 +62,9 @@
             android:value="MapMemoriesApp/1.0" />
 
         <activity android:name=".PostDetailsActivity" />
-        <activity android:name=".ViewPostDetailsActivity" android:theme="@style/Theme.MapMemories.Transparent"/>
+        <activity
+            android:name=".ViewPostDetailsActivity"
+            android:theme="@style/Theme.MapMemories.Transparent" />
         <activity
             android:name=".SplashActivity"
             android:exported="true">
@@ -72,16 +78,15 @@
         <activity android:name=".RegisterActivity" />
         <activity android:name=".OnboardingActivity" />
         <activity android:name=".MainActivity" />
-        <activity android:name=".ChatListActivity"
+        <activity
+            android:name=".ChatListActivity"
             android:exported="false"
-            android:theme="@style/Theme.Transparent"
-            />
+            android:theme="@style/Theme.Transparent" />
 
         <service
             android:name=".MessageListenerService"
             android:enabled="true"
             android:exported="false" />
-
     </application>
 
 </manifest>

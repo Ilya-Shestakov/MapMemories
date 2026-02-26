@@ -22,29 +22,22 @@ public class PostUtils {
      */
     public static void toggleLike(Post post) {
         String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        if (currentUserId == null) return;
+        if (currentUserId == null || currentUserId.isEmpty()) return;
 
-        DatabaseReference postLikesRef = FirebaseDatabase.getInstance().getReference("posts")
-                .child(post.getId())
-                .child("likes");
+        DatabaseReference postRef = FirebaseDatabase.getInstance().getReference("posts").child(post.getId());
+        DatabaseReference authorRef = FirebaseDatabase.getInstance().getReference("users").child(post.getUserId()).child("likesCount");
 
-        postLikesRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.hasChild(currentUserId)) {
-                    // Уже лайкнуто -> Убираем лайк
-                    postLikesRef.child(currentUserId).removeValue();
-                    updateUserTotalLikes(post.getUserId(), -1); // Уменьшаем карму автора
-                } else {
-                    // Не лайкнуто -> Ставим лайк
-                    postLikesRef.child(currentUserId).setValue(true);
-                    updateUserTotalLikes(post.getUserId(), 1); // Увеличиваем карму автора
-                }
-            }
+        boolean isLiked = post.getLikes() != null && post.getLikes().containsKey(currentUserId);
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
+        if (isLiked) {
+            // Убираем лайк
+            postRef.child("likes").child(currentUserId).removeValue();
+            authorRef.setValue(com.google.firebase.database.ServerValue.increment(-1));
+        } else {
+            // Ставим лайк
+            postRef.child("likes").child(currentUserId).setValue(true);
+            authorRef.setValue(com.google.firebase.database.ServerValue.increment(1));
+        }
     }
 
     /**

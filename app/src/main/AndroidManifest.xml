@@ -16,41 +16,42 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".MapMemoriesApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="MapMemories"
         android:theme="@style/Theme.MapMemories"
         android:usesCleartextTraffic="true">
         <activity
-            android:name=".Setting"
+            android:name=".Settings.Setting"
             android:exported="false" />
         <activity
-            android:name=".UserProfileActivity"
+            android:name=".Profile.UserProfileActivity"
             android:exported="false"
             android:screenOrientation="portrait" />
         <activity
-            android:name=".ChatActivity"
+            android:name=".Chats.ChatActivity"
             android:exported="false" />
         <activity
-            android:name=".PickPostActivity"
+            android:name=".Profile.PickPostActivity"
             android:exported="false" />
         <activity
-            android:name=".AllMemoriesActivity"
+            android:name=".Lenta.AllMemoriesActivity"
             android:exported="false" />
         <activity
-            android:name=".PickLocationActivity"
+            android:name=".Lenta.PickLocationActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
         <activity
-            android:name=".Map"
+            android:name=".Lenta.Map"
             android:exported="false"
             android:theme="@style/Theme.Transparent" />
         <activity
-            android:name=".CreatePostActivity"
+            android:name=".Post.CreatePostActivity"
             android:exported="false"
             android:theme="@style/Theme.MapMemories.Transparent" />
         <activity
-            android:name=".Profile"
+            android:name=".Profile.Profile"
             android:exported="false"
             android:theme="@style/Theme.MapMemories.Transparent" />
 
@@ -61,12 +62,12 @@
             android:name="osmdroid.osmroid.userAgent"
             android:value="MapMemoriesApp/1.0" />
 
-        <activity android:name=".PostDetailsActivity" />
+        <activity android:name=".Post.PostDetailsActivity" />
         <activity
-            android:name=".ViewPostDetailsActivity"
+            android:name=".Post.ViewPostDetailsActivity"
             android:theme="@style/Theme.MapMemories.Transparent" />
         <activity
-            android:name=".SplashActivity"
+            android:name=".LogRegStart.SplashActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -74,17 +75,17 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".LoginActivity" />
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".OnboardingActivity" />
-        <activity android:name=".MainActivity" />
+        <activity android:name=".LogRegStart.LoginActivity" />
+        <activity android:name=".LogRegStart.RegisterActivity" />
+        <activity android:name=".LogRegStart.OnboardingActivity" />
+        <activity android:name=".Lenta.MainActivity" />
         <activity
-            android:name=".ChatListActivity"
+            android:name=".Chats.ChatListActivity"
             android:exported="false"
             android:theme="@style/Theme.Transparent" />
 
         <service
-            android:name=".MessageListenerService"
+            android:name=".systemHelpers.MessageListenerService"
             android:enabled="true"
             android:exported="false" />
     </application>

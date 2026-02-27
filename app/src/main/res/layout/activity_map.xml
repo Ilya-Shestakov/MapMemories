@@ -15,7 +15,7 @@
     android:layout_height="match_parent"
     android:background="@color/surface_dark"
     android:id="@+id/mainContentLayout"
-    tools:context=".Map">
+    tools:context=".Lenta.Map">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"

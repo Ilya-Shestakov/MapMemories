@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/primary">
 
-    <!-- ОБНОВЛЕННЫЙ TOOLBAR С АВАТАРКОЙ И ИМЕНЕМ -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -15,19 +14,24 @@
         app:navigationIcon="@drawable/ic_arrow_back"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Контейнер для аватарки и имени -->
+        <!-- Сделали контейнер кликабельным -->
         <LinearLayout
+            android:id="@+id/userInfoContainer"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:focusable="true">
 
             <ImageView
                 android:id="@+id/ivChatAvatar"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_launcher_background" /> <!-- Заглушка, пока грузится фото -->
+                android:src="@drawable/ic_launcher_background" />
 
             <TextView
                 android:id="@+id/tvChatUsername"

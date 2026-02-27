@@ -1,20 +1,26 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Базовый стиль приложения -->
     <style name="Theme.MapMemories" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
 
+        <!-- Цвета окон и баров (будут автоматически меняться светлый/темный) -->
         <item name="android:statusBarColor">@color/primary_dark</item>
         <item name="android:navigationBarColor">@color/primary_dark</item>
-        <item name="android:windowBackground">@color/primary_dark</item>
+        <item name="android:windowBackground">@color/primary</item>
 
-        <item name="colorPrimary">@color/accent_coral</item>
+        <!-- Акцентные цвета -->
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorOnPrimary">@color/white</item>
 
-        <item name="android:textColor">@color/white</item>
+        <!-- Цвета текста -->
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
     </style>
 
-    <style name="Theme.Transparent" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <!-- Прозрачная тема для карты и диалогов -->
+    <style name="Theme.Transparent" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -23,6 +29,7 @@
         <item name="android:backgroundDimEnabled">false</item>
     </style>
 
+    <!-- Прозрачная тема с наследованием от основной -->
     <style name="Theme.MapMemories.Transparent" parent="Theme.MapMemories">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>

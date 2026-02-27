@@ -1,21 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary_dark">#0F1C2E</color>
+    <!-- Базовые цвета (одинаковые для обеих тем) -->
     <color name="accent_coral">#FF7A45</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="light_gray">#CCCCCC</color>
-    <color name="dark_gray">#1A2B3C</color>
-    <color name="transparent">#00000000</color>
-
-    <color name="therty">#0089E9</color>
-    <color name="primary">#0F1C2E</color>
-    <color name="secondary">#1F3A5F</color>
     <color name="accent">#FF7A45</color>
     <color name="accent_light">#FF9A70</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="surface_dark">#0D1523</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#A6B4CF</color>
+    <color name="therty">#0089E9</color>
+    <color name="transparent">#00000000</color>
     <color name="online_indicator">#4CAF50</color>
     <color name="offline_indicator">#FF5252</color>
+
+    <!-- ЦВЕТА СВЕТЛОЙ ТЕМЫ -->
+    <color name="primary">#F5F7FA</color> <!-- Светло-серый фон приложения -->
+    <color name="primary_dark">#E4E7EB</color> <!-- Цвет статус-бара -->
+    <color name="secondary">#FFFFFF</color> <!-- Белый тулбар и шапки -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_dark">#FFFFFF</color> <!-- Белые карточки -->
+
+    <color name="text_primary">#1A1A1A</color> <!-- Темный текст -->
+    <color name="text_secondary">#666666</color> <!-- Серый текст -->
+
+    <color name="white">#FFFFFFFF</color>
+    <color name="light_gray">#CCCCCC</color>
+    <color name="dark_gray">#E0E0E0</color>
 </resources>

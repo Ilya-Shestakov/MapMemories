@@ -64,7 +64,7 @@
                 android:text="Аккаунт"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
                 android:layout_marginStart="8dp"/>
 
@@ -81,10 +81,10 @@
                     android:orientation="vertical">
 
                     <TextView
-                        android:id="@+id/btnEditProfile"
+                        android:id="@+id/btnChangePassword"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Редактировать профиль"
+                        android:text="Изменить пароль"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:padding="16dp"
@@ -99,10 +99,75 @@
                         android:layout_marginHorizontal="16dp"/>
 
                     <TextView
-                        android:id="@+id/btnChangePassword"
+                        android:id="@+id/btnPrivacy"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Изменить пароль"
+                        android:text="Конфиденциальность"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:padding="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Блок: Внешний вид и Карта -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Отображение"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="8dp"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface_dark"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Тёмная тема"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"/>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchTheme"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#1A888888"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <TextView
+                        android:id="@+id/btnMapStyle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Стиль карты"
                         android:textColor="@color/text_primary"
                         android:textSize="16sp"
                         android:padding="16dp"
@@ -154,8 +219,35 @@
                         <com.google.android.material.switchmaterial.SwitchMaterial
                             android:id="@+id/switchNotifications"
                             android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#1A888888"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingHorizontal="16dp"
+                        android:paddingVertical="8dp">
+
+                        <TextView
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:checked="true"/>
+                            android:layout_weight="1"
+                            android:text="Сохранять оригиналы фото"
+                            android:textColor="@color/text_primary"
+                            android:textSize="16sp"/>
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switchSavePhotos"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"/>
                     </LinearLayout>
 
                     <View
@@ -178,11 +270,11 @@
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Блок: Опасная зона -->
+            <!-- Блок: Поддержка -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Действия"
+                android:text="Поддержка"
                 android:textColor="@color/text_secondary"
                 android:textSize="14sp"
                 android:layout_marginTop="24dp"
@@ -197,19 +289,84 @@
                 app:cardElevation="0dp">
 
                 <TextView
-                    android:id="@+id/btnLogout"
+                    android:id="@+id/btnSupport"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Выйти из аккаунта"
-                    android:textColor="#FF3B30"
-                    android:textStyle="bold"
+                    android:text="Написать разработчикам"
+                    android:textColor="@color/text_primary"
                     android:textSize="16sp"
                     android:padding="16dp"
-                    android:gravity="center"
                     android:clickable="true"
                     android:focusable="true"
                     android:background="?attr/selectableItemBackground"/>
             </com.google.android.material.card.MaterialCardView>
+
+            <!-- Блок: Опасная зона -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Опасная зона"
+                android:textColor="#FF3B30"
+                android:textSize="14sp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="8dp"/>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/surface_dark"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/btnLogout"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Выйти из аккаунта"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp"
+                        android:padding="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"/>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:background="#1A888888"
+                        android:layout_marginHorizontal="16dp"/>
+
+                    <TextView
+                        android:id="@+id/btnDeleteAccount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Удалить аккаунт"
+                        android:textColor="#FF3B30"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:padding="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:background="?attr/selectableItemBackground"/>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Версия приложения -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="MapMemories v1.0.0"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp"
+                android:gravity="center"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"/>
 
         </LinearLayout>
     </ScrollView>

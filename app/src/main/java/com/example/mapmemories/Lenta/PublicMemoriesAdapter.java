@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import com.example.mapmemories.systemHelpers.ZoomOutPageTransformer;
 
 public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAdapter.ViewHolder> {
 
@@ -82,18 +83,39 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
         if (urls == null || urls.isEmpty()) {
             urls = new ArrayList<>();
             if (post.getMediaUrl() != null && !post.getMediaUrl().isEmpty()) {
-                urls.add(post.getMediaUrl()); // Совместимость со старыми постами
+                urls.add(post.getMediaUrl());
             }
         }
 
         ImageCarouselAdapter carouselAdapter = new ImageCarouselAdapter(context, urls, (pos, url) -> listener.onPostClick(post));
         holder.viewPagerMedia.setAdapter(carouselAdapter);
 
+        // ПРИМЕНЯЕМ КРАСИВУЮ АНИМАЦИЮ
+        holder.viewPagerMedia.setPageTransformer(new ZoomOutPageTransformer());
+
         if (urls.size() > 1) {
             holder.tabLayoutDots.setVisibility(View.VISIBLE);
+            holder.photoCounter.setVisibility(View.VISIBLE);
             new TabLayoutMediator(holder.tabLayoutDots, holder.viewPagerMedia, (tab, pos) -> {}).attach();
+
+            // Обновляем счетчик при свайпе
+            final int totalPhotos = urls.size();
+            holder.photoCounter.setText("1/" + totalPhotos);
+
+            // Удаляем старые коллбеки, чтобы не было утечек при переиспользовании ViewHolder
+            holder.viewPagerMedia.unregisterOnPageChangeCallback(holder.pageChangeCallback);
+
+            holder.pageChangeCallback = new ViewPager2.OnPageChangeCallback() {
+                @Override
+                public void onPageSelected(int pos) {
+                    holder.photoCounter.setText((pos + 1) + "/" + totalPhotos);
+                }
+            };
+            holder.viewPagerMedia.registerOnPageChangeCallback(holder.pageChangeCallback);
+
         } else {
             holder.tabLayoutDots.setVisibility(View.GONE);
+            holder.photoCounter.setVisibility(View.GONE);
         }
 
         holder.videoIcon.setVisibility("video".equals(post.getMediaType()) ? View.VISIBLE : View.GONE);
@@ -174,15 +196,17 @@ public class PublicMemoriesAdapter extends RecyclerView.Adapter<PublicMemoriesAd
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView videoIcon, authorAvatar, likeIcon;
-        TextView title, date, coordinates, authorName, likeCount;
+        TextView title, date, coordinates, authorName, likeCount, photoCounter;
         LinearLayout likeContainer;
         ViewPager2 viewPagerMedia;
         TabLayout tabLayoutDots;
+        ViewPager2.OnPageChangeCallback pageChangeCallback;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             viewPagerMedia = itemView.findViewById(R.id.viewPagerMedia);
             tabLayoutDots = itemView.findViewById(R.id.tabLayoutDots);
+            photoCounter = itemView.findViewById(R.id.photoCounter);
             videoIcon = itemView.findViewById(R.id.videoIcon);
             authorAvatar = itemView.findViewById(R.id.authorAvatarInPublic);
             authorName = itemView.findViewById(R.id.authorNameInPublic);

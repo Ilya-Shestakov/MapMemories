@@ -75,20 +75,41 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
+            <!-- Градиент для читаемости точек -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_gradient_bottom"/>
+
             <com.google.android.material.tabs.TabLayout
                 android:id="@+id/tabLayoutDots"
                 android:layout_width="match_parent"
-                android:layout_height="15dp"
+                android:layout_height="24dp"
                 android:layout_gravity="bottom"
                 android:background="@android:color/transparent"
                 app:tabBackground="@drawable/tab_selector"
                 app:tabGravity="center"
                 app:tabIndicatorHeight="0dp"
-                app:tabPaddingStart="1dp"
-                app:tabPaddingEnd="2dp"
+                app:tabPaddingStart="0dp"
+                app:tabPaddingEnd="0dp"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Счетчик фото (1/3) -->
+            <TextView
+                android:id="@+id/photoCounter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|end"
+                android:layout_marginTop="12dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_photo_counter"
+                android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:layout_marginBottom="4dp"
-                />
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <ImageView
                 android:id="@+id/videoIcon"
@@ -99,7 +120,6 @@
                 android:visibility="gone"
                 app:tint="@android:color/white" />
         </FrameLayout>
-
         <!-- Подвал: Текст и Лайки -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"

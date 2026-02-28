@@ -44,14 +44,32 @@
                 android:padding="24dp"
                 android:background="@color/secondary">
 
-                <ImageView
-                    android:id="@+id/profileImage"
-                    android:layout_width="100dp"
-                    android:layout_height="100dp"
-                    android:src="@drawable/ic_profile_placeholder"
-                    android:background="@drawable/circle_background"
-                    android:padding="2dp"
-                    android:scaleType="centerCrop"/>
+                <!-- Обертка для аватарки и зеленого кружка -->
+                <FrameLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content">
+
+                    <ImageView
+                        android:id="@+id/profileImage"
+                        android:layout_width="100dp"
+                        android:layout_height="100dp"
+                        android:src="@drawable/ic_profile_placeholder"
+                        android:background="@drawable/circle_background"
+                        android:padding="2dp"
+                        android:scaleType="centerCrop"/>
+
+                    <!-- Зеленый индикатор онлайна -->
+                    <View
+                        android:id="@+id/onlineIndicator"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="bottom|end"
+                        android:layout_marginEnd="6dp"
+                        android:layout_marginBottom="6dp"
+                        android:background="@drawable/circle_background"
+                        android:backgroundTint="@color/online_indicator"
+                        android:visibility="gone"/>
+                </FrameLayout>
 
                 <TextView
                     android:id="@+id/profileUsername"
@@ -63,6 +81,16 @@
                     android:textStyle="bold"
                     android:layout_marginTop="12dp"/>
 
+                <!-- ТЕКСТ СТАТУСА (В сети / был недавно) -->
+                <TextView
+                    android:id="@+id/profileStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="обновление..."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp"
+                    android:layout_marginTop="2dp"/>
+
                 <TextView
                     android:id="@+id/profileAbout"
                     android:layout_width="wrap_content"
@@ -71,7 +99,7 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp"
                     android:gravity="center"
-                    android:layout_marginTop="4dp"/>
+                    android:layout_marginTop="8dp"/>
 
                 <TextView
                     android:id="@+id/profileJoinDate"
@@ -91,7 +119,6 @@
                     android:orientation="horizontal"
                     android:gravity="center">
 
-                    <!-- Кнопка Дружбы -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnFriendAction"
                         android:layout_width="0dp"
@@ -104,7 +131,6 @@
                         android:layout_marginEnd="4dp"
                         android:visibility="visible"/>
 
-                    <!-- Кнопка Чата -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnChat"
                         android:layout_width="0dp"

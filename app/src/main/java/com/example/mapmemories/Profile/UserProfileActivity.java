@@ -21,6 +21,7 @@ import com.example.mapmemories.Post.ViewPostDetailsActivity;
 import com.example.mapmemories.Lenta.PublicMemoriesAdapter;
 import com.example.mapmemories.R;
 import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.systemHelpers.TimeFormatter;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -43,7 +44,8 @@ public class UserProfileActivity extends AppCompatActivity {
     private String currentUserId;
 
     private ImageView profileImage;
-    private TextView profileUsername, profileAbout, profileJoinDate, countMemories, countLikes, friendsCount;
+    private View onlineIndicator;
+    private TextView profileUsername, profileStatus, profileAbout, profileJoinDate, countMemories, countLikes, friendsCount;
     private RecyclerView userPostsRecyclerView;
     private MaterialButton btnFriendAction, btnChat;
 
@@ -78,6 +80,9 @@ public class UserProfileActivity extends AppCompatActivity {
         if (currentUserId.equals(targetUserId)) {
             btnFriendAction.setVisibility(View.GONE);
             btnChat.setVisibility(View.GONE);
+            // Если это наш профиль, скрываем статус (мы и так знаем, что мы онлайн)
+            profileStatus.setVisibility(View.GONE);
+            onlineIndicator.setVisibility(View.GONE);
         } else {
             btnFriendAction.setOnClickListener(v -> performFriendAction());
             btnChat.setOnClickListener(v -> {
@@ -99,7 +104,9 @@ public class UserProfileActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(v -> finish());
 
         profileImage = findViewById(R.id.profileImage);
+        onlineIndicator = findViewById(R.id.onlineIndicator);
         profileUsername = findViewById(R.id.profileUsername);
+        profileStatus = findViewById(R.id.profileStatus);
         profileAbout = findViewById(R.id.profileAbout);
         profileJoinDate = findViewById(R.id.profileJoinDate);
         countMemories = findViewById(R.id.countMemories);
@@ -128,6 +135,27 @@ public class UserProfileActivity extends AppCompatActivity {
                     String about = snapshot.child("about").getValue(String.class);
                     String imageUrl = snapshot.child("profileImageUrl").getValue(String.class);
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
+
+                    // --- ЛОГИКА СТАТУСА ---
+                    if (!currentUserId.equals(targetUserId)) {
+                        Object statusObj = snapshot.child("status").getValue();
+                        boolean isHidden = false;
+                        if (snapshot.child("privacy").child("hide_online").exists()) {
+                            isHidden = snapshot.child("privacy").child("hide_online").getValue(Boolean.class);
+                        }
+
+                        String statusText = TimeFormatter.formatStatus(statusObj, isHidden);
+                        profileStatus.setText(statusText);
+
+                        if (statusText.equals("в сети")) {
+                            onlineIndicator.setVisibility(View.VISIBLE);
+                            profileStatus.setTextColor(getResources().getColor(R.color.online_indicator));
+                        } else {
+                            onlineIndicator.setVisibility(View.GONE);
+                            profileStatus.setTextColor(getResources().getColor(R.color.text_secondary));
+                        }
+                    }
+                    // ----------------------
 
                     long friendsCounter = snapshot.child("friends").getChildrenCount();
                     long memCount = snapshot.child("memoriesCount").exists() ? snapshot.child("memoriesCount").getValue(Long.class) : 0;
@@ -223,10 +251,7 @@ public class UserProfileActivity extends AppCompatActivity {
             if (!isFinishing()) {
                 if (task.isSuccessful()) {
                     Toast.makeText(this, "Заявка отправлена", Toast.LENGTH_SHORT).show();
-
-                    // ВЫЗЫВАЕМ ОТПРАВКУ УВЕДОМЛЕНИЯ
                     sendFriendRequestNotification();
-
                 } else {
                     btnFriendAction.setEnabled(true);
                     Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
@@ -243,8 +268,8 @@ public class UserProfileActivity extends AppCompatActivity {
 
         HashMap<String, String> notifData = new HashMap<>();
         notifData.put("senderId", currentUserId);
-        notifData.put("text", "Хочет добавить вас в друзья"); // Текст уведомления
-        notifData.put("type", "friend_request"); // Указываем тип
+        notifData.put("text", "Хочет добавить вас в друзья");
+        notifData.put("type", "friend_request");
 
         notifRef.setValue(notifData);
     }

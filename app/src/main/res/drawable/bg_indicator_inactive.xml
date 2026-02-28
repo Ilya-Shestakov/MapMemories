@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:left="4dp" android:right="4dp" android:top="8dp" android:bottom="8dp">
+        <shape android:shape="rectangle">
+            <solid android:color="#80FFFFFF"/> <!-- Полупрозрачный белый (50%) -->
+            <corners android:radius="4dp"/>
+            <size android:width="6dp" android:height="6dp"/> <!-- Маленькая точка -->
+        </shape>
+    </item>
+</layer-list>

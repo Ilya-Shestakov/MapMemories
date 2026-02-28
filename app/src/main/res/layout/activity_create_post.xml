@@ -299,12 +299,7 @@
                             android:text="Приватно"
                             android:textColor="@color/text_primary"
                             android:textSize="16sp" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Видите только вы"
-                            android:textColor="@color/text_secondary"
-                            android:textSize="12sp" />
+
                     </LinearLayout>
 
                     <com.google.android.material.switchmaterial.SwitchMaterial

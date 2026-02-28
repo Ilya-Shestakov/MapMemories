@@ -1,6 +1,9 @@
 package com.example.mapmemories.Lenta;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.graphics.drawable.Animatable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -44,7 +47,7 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
-import org.osmdroid.config.Configuration;
+//import org.osmdroid.config.Configuration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView memoriesRecyclerView;
     private ImageView fabMap, fabChats, fabAddIcon;
     private MaterialCardView fabAdd, bottomDock;
-    private ImageView logoutButton;
     private ImageView profileButton;
     private ImageView fabSettings;
     private ImageView offlineBadge;
@@ -76,12 +78,23 @@ public class MainActivity extends AppCompatActivity {
     private Toast backToast;
     private boolean isFirstLoad = true;
 
+    // --- ПРИМЕНЕНИЕ МАСШТАБА ТЕКСТА ---
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        SharedPreferences preferences = newBase.getSharedPreferences(Setting.PREFS_NAME, Context.MODE_PRIVATE);
+        float scale = preferences.getFloat("text_scale", 1.0f);
+        android.content.res.Configuration config = new android.content.res.Configuration(newBase.getResources().getConfiguration());
+        config.fontScale = scale;
+        Context context = newBase.createConfigurationContext(config);
+        super.attachBaseContext(context);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Configuration.getInstance().load(this,
+        org.osmdroid.config.Configuration.getInstance().load(this,
                 androidx.preference.PreferenceManager.getDefaultSharedPreferences(this));
 
         mAuth = FirebaseAuth.getInstance();
@@ -98,6 +111,37 @@ public class MainActivity extends AppCompatActivity {
         observeOfflinePosts();
         setupSecretGesture();
     }
+
+    // --- ЛОГИКА СТАТУСА (В СЕТИ / БЫЛ НЕДАВНО) ---
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateMyStatus("online");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        updateMyStatus(System.currentTimeMillis());
+    }
+
+    private void updateMyStatus(Object status) {
+        if (userRef == null) return;
+
+        SharedPreferences prefs = getSharedPreferences(Setting.PREFS_NAME, MODE_PRIVATE);
+        boolean hideOnline = prefs.getBoolean("privacy_hide_online", false);
+
+        DatabaseReference statusRef = userRef.child("status");
+
+        if (hideOnline) {
+            statusRef.setValue("hidden");
+        } else {
+            statusRef.setValue(status);
+            // Если пропадет интернет или приложение убьют, Firebase сам запишет время
+            statusRef.onDisconnect().setValue(System.currentTimeMillis());
+        }
+    }
+    // ----------------------------------------------
 
     private void checkCurrentUser() {
         FirebaseUser currentUser = mAuth.getCurrentUser();
@@ -117,8 +161,7 @@ public class MainActivity extends AppCompatActivity {
         fabAddIcon = findViewById(R.id.fabAddIcon);
         fabMap = findViewById(R.id.fabMap);
         fabChats = findViewById(R.id.fabChats);
-        profileButton = findViewById(R.id.profileButton); // Ссылка на аватарку внизу
-        //logoutButton = findViewById(R.id.logoutButton);
+        profileButton = findViewById(R.id.profileButton);
         offlineBadge = findViewById(R.id.offlineBadge);
         appTitle = findViewById(R.id.appTitle);
         fabSettings = findViewById(R.id.fabSettings);
@@ -153,7 +196,6 @@ public class MainActivity extends AppCompatActivity {
         LayoutAnimationController animation = AnimationUtils.loadLayoutAnimation(this, resId);
         memoriesRecyclerView.setLayoutAnimation(animation);
 
-        // Прячем Floating Dock при скролле вниз, чтобы освободить весь экран
         memoriesRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
@@ -257,7 +299,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupClickListeners() {
-        // НОВЫЙ ВХОД В ПРОФИЛЬ (клик по аватарке в док-панели)
         profileButton.setOnClickListener(view -> {
             VibratorHelper.vibrate(this, 50);
             startActivityWithAnimation(Profile.class, view);
@@ -268,15 +309,6 @@ public class MainActivity extends AppCompatActivity {
             DialogHelper.showOfflineQueue(this, null);
         });
 
-        // Кнопка выхода осталась наверху
-//        logoutButton.setOnClickListener(v -> {
-//            DialogHelper.showConfirmation(this, "Выход", "Вы уверены, что хотите выйти?", () -> {
-//                mAuth.signOut();
-//                startActivity(new Intent(this, LoginActivity.class));
-//                finish();
-//            });
-//        });
-
         fabChats.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
             startActivityWithAnimation(ChatListActivity.class, v);
@@ -284,12 +316,12 @@ public class MainActivity extends AppCompatActivity {
 
         fabMap.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivityWithAnimation(Map.class, v); // Поменяй на свою Activity карты
+            startActivityWithAnimation(Map.class, v);
         });
 
         fabSettings.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivityWithAnimation(Setting.class, v); // Переход в Настройки
+            startActivityWithAnimation(Setting.class, v);
         });
 
         fabAdd.setOnClickListener(v -> {
@@ -308,7 +340,6 @@ public class MainActivity extends AppCompatActivity {
         int[] location = new int[2];
         sourceView.getLocationOnScreen(location);
 
-        // Переход будет начинаться из центра иконки, на которую нажали (например, аватарки)
         int revealX = location[0] + sourceView.getWidth() / 2;
         int revealY = location[1] + sourceView.getHeight() / 2;
 
@@ -316,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
         intent.putExtra("revealX", revealX);
         intent.putExtra("revealY", revealY);
         startActivity(intent);
-        overridePendingTransition(0, 0); // Без стандартного слайда Android
+        overridePendingTransition(0, 0);
     }
 
     private void setupSecretGesture() {

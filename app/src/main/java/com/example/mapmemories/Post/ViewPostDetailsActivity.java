@@ -15,6 +15,8 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mapmemories.systemHelpers.ZoomOutPageTransformer;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -57,6 +59,8 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
     private LinearLayout detailLikeContainer;
     private View mainContentLayout;
 
+    private TextView photoCounter;
+
     private ViewPager2 viewPagerMedia;
     private TabLayout tabLayoutDots;
 
@@ -97,6 +101,8 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
         detailLikeIcon = findViewById(R.id.detailLikeIcon);
         detailLikeCount = findViewById(R.id.detailLikeCount);
         detailLikeContainer = findViewById(R.id.detailLikeContainer);
+
+        photoCounter = findViewById(R.id.photoCounter);
 
         viewPagerMedia = findViewById(R.id.viewPagerMedia);
         tabLayoutDots = findViewById(R.id.tabLayoutDots);
@@ -164,13 +170,29 @@ public class ViewPostDetailsActivity extends AppCompatActivity {
             ImageCarouselAdapter adapter = new ImageCarouselAdapter(this, urls, (pos, url) -> openFullScreenZoom(url));
             viewPagerMedia.setAdapter(adapter);
 
+            // ПРИМЕНЯЕМ АНИМАЦИЮ
+            viewPagerMedia.setPageTransformer(new ZoomOutPageTransformer());
+
             if (urls.size() > 1) {
                 tabLayoutDots.setVisibility(View.VISIBLE);
+                photoCounter.setVisibility(View.VISIBLE);
                 new TabLayoutMediator(tabLayoutDots, viewPagerMedia, (tab, pos) -> {}).attach();
+
+                final int totalPhotos = urls.size();
+                photoCounter.setText("1/" + totalPhotos);
+
+                viewPagerMedia.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+                    @Override
+                    public void onPageSelected(int position) {
+                        photoCounter.setText((position + 1) + "/" + totalPhotos);
+                    }
+                });
             } else {
                 tabLayoutDots.setVisibility(View.GONE);
+                photoCounter.setVisibility(View.GONE);
             }
         }
+
 
         PostUtils.bindLikeButton(post.getId(), detailLikeIcon, detailLikeCount);
         detailLikeContainer.setOnClickListener(v -> {

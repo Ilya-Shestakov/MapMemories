@@ -14,7 +14,6 @@
         app:navigationIcon="@drawable/ic_arrow_back"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Сделали контейнер кликабельным -->
         <LinearLayout
             android:id="@+id/userInfoContainer"
             android:layout_width="wrap_content"
@@ -31,20 +30,35 @@
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_marginEnd="12dp"
-                android:src="@drawable/ic_launcher_background" />
+                android:src="@drawable/ic_profile_placeholder" />
 
-            <TextView
-                android:id="@+id/tvChatUsername"
+            <!-- Обернули имя и статус в вертикальный LinearLayout -->
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:text="Загрузка..."
-                android:maxLines="1"
-                android:ellipsize="end"/>
-        </LinearLayout>
+                android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/tvChatUsername"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:text="Загрузка..."
+                    android:maxLines="1"
+                    android:ellipsize="end"/>
+
+                <TextView
+                    android:id="@+id/tvChatStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:text="обновление..."
+                    android:maxLines="1"/>
+            </LinearLayout>
+        </LinearLayout>
     </androidx.appcompat.widget.Toolbar>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -101,5 +115,4 @@
             app:tint="@color/accent" />
 
     </LinearLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>

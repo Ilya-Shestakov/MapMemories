@@ -1,8 +1,12 @@
 package com.example.mapmemories.Chats;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -22,6 +26,8 @@ import com.bumptech.glide.Glide;
 import com.example.mapmemories.Profile.PickPostActivity;
 import com.example.mapmemories.Profile.UserProfileActivity;
 import com.example.mapmemories.R;
+import com.example.mapmemories.Settings.Setting;
+import com.example.mapmemories.systemHelpers.TimeFormatter;
 import com.example.mapmemories.systemHelpers.VibratorHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -41,23 +47,33 @@ public class ChatActivity extends AppCompatActivity {
     private String targetUserId;
     private String currentUserId;
     private String chatId;
-
     private String editingMessageId = null;
 
     private LinearLayout userInfoContainer;
     private ImageView ivChatAvatar;
-    private TextView tvChatUsername;
+    private TextView tvChatUsername, tvChatStatus;
 
     private RecyclerView chatRecyclerView;
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
-    private ImageButton btnSendPost;
-
+    private ImageButton btnSendPost, btnSendText;
     private EditText etMessageInput;
-    private ImageButton btnSendText;
 
     private DatabaseReference chatRef;
+    private DatabaseReference targetUserRef;
+    private DatabaseReference myStatusRef;
+    private ValueEventListener statusListener;
     private ActivityResultLauncher<Intent> pickPostLauncher;
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        SharedPreferences preferences = newBase.getSharedPreferences(Setting.PREFS_NAME, Context.MODE_PRIVATE);
+        float scale = preferences.getFloat("text_scale", 1.0f);
+        Configuration config = new Configuration(newBase.getResources().getConfiguration());
+        config.fontScale = scale;
+        Context context = newBase.createConfigurationContext(config);
+        super.attachBaseContext(context);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,13 +88,12 @@ public class ChatActivity extends AppCompatActivity {
             return;
         }
 
-        if (currentUserId.compareTo(targetUserId) < 0) {
-            chatId = currentUserId + "_" + targetUserId;
-        } else {
-            chatId = targetUserId + "_" + currentUserId;
-        }
+        chatId = currentUserId.compareTo(targetUserId) < 0 ?
+                currentUserId + "_" + targetUserId : targetUserId + "_" + currentUserId;
 
         chatRef = FirebaseDatabase.getInstance().getReference("chats").child(chatId).child("messages");
+        targetUserRef = FirebaseDatabase.getInstance().getReference("users").child(targetUserId);
+        myStatusRef = FirebaseDatabase.getInstance().getReference("users").child(currentUserId).child("status");
 
         initViews();
         setupPostPicker();
@@ -90,25 +105,48 @@ public class ChatActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         currentChatUserId = targetUserId;
+        updateMyStatus("online");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         currentChatUserId = null;
+        updateMyStatus(System.currentTimeMillis());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (targetUserRef != null && statusListener != null) {
+            targetUserRef.removeEventListener(statusListener);
+        }
+    }
+
+    private void updateMyStatus(Object status) {
+        SharedPreferences prefs = getSharedPreferences(Setting.PREFS_NAME, MODE_PRIVATE);
+        boolean hideOnline = prefs.getBoolean("privacy_hide_online", false);
+
+        if (hideOnline) {
+            myStatusRef.setValue("hidden");
+        } else {
+            myStatusRef.setValue(status);
+            // Если пропадет интернет, Firebase сам запишет время выхода
+            myStatusRef.onDisconnect().setValue(System.currentTimeMillis());
+        }
     }
 
     private void initViews() {
         userInfoContainer = findViewById(R.id.userInfoContainer);
         ivChatAvatar = findViewById(R.id.ivChatAvatar);
         tvChatUsername = findViewById(R.id.tvChatUsername);
+        tvChatStatus = findViewById(R.id.tvChatStatus);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        // Переход в профиль по клику на шапку
         userInfoContainer.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 30);
             Intent intent = new Intent(ChatActivity.this, UserProfileActivity.class);
@@ -126,14 +164,12 @@ public class ChatActivity extends AppCompatActivity {
         chatRecyclerView.setLayoutManager(layoutManager);
 
         messageList = new ArrayList<>();
-
         chatAdapter = new ChatAdapter(this, messageList, new ChatAdapter.ChatActionListener() {
             @Override
             public void onEditMessage(ChatMessage message) {
                 etMessageInput.setText(message.getText());
                 etMessageInput.setSelection(message.getText().length());
                 editingMessageId = message.getMessageId();
-                Toast.makeText(ChatActivity.this, "Редактирование сообщения", Toast.LENGTH_SHORT).show();
             }
 
             @Override
@@ -151,10 +187,7 @@ public class ChatActivity extends AppCompatActivity {
         });
         chatRecyclerView.setAdapter(chatAdapter);
 
-        btnSendPost.setOnClickListener(v -> {
-            Intent intent = new Intent(ChatActivity.this, PickPostActivity.class);
-            pickPostLauncher.launch(intent);
-        });
+        btnSendPost.setOnClickListener(v -> pickPostLauncher.launch(new Intent(ChatActivity.this, PickPostActivity.class)));
 
         btnSendText.setOnClickListener(v -> {
             String text = etMessageInput.getText().toString().trim();
@@ -171,35 +204,44 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void loadTargetUserData() {
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(targetUserId);
-        userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        statusListener = targetUserRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     String username = snapshot.child("username").getValue(String.class);
                     String avatarUrl = snapshot.child("profileImageUrl").getValue(String.class);
+                    Object statusObj = snapshot.child("status").getValue();
 
-                    if (username != null && !username.isEmpty()) {
-                        tvChatUsername.setText(username);
-                    } else {
-                        tvChatUsername.setText("Пользователь");
+                    // Проверяем, скрыл ли собеседник свой онлайн (если мы сохраняем это в БД)
+                    boolean isHidden = false;
+                    if (snapshot.child("privacy").child("hide_online").exists()) {
+                        isHidden = snapshot.child("privacy").child("hide_online").getValue(Boolean.class);
                     }
 
-                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
-                        Glide.with(ChatActivity.this)
-                                .load(avatarUrl)
-                                .circleCrop()
-                                .placeholder(R.drawable.ic_launcher_background)
-                                .into(ivChatAvatar);
+                    tvChatUsername.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
+
+                    if (avatarUrl != null && !avatarUrl.isEmpty() && !isDestroyed()) {
+                        Glide.with(ChatActivity.this).load(avatarUrl).circleCrop()
+                                .placeholder(R.drawable.ic_profile_placeholder).into(ivChatAvatar);
+                    }
+
+                    // Устанавливаем статус
+                    String statusText = TimeFormatter.formatStatus(statusObj, isHidden);
+                    tvChatStatus.setText(statusText);
+
+                    if (statusText.equals("в сети")) {
+                        tvChatStatus.setTextColor(getResources().getColor(R.color.online_indicator));
+                    } else {
+                        tvChatStatus.setTextColor(getResources().getColor(R.color.text_secondary));
                     }
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
+    // ... (loadMessages, sendTextMessage, setupPostPicker, sendMessage, sendNotificationTrigger остаются без изменений)
     private void loadMessages() {
         chatRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -218,7 +260,6 @@ public class ChatActivity extends AppCompatActivity {
                     chatRecyclerView.scrollToPosition(messageList.size() - 1);
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
@@ -227,10 +268,8 @@ public class ChatActivity extends AppCompatActivity {
     private void sendTextMessage(String text) {
         String messageId = chatRef.push().getKey();
         long timestamp = System.currentTimeMillis();
-
         ChatMessage message = new ChatMessage(currentUserId, targetUserId, text, timestamp, "text");
         message.setMessageId(messageId);
-
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger(text);
@@ -243,9 +282,7 @@ public class ChatActivity extends AppCompatActivity {
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         String selectedPostId = result.getData().getStringExtra("selectedPostId");
-                        if (selectedPostId != null) {
-                            sendMessage(selectedPostId);
-                        }
+                        if (selectedPostId != null) sendMessage(selectedPostId);
                     }
                 }
         );
@@ -254,10 +291,8 @@ public class ChatActivity extends AppCompatActivity {
     private void sendMessage(String postId) {
         String messageId = chatRef.push().getKey();
         long timestamp = System.currentTimeMillis();
-
         ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, timestamp);
         message.setMessageId(messageId);
-
         if (messageId != null) {
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger("Отправил(а) воспоминание 🗺️");
@@ -265,16 +300,11 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void sendNotificationTrigger(String text) {
-        DatabaseReference notifRef = FirebaseDatabase.getInstance()
-                .getReference("notifications")
-                .child(targetUserId)
-                .push();
-
+        DatabaseReference notifRef = FirebaseDatabase.getInstance().getReference("notifications").child(targetUserId).push();
         HashMap<String, String> notifData = new HashMap<>();
         notifData.put("senderId", currentUserId);
         notifData.put("text", text);
         notifData.put("type", "chat");
-
         notifRef.setValue(notifData);
     }
 }

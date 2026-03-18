@@ -109,6 +109,7 @@ public class Profile extends AppCompatActivity {
     private List<Post> myPostList;
 
     private boolean isMemoriesExpanded = false;
+    private boolean isClosing = false; // ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ДВОЙНОГО ЗАКРЫТИЯ
     private ActivityResultLauncher<Intent> imagePickerLauncher;
     private String currentProfileImageUrl = null;
 
@@ -248,7 +249,6 @@ public class Profile extends AppCompatActivity {
             }
         });
 
-        // --- КЛИКИ ПО СТАТИСТИКЕ ---
         friendsCountContainer.setOnClickListener(v -> {
             FriendsBottomSheetDialogFragment bottomSheet = FriendsBottomSheetDialogFragment.newInstance("friends", currentUser.getUid());
             bottomSheet.show(getSupportFragmentManager(), "friendsSheet");
@@ -263,7 +263,6 @@ public class Profile extends AppCompatActivity {
             FriendsBottomSheetDialogFragment bottomSheet = FriendsBottomSheetDialogFragment.newInstance("following", currentUser.getUid());
             bottomSheet.show(getSupportFragmentManager(), "followingSheet");
         });
-        // ---------------------------
 
         btnEditExpanded.setOnClickListener(v -> {
             if (currentAnimator != null) currentAnimator.cancel();
@@ -590,28 +589,31 @@ public class Profile extends AppCompatActivity {
         constraintSet.applyTo(rootLayout);
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД ONBACKPRESSED
     @Override
     public void onBackPressed() {
         if (expandedContainer.getVisibility() == View.VISIBLE) {
             expandedImage.performClick();
         } else if (isMemoriesExpanded) {
             toggleMemoriesState();
-        } else if (getIntent().hasExtra("revealX")) {
+        } else {
+            Close(); // Убрали super.onBackPressed(), чтобы не убивать Activity до анимации
+        }
+    }
+
+    // ИСПРАВЛЕННЫЙ МЕТОД CLOSE
+    public void Close() {
+        if (isClosing) return; // Защита от двойного нажатия
+        isClosing = true;
+
+        if (getIntent().hasExtra("revealX") && mainContentLayout != null) {
             int revealX = getIntent().getIntExtra("revealX", 0);
             int revealY = getIntent().getIntExtra("revealY", 0);
             unRevealActivity(revealX, revealY);
         } else {
-            super.onBackPressed();
-            Intent intent = new Intent(this, MainActivity.class);
-            startActivity(intent);
             finish();
+            overridePendingTransition(0, 0);
         }
-    }
-
-    public void Close() {
-        int revealX = getIntent().getIntExtra("revealX", 0);
-        int revealY = getIntent().getIntExtra("revealY", 0);
-        unRevealActivity(revealX, revealY);
     }
 
     private void revealActivity(int x, int y) {
@@ -626,7 +628,7 @@ public class Profile extends AppCompatActivity {
     private void unRevealActivity(int x, int y) {
         float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
-        circularReveal.setDuration(500);
+        circularReveal.setDuration(400); // Сделали чуть быстрее для отзывчивости
         circularReveal.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {

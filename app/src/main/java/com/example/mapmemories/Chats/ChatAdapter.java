@@ -64,14 +64,20 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         ChatMessage message = messages.get(position);
         boolean isMine = message.getSenderId().equals(currentUserId);
 
-        // 1. Настройка выравнивания и фона
+        // 1. Выравнивание пузыря (Влево или Вправо)
         LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) holder.container.getLayoutParams();
         if (isMine) {
             params.gravity = Gravity.END;
             holder.container.setBackgroundResource(R.drawable.bg_chat_bubble_me);
+            // Если твой цвет акцента темный, делаем текст белым
+            holder.tvTextMessage.setTextColor(Color.WHITE);
+            holder.timeText.setTextColor(Color.parseColor("#B3FFFFFF")); // Полупрозрачный белый
         } else {
             params.gravity = Gravity.START;
             holder.container.setBackgroundResource(R.drawable.bg_chat_bubble_other);
+            // Чужой текст берет цвет из темы (черный/белый)
+            holder.tvTextMessage.setTextColor(context.getResources().getColor(R.color.text_primary));
+            holder.timeText.setTextColor(context.getResources().getColor(R.color.text_secondary));
         }
         holder.container.setLayoutParams(params);
 
@@ -85,14 +91,24 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             holder.postLayout.setVisibility(View.GONE);
             holder.tvTextMessage.setText(message.getText());
 
-            // Обычный клик по тексту ничего не делает
+            // Чтобы время было под текстом справа
+            androidx.constraintlayout.widget.ConstraintLayout.LayoutParams timeParams =
+                    (androidx.constraintlayout.widget.ConstraintLayout.LayoutParams) holder.timeText.getLayoutParams();
+            timeParams.topToBottom = holder.tvTextMessage.getId();
+            holder.timeText.setLayoutParams(timeParams);
+
             holder.itemView.setOnClickListener(null);
         } else {
             holder.tvTextMessage.setVisibility(View.GONE);
             holder.postLayout.setVisibility(View.VISIBLE);
+
+            androidx.constraintlayout.widget.ConstraintLayout.LayoutParams timeParams =
+                    (androidx.constraintlayout.widget.ConstraintLayout.LayoutParams) holder.timeText.getLayoutParams();
+            timeParams.topToBottom = holder.postLayout.getId();
+            holder.timeText.setLayoutParams(timeParams);
+
             loadPostData(message.getPostId(), holder);
 
-            // Клик по посту открывает его
             holder.itemView.setOnClickListener(v -> {
                 Intent intent = new Intent(context, ViewPostDetailsActivity.class);
                 intent.putExtra("postId", message.getPostId());
@@ -195,12 +211,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        LinearLayout container, postLayout;
+        androidx.constraintlayout.widget.ConstraintLayout container;
+        LinearLayout postLayout;
         TextView tvTextMessage, postTitle, timeText;
         ImageView postImage;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
+            // Обрати внимание, container теперь ConstraintLayout
             container = itemView.findViewById(R.id.messageContainer);
             postLayout = itemView.findViewById(R.id.postLayout);
             tvTextMessage = itemView.findViewById(R.id.tvTextMessage);

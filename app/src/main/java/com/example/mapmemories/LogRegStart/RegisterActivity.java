@@ -161,12 +161,11 @@ public class RegisterActivity extends AppCompatActivity {
             // Регистрация в Firebase
             mAuth.createUserWithEmailAndPassword(email, password)
                     .addOnCompleteListener(this, task -> {
-                        // ... внутри mAuth.createUserWithEmailAndPassword ...
                         if (task.isSuccessful()) {
                             FirebaseUser firebaseUser = mAuth.getCurrentUser();
 
                             if (firebaseUser != null) {
-                                // 1. Обновляем имя в Auth (как было)
+                                // 1. Обновляем имя в Auth
                                 com.google.firebase.auth.UserProfileChangeRequest profileUpdates =
                                         new com.google.firebase.auth.UserProfileChangeRequest.Builder()
                                                 .setDisplayName(username)
@@ -175,15 +174,12 @@ public class RegisterActivity extends AppCompatActivity {
                                 firebaseUser.updateProfile(profileUpdates)
                                         .addOnCompleteListener(profileTask -> {
                                             if (profileTask.isSuccessful()) {
-
-                                                // --- НАЧАЛО ДОБАВЛЕННОГО КОДА ---
-
                                                 // 2. Создаем структуру данных для базы
                                                 java.util.Map<String, Object> userMap = new java.util.HashMap<>();
                                                 userMap.put("username", username);
                                                 userMap.put("email", email);
-                                                userMap.put("phone", ""); // Изначально пусто
-                                                userMap.put("about", "Привет! Я новый пользователь."); // Дефолтный текст
+                                                userMap.put("phone", "");
+                                                userMap.put("about", "Привет! Я новый пользователь.");
                                                 userMap.put("profileImageUrl", "");
                                                 userMap.put("joinDate", System.currentTimeMillis());
                                                 userMap.put("memoriesCount", 0);
@@ -198,23 +194,30 @@ public class RegisterActivity extends AppCompatActivity {
                                                             showLoading(false); // Скрываем загрузку
                                                             if (dbTask.isSuccessful()) {
                                                                 Toast.makeText(RegisterActivity.this, "Регистрация успешна!", Toast.LENGTH_SHORT).show();
-                                                                startActivity(new Intent(RegisterActivity.this, MainActivity.class)); // Или Profile.class
+                                                                startActivity(new Intent(RegisterActivity.this, MainActivity.class));
                                                                 finish();
                                                             } else {
-                                                                Toast.makeText(RegisterActivity.this, "Ошибка создания профиля в БД", Toast.LENGTH_SHORT).show();
+                                                                // Ошибка при записи в БД
+                                                                String dbError = dbTask.getException() != null ? dbTask.getException().getMessage() : "Неизвестная ошибка БД";
+                                                                Toast.makeText(RegisterActivity.this, "Ошибка БД: " + dbError, Toast.LENGTH_LONG).show();
                                                             }
                                                         });
-
-                                                // --- КОНЕЦ ДОБАВЛЕННОГО КОДА ---
-
                                             } else {
                                                 showLoading(false);
                                                 Toast.makeText(RegisterActivity.this, "Ошибка сохранения имени", Toast.LENGTH_SHORT).show();
                                             }
                                         });
+                            } else {
+                                showLoading(false);
+                                Toast.makeText(RegisterActivity.this, "Ошибка: пользователь не найден", Toast.LENGTH_SHORT).show();
                             }
+                        } else {
+                            // ---> ВОТ ЗДЕСЬ БЫЛА ПРОБЛЕМА <---
+                            // Если регистрация не удалась (email занят, нет сети и т.д.)
+                            showLoading(false);
+                            String errorMessage = task.getException() != null ? task.getException().getMessage() : "Ошибка регистрации";
+                            Toast.makeText(RegisterActivity.this, errorMessage, Toast.LENGTH_LONG).show();
                         }
-// ...
                     });
         } else {
             showLoading(false);

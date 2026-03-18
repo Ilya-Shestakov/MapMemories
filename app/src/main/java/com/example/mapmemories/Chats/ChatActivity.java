@@ -12,13 +12,15 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -80,6 +82,14 @@ public class ChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
+        // ФИКС КЛАВИАТУРЫ ДЛЯ ANDROID 15/16 (Samsung S23 Ultra и др.)
+        View rootLayout = findViewById(R.id.rootLayout);
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.ime());
+            v.setPadding(insets.left, insets.top, insets.right, insets.bottom);
+            return WindowInsetsCompat.CONSUMED;
+        });
+
         targetUserId = getIntent().getStringExtra("targetUserId");
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
 
@@ -131,7 +141,6 @@ public class ChatActivity extends AppCompatActivity {
             myStatusRef.setValue("hidden");
         } else {
             myStatusRef.setValue(status);
-            // Если пропадет интернет, Firebase сам запишет время выхода
             myStatusRef.onDisconnect().setValue(System.currentTimeMillis());
         }
     }
@@ -144,7 +153,9 @@ public class ChatActivity extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        getSupportActionBar().setDisplayShowTitleEnabled(false);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
         toolbar.setNavigationOnClickListener(v -> finish());
 
         userInfoContainer.setOnClickListener(v -> {
@@ -187,18 +198,25 @@ public class ChatActivity extends AppCompatActivity {
         });
         chatRecyclerView.setAdapter(chatAdapter);
 
+        // Скролл вниз при открытии клавиатуры
+        chatRecyclerView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (bottom < oldBottom && !messageList.isEmpty()) {
+                chatRecyclerView.postDelayed(() -> chatRecyclerView.smoothScrollToPosition(messageList.size() - 1), 100);
+            }
+        });
+
         btnSendPost.setOnClickListener(v -> pickPostLauncher.launch(new Intent(ChatActivity.this, PickPostActivity.class)));
 
         btnSendText.setOnClickListener(v -> {
             String text = etMessageInput.getText().toString().trim();
             if (!text.isEmpty()) {
+                etMessageInput.setText(""); // Очищаем сразу для отзывчивости интерфейса
                 if (editingMessageId != null) {
                     chatRef.child(editingMessageId).child("text").setValue(text);
                     editingMessageId = null;
                 } else {
                     sendTextMessage(text);
                 }
-                etMessageInput.setText("");
             }
         });
     }
@@ -207,29 +225,25 @@ public class ChatActivity extends AppCompatActivity {
         statusListener = targetUserRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
+                if (snapshot.exists() && !isDestroyed()) {
                     String username = snapshot.child("username").getValue(String.class);
                     String avatarUrl = snapshot.child("profileImageUrl").getValue(String.class);
                     Object statusObj = snapshot.child("status").getValue();
 
-                    // Проверяем, скрыл ли собеседник свой онлайн (если мы сохраняем это в БД)
-                    boolean isHidden = false;
-                    if (snapshot.child("privacy").child("hide_online").exists()) {
-                        isHidden = snapshot.child("privacy").child("hide_online").getValue(Boolean.class);
-                    }
+                    boolean isHidden = snapshot.child("privacy").child("hide_online").exists() &&
+                            Boolean.TRUE.equals(snapshot.child("privacy").child("hide_online").getValue(Boolean.class));
 
                     tvChatUsername.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
 
-                    if (avatarUrl != null && !avatarUrl.isEmpty() && !isDestroyed()) {
+                    if (avatarUrl != null && !avatarUrl.isEmpty()) {
                         Glide.with(ChatActivity.this).load(avatarUrl).circleCrop()
                                 .placeholder(R.drawable.ic_profile_placeholder).into(ivChatAvatar);
                     }
 
-                    // Устанавливаем статус
                     String statusText = TimeFormatter.formatStatus(statusObj, isHidden);
                     tvChatStatus.setText(statusText);
 
-                    if (statusText.equals("в сети")) {
+                    if ("в сети".equals(statusText)) {
                         tvChatStatus.setTextColor(getResources().getColor(R.color.online_indicator));
                     } else {
                         tvChatStatus.setTextColor(getResources().getColor(R.color.text_secondary));
@@ -241,7 +255,6 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
-    // ... (loadMessages, sendTextMessage, setupPostPicker, sendMessage, sendNotificationTrigger остаются без изменений)
     private void loadMessages() {
         chatRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -249,10 +262,8 @@ public class ChatActivity extends AppCompatActivity {
                 messageList.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     ChatMessage msg = ds.getValue(ChatMessage.class);
-                    if (msg != null) {
-                        if (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId)) {
-                            messageList.add(msg);
-                        }
+                    if (msg != null && (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId))) {
+                        messageList.add(msg);
                     }
                 }
                 chatAdapter.notifyDataSetChanged();
@@ -267,10 +278,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendTextMessage(String text) {
         String messageId = chatRef.push().getKey();
-        long timestamp = System.currentTimeMillis();
-        ChatMessage message = new ChatMessage(currentUserId, targetUserId, text, timestamp, "text");
-        message.setMessageId(messageId);
         if (messageId != null) {
+            ChatMessage message = new ChatMessage(currentUserId, targetUserId, text, System.currentTimeMillis(), "text");
+            message.setMessageId(messageId);
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger(text);
         }
@@ -290,10 +300,9 @@ public class ChatActivity extends AppCompatActivity {
 
     private void sendMessage(String postId) {
         String messageId = chatRef.push().getKey();
-        long timestamp = System.currentTimeMillis();
-        ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, timestamp);
-        message.setMessageId(messageId);
         if (messageId != null) {
+            ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, System.currentTimeMillis());
+            message.setMessageId(messageId);
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger("Отправил(а) воспоминание 🗺️");
         }

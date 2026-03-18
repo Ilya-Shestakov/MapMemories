@@ -6,10 +6,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.bumptech.glide.Glide;
 import com.example.mapmemories.R;
 import com.example.mapmemories.Profile.User;
@@ -18,23 +16,31 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-
+import java.util.ArrayList;
 import java.util.List;
 
 public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ViewHolder> {
 
     private Context context;
     private List<User> users;
+    private List<String> pinnedUserIds = new ArrayList<>(); // Список ID закрепленных
     private OnChatClickListener listener;
 
     public interface OnChatClickListener {
         void onChatClick(User user);
+        void onChatLongClick(User user); // НОВЫЙ МЕТОД
     }
 
     public ChatListAdapter(Context context, List<User> users, OnChatClickListener listener) {
         this.context = context;
         this.users = users;
         this.listener = listener;
+    }
+
+    public void setUsers(List<User> newUsers, List<String> pinnedIds) {
+        this.users = newUsers;
+        this.pinnedUserIds = pinnedIds;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -49,53 +55,57 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ViewHo
         User user = users.get(position);
         holder.username.setText(user.getUsername());
 
+        // Показываем скрепку, если юзер в списке закрепленных
+        if (pinnedUserIds.contains(user.getId())) {
+            holder.ivPinnedIcon.setVisibility(View.VISIBLE);
+        } else {
+            holder.ivPinnedIcon.setVisibility(View.GONE);
+        }
+
         if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isEmpty()) {
             Glide.with(context).load(user.getProfileImageUrl()).circleCrop().into(holder.avatar);
         } else {
             holder.avatar.setImageResource(R.drawable.ic_profile_placeholder);
         }
 
-        // Слушаем статус пользователя в реальном времени
         FirebaseDatabase.getInstance().getReference("users").child(user.getId())
                 .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (snapshot.exists()) {
                             Object statusObj = snapshot.child("status").getValue();
-                            boolean isHidden = false;
-                            if (snapshot.child("privacy").child("hide_online").exists()) {
-                                isHidden = snapshot.child("privacy").child("hide_online").getValue(Boolean.class);
-                            }
+                            boolean isHidden = snapshot.child("privacy/hide_online").exists() &&
+                                    Boolean.TRUE.equals(snapshot.child("privacy/hide_online").getValue(Boolean.class));
 
                             String statusText = TimeFormatter.formatStatus(statusObj, isHidden);
                             holder.statusText.setText(statusText);
 
-                            if (statusText.equals("в сети")) {
+                            if ("в сети".equals(statusText)) {
                                 holder.onlineIndicator.setVisibility(View.VISIBLE);
-                                holder.statusText.setTextColor(context.getResources().getColor(R.color.online_indicator));
                             } else {
                                 holder.onlineIndicator.setVisibility(View.GONE);
-                                holder.statusText.setTextColor(context.getResources().getColor(R.color.text_secondary));
                             }
                         }
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
 
+        // Обычный клик
         holder.itemView.setOnClickListener(v -> listener.onChatClick(user));
+
+        // ДОЛГИЙ КЛИК
+        holder.itemView.setOnLongClickListener(v -> {
+            listener.onChatLongClick(user);
+            return true;
+        });
     }
 
     @Override
-    public int getItemCount() {
-        return users.size();
-    }
+    public int getItemCount() { return users.size(); }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView avatar;
-        TextView username;
-        TextView statusText;
+        ImageView avatar, ivPinnedIcon;
+        TextView username, statusText;
         View onlineIndicator;
 
         public ViewHolder(@NonNull View itemView) {
@@ -104,6 +114,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ViewHo
             username = itemView.findViewById(R.id.chatUsername);
             statusText = itemView.findViewById(R.id.chatStatusText);
             onlineIndicator = itemView.findViewById(R.id.onlineIndicator);
+            ivPinnedIcon = itemView.findViewById(R.id.ivPinnedIcon); // Находим скрепку
         }
     }
 }

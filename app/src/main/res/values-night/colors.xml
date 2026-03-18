@@ -16,8 +16,10 @@
     <color name="surface">#0F1C2E</color>
     <color name="surface_dark">#1A2B3C</color>
 
+    <color name="text_message">#80A0B4</color>
+
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#A6B4CF</color>
+    <color name="text_secondary">#5B6BA4</color>
 
     <color name="white">#FFFFFFFF</color>
     <color name="light_gray">#CCCCCC</color>

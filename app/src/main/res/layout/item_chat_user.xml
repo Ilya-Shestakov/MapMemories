@@ -1,59 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
-    android:padding="12dp"
-    android:background="?attr/selectableItemBackground">
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
 
-    <FrameLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
-
-        <ImageView
-            android:id="@+id/chatAvatar"
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:src="@drawable/ic_profile_placeholder"
-            android:background="@drawable/circle_background"
-            android:scaleType="centerCrop"/>
-
-        <!-- Зеленый индикатор онлайна -->
-        <View
-            android:id="@+id/onlineIndicator"
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="2dp"
-            android:layout_marginBottom="2dp"
-            android:background="@drawable/circle_background"
-            android:backgroundTint="@color/online_indicator"
-            android:visibility="gone"/>
-    </FrameLayout>
-
-    <LinearLayout
+    <!-- Внутренний контейнер для отступов -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:layout_marginStart="16dp">
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="12dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/divider">
 
+        <!-- Аватарка -->
+        <ImageView
+            android:id="@+id/chatAvatar"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:background="@drawable/circle_background"
+            android:scaleType="centerCrop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:src="@drawable/ic_profile_placeholder" />
+
+        <!-- Индикатор онлайна -->
+        <View
+            android:id="@+id/onlineIndicator"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:background="@drawable/bg_online_indicator"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@id/chatAvatar"
+            app:layout_constraintEnd_toEndOf="@id/chatAvatar"
+            android:translationX="1dp"
+            android:translationY="1dp"
+            tools:visibility="visible" />
+
+        <!-- Имя пользователя -->
         <TextView
             android:id="@+id/chatUsername"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Username"
-            android:textSize="18sp"
+            android:layout_marginStart="16dp"
             android:textColor="@color/text_primary"
-            android:textStyle="bold"/>
+            android:textSize="17sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.01"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constrainedWidth="true"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintHorizontal_chainStyle="packed"
+            app:layout_constraintStart_toEndOf="@id/chatAvatar"
+            app:layout_constraintEnd_toStartOf="@id/ivPinnedIcon"
+            app:layout_constraintTop_toTopOf="@id/chatAvatar"
+            app:layout_constraintBottom_toTopOf="@id/chatStatusText"
+            tools:text="Пользователь" />
 
+        <!-- Иконка скрепки (привязана к концу имени) -->
+        <ImageView
+            android:id="@+id/ivPinnedIcon"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_marginStart="6dp"
+            android:src="@drawable/ic_pin"
+            app:tint="@color/text_secondary"
+            android:visibility="gone"
+            app:layout_constraintStart_toEndOf="@id/chatUsername"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/chatUsername"
+            app:layout_constraintBottom_toBottomOf="@id/chatUsername"
+            tools:visibility="visible" />
+
+        <!-- Статус (всегда под именем) -->
         <TextView
             android:id="@+id/chatStatusText"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="был(а) недавно"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
-            android:textColor="@color/text_secondary"/>
-    </LinearLayout>
-</LinearLayout>
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintStart_toStartOf="@id/chatUsername"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/chatUsername"
+            app:layout_constraintBottom_toBottomOf="@id/chatAvatar"
+            tools:text="был(а) недавно" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Разделитель -->
+    <View
+        android:id="@+id/divider"
+        android:layout_width="0dp"
+        android:layout_height="0.5dp"
+        android:background="#1A888888"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="90dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

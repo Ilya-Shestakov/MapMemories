@@ -61,6 +61,7 @@ public class Setting extends AppCompatActivity {
     private static final String PREF_PRIVACY_HIDE_ONLINE = "privacy_hide_online";
 
     private static final int NOTIFICATION_PERMISSION_CODE = 123;
+    private boolean isClosing = false; // ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ДВОЙНОГО ЗАКРЫТИЯ
 
     @Override
     protected void attachBaseContext(Context newBase) {
@@ -198,6 +199,11 @@ public class Setting extends AppCompatActivity {
     }
 
     private void unRevealActivity(int x, int y) {
+        if (mainContentLayout == null) {
+            finish();
+            overridePendingTransition(0, 0);
+            return;
+        }
         float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
         circularReveal.setDuration(400);
@@ -212,15 +218,25 @@ public class Setting extends AppCompatActivity {
         circularReveal.start();
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД CLOSE
     public void Close() {
-        int revealX = getIntent().getIntExtra("revealX", 0);
-        int revealY = getIntent().getIntExtra("revealY", 0);
-        unRevealActivity(revealX, revealY);
+        if (isClosing) return; // Защита от двойного нажатия
+        isClosing = true;
+
+        if (getIntent().hasExtra("revealX") && mainContentLayout != null) {
+            int revealX = getIntent().getIntExtra("revealX", 0);
+            int revealY = getIntent().getIntExtra("revealY", 0);
+            unRevealActivity(revealX, revealY);
+        } else {
+            finish();
+            overridePendingTransition(0, 0);
+        }
     }
 
+    // ИСПРАВЛЕННЫЙ МЕТОД ONBACKPRESSED
     @Override
     public void onBackPressed() {
-        Close();
+        Close(); // Убрали super.onBackPressed(), чтобы не убивать Activity до анимации
     }
 
     @Override

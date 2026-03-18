@@ -16,8 +16,10 @@
     <color name="surface">#FFFFFF</color>
     <color name="surface_dark">#FFFFFF</color> <!-- Белые карточки -->
 
+    <color name="text_message">#16384D</color>
+
     <color name="text_primary">#1A1A1A</color> <!-- Темный текст -->
-    <color name="text_secondary">#666666</color> <!-- Серый текст -->
+    <color name="text_secondary">#A6B4CF</color> <!-- Серый текст -->
 
     <color name="white">#FFFFFFFF</color>
     <color name="light_gray">#CCCCCC</color>

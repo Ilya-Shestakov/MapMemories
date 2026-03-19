@@ -12,6 +12,9 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
@@ -55,6 +58,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // ИСПРАВЛЕНИЕ БАГА СО СТАТУС-БАРОМ
+        View rootLayout = findViewById(R.id.topHeader); // Указываем на верхний элемент
+        ViewCompat.setOnApplyWindowInsetsListener(rootLayout, (v, windowInsets) -> {
+            Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(0, insets.top, 0, 0); // Добавляем отступ сверху равный высоте статус-бара
+            return WindowInsetsCompat.CONSUMED;
+        });
+
         mAuth = FirebaseAuth.getInstance();
         checkCurrentUser();
 
@@ -87,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
         offlineBadge = findViewById(R.id.offlineBadge);
     }
 
-    // МЕТОД ДЛЯ АНИМАЦИИ ПАНЕЛИ (вызывается из фрагментов)
     public void toggleBottomDock(boolean show) {
         if (show && !isDockVisible) {
             bottomDock.animate().translationY(0).setDuration(300).withStartAction(() -> isDockVisible = true).start();
@@ -108,22 +118,21 @@ public class MainActivity extends AppCompatActivity {
     private void setupClickListeners() {
         profileButton.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivity(new Intent(this, Profile.class));
+            startActivityWithAnimation(Profile.class, v);
         });
 
         fabSettings.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            startActivity(new Intent(this, Setting.class));
+            startActivityWithAnimation(Setting.class, v);
         });
 
         fabAdd.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
-            // ЧИНИМ АНИМАЦИЮ ИКОНКИ
             if (fabAddIcon.getDrawable() instanceof Animatable) {
                 ((Animatable) fabAddIcon.getDrawable()).start();
             }
             new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                startActivity(new Intent(this, CreatePostActivity.class));
+                startActivityWithAnimation(CreatePostActivity.class, bottomDock);
             }, 250);
         });
 
@@ -160,6 +169,19 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void startActivityWithAnimation(Class<?> targetActivity, View sourceView) {
+        int[] location = new int[2];
+        sourceView.getLocationOnScreen(location);
+        int revealX = location[0] + sourceView.getWidth() / 2;
+        int revealY = location[1] + sourceView.getHeight() / 2;
+
+        Intent intent = new Intent(this, targetActivity);
+        intent.putExtra("revealX", revealX);
+        intent.putExtra("revealY", revealY);
+        startActivity(intent);
+        overridePendingTransition(0, 0);
     }
 
     private static class MainPagerAdapter extends FragmentStateAdapter {

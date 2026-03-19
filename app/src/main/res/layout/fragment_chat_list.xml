@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/primary">
 
-    <!-- Поле поиска (Капсула) -->
     <EditText
         android:id="@+id/searchInput"
         android:layout_width="match_parent"
@@ -45,7 +44,6 @@
                 android:orientation="vertical"
                 android:paddingBottom="100dp">
 
-                <!-- Блок глобального поиска -->
                 <LinearLayout
                     android:id="@+id/globalSearchContainer"
                     android:layout_width="match_parent"
@@ -78,7 +76,6 @@
                         android:background="#1A888888" />
                 </LinearLayout>
 
-                <!-- Заголовок моих чатов -->
                 <TextView
                     android:id="@+id/localChatsTitle"
                     android:layout_width="wrap_content"
@@ -94,12 +91,12 @@
 
                 <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="match_parent">
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/chatsRecyclerView"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
+                        android:layout_height="match_parent"
                         android:nestedScrollingEnabled="false" />
 
                     <TextView

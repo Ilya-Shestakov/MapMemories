@@ -1,86 +1,111 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/rootMessageLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginTop="8dp"
+    android:layout_marginBottom="8dp"
+    android:background="?android:attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true">
+
+    <!-- ВЕРХНЯЯ ЛИНИЯ (Во всю ширину экрана) -->
+<View
+android:id="@+id/lineTop"
+android:layout_width="match_parent"
+android:layout_height="1dp"
+app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- КОНТЕЙНЕР КОНТЕНТА (Ограничен по ширине, выравнивается адаптером) -->
+<LinearLayout
+android:id="@+id/contentLayout"
+android:layout_width="0dp"
+android:layout_height="wrap_content"
+android:orientation="vertical"
+android:paddingHorizontal="16dp"
+android:paddingVertical="12dp"
+app:layout_constrainedWidth="true"
+app:layout_constraintWidth_max="wrap"
+app:layout_constraintWidth_percent="0.85"
+app:layout_constraintTop_toBottomOf="@id/lineTop"
+app:layout_constraintBottom_toTopOf="@id/lineBottom"
+app:layout_constraintStart_toStartOf="parent"
+app:layout_constraintEnd_toEndOf="parent"
+app:layout_constraintHorizontal_bias="1.0"> <!-- 1.0 = вправо, 0.0 = влево -->
+
+<!-- КАРТИНКА ИЗ ГАЛЕРЕИ -->
+<ImageView
+    android:id="@+id/chatAttachedImage"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:adjustViewBounds="true"
+    android:maxWidth="250dp"
+    android:maxHeight="300dp"
+    android:scaleType="centerCrop"
+    android:visibility="gone"
+    android:layout_marginBottom="8dp" />
+
+<!-- ТЕКСТ СООБЩЕНИЯ ИЛИ ПОДПИСЬ -->
+<TextView
+    android:id="@+id/tvTextMessage"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textColor="@color/text_primary"
+    android:textSize="16sp"
+    android:lineSpacingExtra="4dp"
+    android:visibility="gone" />
+
+<!-- БЛОК ПОСТА -->
+<LinearLayout
+    android:id="@+id/postLayout"
+    android:layout_width="240dp"
+    android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:paddingHorizontal="12dp"
-    android:paddingVertical="4dp">
+    android:visibility="gone">
 
-    <!-- Сам пузырь сообщения -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/messageContainer"
-        android:layout_width="wrap_content"
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="160dp"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp">
+        <ImageView
+            android:id="@+id/postImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:scaleType="centerCrop" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <TextView
+        android:id="@+id/postTitle"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constrainedWidth="true"
-        app:layout_constraintWidth_max="wrap"
-        app:layout_constraintWidth_percent="0.8"
-        android:paddingHorizontal="14dp"
-        android:paddingVertical="10dp"
-        android:background="@drawable/bg_chat_bubble_me">
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:textSize="15sp"
+        android:layout_marginTop="8dp"
+        android:maxLines="2"
+        android:ellipsize="end"/>
+</LinearLayout>
 
-        <!-- ТЕКСТ СООБЩЕНИЯ -->
-        <TextView
-            android:id="@+id/tvTextMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:lineSpacingExtra="2dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.0" />
+<!-- ВРЕМЯ (Всегда прижато вправо относительно блока контента) -->
+<TextView
+    android:id="@+id/msgTime"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="end"
+    android:textColor="@color/text_secondary"
+    android:textSize="11sp"
+    android:layout_marginTop="6dp" />
 
-        <!-- БЛОК ПОСТА (Скрыт по умолчанию) -->
-        <LinearLayout
-            android:id="@+id/postLayout"
-            android:layout_width="220dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:visibility="gone"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+</LinearLayout>
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="160dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="0dp">
-                <ImageView
-                    android:id="@+id/postImage"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="centerCrop" />
-            </com.google.android.material.card.MaterialCardView>
-
-            <TextView
-                android:id="@+id/postTitle"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold"
-                android:textSize="15sp"
-                android:layout_marginTop="8dp"
-                android:maxLines="2"
-                android:ellipsize="end"/>
-        </LinearLayout>
-
-        <!-- ВРЕМЯ (Прижато вправо вниз) -->
-        <TextView
-            android:id="@+id/msgTime"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_secondary"
-            android:textSize="11sp"
-            android:layout_marginTop="4dp"
-            android:layout_marginStart="12dp"
-            app:layout_constraintTop_toBottomOf="@+id/tvTextMessage"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="1.0" />
+    <!-- НИЖНЯЯ ЛИНИЯ (Во всю ширину экрана) -->
+<View
+android:id="@+id/lineBottom"
+android:layout_width="match_parent"
+android:layout_height="1dp"
+app:layout_constraintBottom_toBottomOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-</LinearLayout>

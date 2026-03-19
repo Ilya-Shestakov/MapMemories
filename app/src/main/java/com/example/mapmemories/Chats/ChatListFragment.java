@@ -1,26 +1,31 @@
 package com.example.mapmemories.Chats;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.example.mapmemories.Lenta.MainActivity;
 import com.example.mapmemories.Profile.User;
 import com.example.mapmemories.Profile.UsersAdapter;
 import com.example.mapmemories.R;
@@ -32,12 +37,11 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-import android.graphics.Color;
-import java.util.Collections;
-
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ChatListFragment extends Fragment {
 
@@ -51,15 +55,18 @@ public class ChatListFragment extends Fragment {
     private ChatListAdapter chatListAdapter;
     private UsersAdapter globalUsersAdapter;
 
-    private List<User> localUsersList = new ArrayList<>();
-    private List<User> filteredLocalList = new ArrayList<>();
+    private List<ChatListItem> allChatListItems = new ArrayList<>();
+    private List<ChatListItem> filteredChatListItems = new ArrayList<>();
     private List<User> globalUserList = new ArrayList<>();
 
-    private List<String> pinnedUserIds = new ArrayList<>(); // Храним ID закрепленных
-    private DatabaseReference myPinnedRef; // Ссылка на закрепленные чаты в БД
+    // Карта для мгновенного обновления закрепов
+    private Map<String, Long> pinnedChatsMap = new HashMap<>();
 
-    private DatabaseReference chatsRef, usersRef;
+    private DatabaseReference chatsRef, usersRef, myPinnedRef;
     private String currentUserId;
+
+    private boolean isDragging = false;
+    private boolean pendingUpdate = false;
 
     @Nullable
     @Override
@@ -71,16 +78,15 @@ public class ChatListFragment extends Fragment {
         currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         chatsRef = FirebaseDatabase.getInstance().getReference("chats");
         usersRef = FirebaseDatabase.getInstance().getReference("users");
-
-        // Ссылка на закрепленные чаты текущего юзера
         myPinnedRef = usersRef.child(currentUserId).child("pinnedChats");
 
         initViews(view);
         setupRecyclerViews();
+        setupDragAndDrop();
         setupSearch();
         setupSwipeRefresh();
 
-        loadPinnedChats(); // Сначала грузим закрепленные, потом сами чаты
+        loadLocalChatsData();
 
         return view;
     }
@@ -97,142 +103,263 @@ public class ChatListFragment extends Fragment {
     }
 
     private void setupRecyclerViews() {
-        // 1. Мои чаты (используем твой ChatListAdapter)
         chatsRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
-        chatListAdapter = new ChatListAdapter(getContext(), filteredLocalList, new ChatListAdapter.OnChatClickListener() {
+        chatListAdapter = new ChatListAdapter(getContext(), filteredChatListItems, currentUserId, new ChatListAdapter.OnChatInteractionListener() {
             @Override
-            public void onChatClick(User user) {
-                openChat(user.getId());
+            public void onChatClick(ChatListItem item) {
+                Intent intent = new Intent(getActivity(), ChatActivity.class);
+                intent.putExtra("targetUserId", item.user.getId());
+                startActivity(intent);
             }
 
             @Override
-            public void onChatLongClick(User user) {
-                showChatOptionsDialog(user); // ВЫЗЫВАЕМ МЕНЮ
+            public void onChatLongClick(ChatListItem item, View anchorView) {
+                showContextMenu(item, anchorView);
             }
         });
         chatsRecyclerView.setAdapter(chatListAdapter);
 
-        // 2. Глобальный поиск (используем твой UsersAdapter с 3-мя аргументами)
         globalRecyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         globalUsersAdapter = new UsersAdapter(getContext(), globalUserList, user -> {
-            openChat(user.getId());
+            Intent intent = new Intent(getActivity(), ChatActivity.class);
+            intent.putExtra("targetUserId", user.getId());
+            startActivity(intent);
         });
         globalRecyclerView.setAdapter(globalUsersAdapter);
+    }
 
-        // Анимация Dock при скролле
-        chatScrollView.setOnScrollChangeListener((NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).toggleBottomDock(scrollY <= oldScrollY);
+    // --- МЕНЮ ТЕЛЕГРАМ С ПЛАВНЫМ ПЕРЕМЕЩЕНИЕМ ---
+    private void showContextMenu(ChatListItem item, View anchorView) {
+        View popupView = LayoutInflater.from(getContext()).inflate(R.layout.popup_chat_options, null);
+
+        // Ставим focusable=false, чтобы не прерывать перетаскивание списка при долгом нажатии
+        PopupWindow popupWindow = new PopupWindow(
+                popupView,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                false
+        );
+
+        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        popupWindow.setElevation(10f);
+        popupWindow.setOutsideTouchable(true);
+
+        TextView btnPin = popupView.findViewById(R.id.btnPopupPin);
+        TextView btnDelete = popupView.findViewById(R.id.btnPopupDelete);
+
+        btnPin.setText(item.isPinned ? "Открепить" : "Закрепить");
+
+        btnPin.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            if (item.isPinned) {
+                myPinnedRef.child(item.user.getId()).removeValue();
+            } else {
+                myPinnedRef.child(item.user.getId()).setValue(-System.currentTimeMillis());
             }
+        });
+
+        btnDelete.setOnClickListener(v -> {
+            popupWindow.dismiss();
+            chatsRef.child(item.chatId).removeValue();
+        });
+
+        int[] location = new int[2];
+        anchorView.getLocationOnScreen(location);
+
+        int xOffset = 120;
+
+        popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, location[0] + xOffset, location[1] + (anchorView.getHeight() / 2));
+
+        // Логика следования за элементом (когда скроллим или перетаскиваем элемент)
+        ViewTreeObserver.OnPreDrawListener preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (popupWindow.isShowing()) {
+                    int[] newLoc = new int[2];
+                    anchorView.getLocationOnScreen(newLoc);
+                    popupWindow.update(newLoc[0] + xOffset, newLoc[1] + (anchorView.getHeight() / 2), -1, -1);
+                }
+                return true;
+            }
+        };
+
+        anchorView.getViewTreeObserver().addOnPreDrawListener(preDrawListener);
+
+        popupWindow.setOnDismissListener(() -> {
+            anchorView.getViewTreeObserver().removeOnPreDrawListener(preDrawListener);
         });
     }
 
-    private void openChat(String targetUserId) {
-        Intent intent = new Intent(getActivity(), ChatActivity.class);
-        intent.putExtra("targetUserId", targetUserId);
-        startActivity(intent);
+    // --- ПЛАВНЫЙ DRAG AND DROP ---
+    private void setupDragAndDrop() {
+        ItemTouchHelper.SimpleCallback touchHelperCallback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+
+            // Отключаем возможность перетаскивания для НЕзакрепленных чатов
+            @Override
+            public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                int position = viewHolder.getAdapterPosition();
+                List<ChatListItem> currentList = chatListAdapter.getItems();
+                if (position >= 0 && position < currentList.size()) {
+                    if (!currentList.get(position).isPinned) {
+                        return makeMovementFlags(0, 0); // Перетаскивание запрещено
+                    }
+                }
+                return makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0); // Разрешено
+            }
+
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                int fromPos = viewHolder.getAdapterPosition();
+                int toPos = target.getAdapterPosition();
+
+                List<ChatListItem> currentList = chatListAdapter.getItems();
+                if (currentList.get(fromPos).isPinned && currentList.get(toPos).isPinned) {
+                    chatListAdapter.swapItems(fromPos, toPos);
+                    return true;
+                }
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {}
+
+            @Override
+            public void onSelectedChanged(@Nullable RecyclerView.ViewHolder viewHolder, int actionState) {
+                super.onSelectedChanged(viewHolder, actionState);
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    isDragging = true;
+                    if (viewHolder != null) {
+                        viewHolder.itemView.setScaleX(1.02f);
+                        viewHolder.itemView.setScaleY(1.02f);
+                    }
+                }
+            }
+
+            @Override
+            public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
+                super.clearView(recyclerView, viewHolder);
+                viewHolder.itemView.setScaleX(1f);
+                viewHolder.itemView.setScaleY(1f);
+
+                savePinnedOrderToFirebase();
+
+                isDragging = false;
+                if (pendingUpdate) {
+                    pendingUpdate = false;
+                    updateLocalFilter(searchInput.getText().toString());
+                }
+            }
+        };
+
+        new ItemTouchHelper(touchHelperCallback).attachToRecyclerView(chatsRecyclerView);
     }
 
-    private void loadPinnedChats() {
+    private void savePinnedOrderToFirebase() {
+        List<ChatListItem> list = chatListAdapter.getItems();
+        long orderIndex = 0;
+        for (ChatListItem item : list) {
+            if (item.isPinned) {
+                myPinnedRef.child(item.user.getId()).setValue(orderIndex++);
+            }
+        }
+    }
+
+    // --- ЗАГРУЗКА ДАННЫХ ---
+    private void loadLocalChatsData() {
         myPinnedRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                pinnedUserIds.clear();
+                pinnedChatsMap.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
-                    pinnedUserIds.add(ds.getKey());
+                    Object val = ds.getValue();
+                    long order = (val instanceof Number) ? ((Number)val).longValue() : 0L;
+                    pinnedChatsMap.put(ds.getKey(), order);
                 }
-                loadLocalChats(); // После получения закрепленных, грузим чаты
+
+                for (ChatListItem item : allChatListItems) {
+                    if (pinnedChatsMap.containsKey(item.user.getId())) {
+                        item.isPinned = true;
+                        item.pinnedOrder = pinnedChatsMap.get(item.user.getId());
+                    } else {
+                        item.isPinned = false;
+                        item.pinnedOrder = 0L;
+                    }
+                }
+                if (!isDragging) updateLocalFilter(searchInput.getText().toString());
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
-    }
 
-    private void loadLocalChats() {
         chatsRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                localUsersList.clear();
+                allChatListItems.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     String chatId = ds.getKey();
                     if (chatId != null && chatId.contains(currentUserId)) {
-                        // Вычисляем ID собеседника из ключа чата (например "ID1_ID2")
                         String otherUserId = chatId.replace(currentUserId, "").replace("_", "");
-                        fetchUserInfo(otherUserId);
+                        fetchChatDetails(chatId, otherUserId, ds.child("messages"));
                     }
+                }
+                if (allChatListItems.isEmpty() && !isDragging) {
+                    updateLocalFilter(searchInput.getText().toString());
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    private void fetchUserInfo(String userId) {
-        usersRef.child(userId).addListenerForSingleValueEvent(new ValueEventListener() {
+    private void fetchChatDetails(String chatId, String otherUserId, DataSnapshot messagesSnapshot) {
+        ChatMessage lastMsg = null;
+        int unreadCount = 0;
+
+        for (DataSnapshot msgSnap : messagesSnapshot.getChildren()) {
+            ChatMessage msg = msgSnap.getValue(ChatMessage.class);
+            if (msg != null && (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId))) {
+                lastMsg = msg;
+                if (msg.getReceiverId().equals(currentUserId) && !msg.isRead()) {
+                    unreadCount++;
+                }
+            }
+        }
+
+        final ChatMessage finalLastMsg = lastMsg;
+        final int finalUnreadCount = unreadCount;
+
+        usersRef.child(otherUserId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                User user = snapshot.getValue(User.class);
+            public void onDataChange(@NonNull DataSnapshot userSnap) {
+                User user = userSnap.getValue(User.class);
                 if (user != null) {
-                    user.setId(snapshot.getKey()); // Устанавливаем ID вручную, так как он @Exclude
+                    user.setId(otherUserId);
+                    ChatListItem item = new ChatListItem(chatId, user);
+                    item.lastMessage = finalLastMsg;
+                    item.unreadCount = finalUnreadCount;
 
-                    // Проверка на дубликаты в списке
-                    boolean exists = false;
-                    for (User u : localUsersList) {
-                        if (u.getId() != null && u.getId().equals(user.getId())) {
-                            exists = true;
-                            break;
-                        }
+                    if (pinnedChatsMap.containsKey(otherUserId)) {
+                        item.isPinned = true;
+                        item.pinnedOrder = pinnedChatsMap.get(otherUserId);
+                    } else {
+                        item.isPinned = false;
+                        item.pinnedOrder = 0L;
                     }
-                    if (!exists) {
-                        localUsersList.add(user);
-                        updateLocalFilter(searchInput.getText().toString());
-                    }
+
+                    addAndUpdateList(item);
                 }
             }
             @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    private void showChatOptionsDialog(User user) {
-        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(getContext());
-        View view = LayoutInflater.from(getContext()).inflate(R.layout.bottom_sheet_chat_options, null);
-        bottomSheetDialog.setContentView(view);
-        ((View) view.getParent()).setBackgroundColor(Color.TRANSPARENT);
-
-        TextView tvPinText = view.findViewById(R.id.tvPinText);
-        LinearLayout btnPinChat = view.findViewById(R.id.btnPinChat);
-        LinearLayout btnDeleteChat = view.findViewById(R.id.btnDeleteChat);
-
-        boolean isPinned = pinnedUserIds.contains(user.getId());
-        tvPinText.setText(isPinned ? "Открепить" : "Закрепить");
-
-        // ЛОГИКА ЗАКРЕПЛЕНИЯ
-        btnPinChat.setOnClickListener(v -> {
-            if (isPinned) {
-                myPinnedRef.child(user.getId()).removeValue(); // Открепляем
-            } else {
-                myPinnedRef.child(user.getId()).setValue(true); // Закрепляем
-            }
-            bottomSheetDialog.dismiss();
-        });
-
-        // ЛОГИКА УДАЛЕНИЯ
-        btnDeleteChat.setOnClickListener(v -> {
-            // Генерируем ID чата так же, как в ChatActivity
-            String chatId = currentUserId.compareTo(user.getId()) < 0 ?
-                    currentUserId + "_" + user.getId() : user.getId() + "_" + currentUserId;
-
-            // Удаляем чат из БД
-            chatsRef.child(chatId).removeValue();
-
-            // Удаляем из локального списка, чтобы UI обновился мгновенно
-            localUsersList.remove(user);
-            updateLocalFilter(searchInput.getText().toString());
-
-            bottomSheetDialog.dismiss();
-        });
-
-        bottomSheetDialog.show();
+    private synchronized void addAndUpdateList(ChatListItem newItem) {
+        allChatListItems.removeIf(item -> item.chatId.equals(newItem.chatId));
+        allChatListItems.add(newItem);
+        if (isDragging) pendingUpdate = true;
+        else updateLocalFilter(searchInput.getText().toString());
     }
 
+    // --- ПОИСК И СОРТИРОВКА ---
     private void setupSearch() {
         searchInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -253,36 +380,36 @@ public class ChatListFragment extends Fragment {
     }
 
     private void updateLocalFilter(String query) {
-        filteredLocalList.clear();
+        filteredChatListItems.clear();
         if (TextUtils.isEmpty(query)) {
-            filteredLocalList.addAll(localUsersList);
+            filteredChatListItems.addAll(allChatListItems);
         } else {
-            for (User user : localUsersList) {
-                if (user.getUsername() != null && user.getUsername().toLowerCase().contains(query)) {
-                    filteredLocalList.add(user);
+            for (ChatListItem item : allChatListItems) {
+                if (item.user.getUsername() != null && item.user.getUsername().toLowerCase().contains(query)) {
+                    filteredChatListItems.add(item);
                 }
             }
         }
 
-        // СОРТИРОВКА: Закрепленные сверху
-        Collections.sort(filteredLocalList, (u1, u2) -> {
-            boolean p1 = pinnedUserIds.contains(u1.getId());
-            boolean p2 = pinnedUserIds.contains(u2.getId());
-            if (p1 && !p2) return -1; // u1 выше
-            if (!p1 && p2) return 1;  // u2 выше
-            return 0; // Оставляем как есть
+        Collections.sort(filteredChatListItems, (a, b) -> {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+
+            if (a.isPinned && b.isPinned) {
+                return Long.compare(a.pinnedOrder, b.pinnedOrder);
+            }
+
+            long timeA = a.lastMessage != null ? a.lastMessage.getTimestamp() : 0;
+            long timeB = b.lastMessage != null ? b.lastMessage.getTimestamp() : 0;
+            return Long.compare(timeB, timeA);
         });
 
-        chatListAdapter.setUsers(filteredLocalList, pinnedUserIds); // Передаем оба списка
-        emptyChatsText.setVisibility(filteredLocalList.isEmpty() ? View.VISIBLE : View.GONE);
+        chatListAdapter.setChats(filteredChatListItems);
+        emptyChatsText.setVisibility(filteredChatListItems.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
     private void performGlobalSearch(String searchText) {
-        Query query = usersRef.orderByChild("username")
-                .startAt(searchText)
-                .endAt(searchText + "\uf8ff")
-                .limitToFirst(15);
-
+        Query query = usersRef.orderByChild("username").startAt(searchText).endAt(searchText + "\uf8ff").limitToFirst(15);
         query.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -290,10 +417,8 @@ public class ChatListFragment extends Fragment {
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     User user = ds.getValue(User.class);
                     if (user != null) {
-                        user.setId(ds.getKey()); // Устанавливаем ID вручную
-                        if (!user.getId().equals(currentUserId)) {
-                            globalUserList.add(user);
-                        }
+                        user.setId(ds.getKey());
+                        if (!user.getId().equals(currentUserId)) globalUserList.add(user);
                     }
                 }
                 globalSearchContainer.setVisibility(globalUserList.isEmpty() ? View.GONE : View.VISIBLE);
@@ -306,7 +431,7 @@ public class ChatListFragment extends Fragment {
     private void setupSwipeRefresh() {
         swipeRefreshLayout.setColorSchemeResources(R.color.accent);
         swipeRefreshLayout.setOnRefreshListener(() -> {
-            loadLocalChats();
+            loadLocalChatsData();
             swipeRefreshLayout.setRefreshing(false);
         });
     }

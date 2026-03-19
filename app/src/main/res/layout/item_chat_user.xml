@@ -3,13 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/chatItemRoot"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="?attr/selectableItemBackground"
     android:clickable="true"
     android:focusable="true">
 
-    <!-- Внутренний контейнер для отступов -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -27,77 +27,115 @@
             android:scaleType="centerCrop"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:src="@drawable/ic_profile_placeholder" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <!-- Индикатор онлайна -->
         <View
             android:id="@+id/onlineIndicator"
-            android:layout_width="16dp"
-            android:layout_height="16dp"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
             android:background="@drawable/bg_online_indicator"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@id/chatAvatar"
             app:layout_constraintEnd_toEndOf="@id/chatAvatar"
             android:translationX="1dp"
-            android:translationY="1dp"
-            tools:visibility="visible" />
+            android:translationY="1dp" />
 
         <!-- Имя пользователя -->
         <TextView
             android:id="@+id/chatUsername"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
             android:textColor="@color/text_primary"
             android:textSize="17sp"
             android:textStyle="bold"
-            android:letterSpacing="0.01"
             android:maxLines="1"
             android:ellipsize="end"
-            app:layout_constrainedWidth="true"
-            app:layout_constraintHorizontal_bias="0.0"
-            app:layout_constraintHorizontal_chainStyle="packed"
             app:layout_constraintStart_toEndOf="@id/chatAvatar"
-            app:layout_constraintEnd_toStartOf="@id/ivPinnedIcon"
+            app:layout_constraintEnd_toStartOf="@id/timeText"
             app:layout_constraintTop_toTopOf="@id/chatAvatar"
-            app:layout_constraintBottom_toTopOf="@id/chatStatusText"
-            tools:text="Пользователь" />
+            app:layout_constraintBottom_toTopOf="@id/chatPreviewText"
+            app:layout_constraintVertical_chainStyle="packed"/>
 
-        <!-- Иконка скрепки (привязана к концу имени) -->
+        <!-- Галочки прочитанности (только для исходящих) -->
         <ImageView
-            android:id="@+id/ivPinnedIcon"
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:layout_marginStart="6dp"
-            android:src="@drawable/ic_pin"
-            app:tint="@color/text_secondary"
+            android:id="@+id/ivReadStatus"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="4dp"
             android:visibility="gone"
-            app:layout_constraintStart_toEndOf="@id/chatUsername"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/chatUsername"
-            app:layout_constraintBottom_toBottomOf="@id/chatUsername"
-            tools:visibility="visible" />
+            app:layout_constraintStart_toEndOf="@id/chatAvatar"
+            app:layout_constraintTop_toTopOf="@id/chatPreviewText"
+            app:layout_constraintBottom_toBottomOf="@id/chatPreviewText" />
 
-        <!-- Статус (всегда под именем) -->
+        <!-- Текст превью (последнее сообщение) -->
         <TextView
-            android:id="@+id/chatStatusText"
+            android:id="@+id/chatPreviewText"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="@color/text_secondary"
-            android:textSize="14sp"
+            android:textSize="15sp"
             android:maxLines="1"
             android:ellipsize="end"
-            app:layout_constraintStart_toStartOf="@id/chatUsername"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/ivReadStatus"
+            app:layout_constraintEnd_toStartOf="@id/unreadBadge"
             app:layout_constraintTop_toBottomOf="@id/chatUsername"
             app:layout_constraintBottom_toBottomOf="@id/chatAvatar"
-            tools:text="был(а) недавно" />
+            app:layout_goneMarginStart="16dp"
+            app:layout_constraintHorizontal_bias="0.0"
+            tools:text="Последнее сообщение тут..."/>
+
+        <!-- Время последнего сообщения -->
+        <TextView
+            android:id="@+id/timeText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/chatUsername"
+            app:layout_constraintBottom_toBottomOf="@id/chatUsername"
+            tools:text="14:20"/>
+
+        <!-- Иконка закрепа -->
+        <ImageView
+            android:id="@+id/ivPinnedIcon"
+            android:layout_width="16dp"
+            android:layout_height="16dp"
+            android:layout_marginTop="8dp"
+            android:src="@drawable/ic_pin"
+            app:tint="@color/text_secondary"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/timeText"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <!-- Счетчик непрочитанных (Кружок) -->
+        <TextView
+            android:id="@+id/unreadBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:minWidth="20dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:background="@drawable/bg_unread_badge"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/timeText"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:text="3" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Разделитель -->
     <View
         android:id="@+id/divider"
         android:layout_width="0dp"

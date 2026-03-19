@@ -24,7 +24,8 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".Settings.Setting"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MapMemories.Transparent"/>
         <activity
             android:name=".Profile.UserProfileActivity"
             android:exported="false"
@@ -79,10 +80,6 @@
         <activity android:name=".LogRegStart.RegisterActivity" />
         <activity android:name=".LogRegStart.OnboardingActivity" />
         <activity android:name=".Lenta.MainActivity" />
-        <activity
-            android:name=".Chats.ChatListActivity"
-            android:exported="false"
-            android:theme="@style/Theme.Transparent" />
 
         <service
             android:name=".systemHelpers.MessageListenerService"

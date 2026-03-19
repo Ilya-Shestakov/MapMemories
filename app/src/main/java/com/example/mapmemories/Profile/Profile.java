@@ -424,6 +424,10 @@ public class Profile extends AppCompatActivity {
     private void uploadImageToCloudinary(Uri imageUri) {
         if (isFinishing() || isDestroyed()) return;
 
+        // ПОКАЗЫВАЕМ ДИАЛОГ, ЧТОБЫ ПОЛЬЗОВАТЕЛЬ НЕ ВЫШЕЛ ВО ВРЕМЯ ЗАГРУЗКИ
+        progressDialog.setMessage("Загрузка фото...");
+        progressDialog.show();
+
         Executors.newSingleThreadExecutor().execute(() -> {
             InputStream inputStream = null;
             try {
@@ -441,6 +445,7 @@ public class Profile extends AppCompatActivity {
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
+                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ ОШИБКЕ
                     if (!isFinishing() && !isDestroyed()) {
                         Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     }
@@ -456,10 +461,12 @@ public class Profile extends AppCompatActivity {
     private void updateProfileImageUrlInFirebase(String imageUrl) {
         userRef.child("profileImageUrl").setValue(imageUrl)
                 .addOnSuccessListener(aVoid -> {
+                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ УСПЕХЕ
                     if (!isFinishing())
                         Toast.makeText(Profile.this, "Фото сохранено!", Toast.LENGTH_SHORT).show();
                 })
                 .addOnFailureListener(e -> {
+                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ ОШИБКЕ
                     if (!isFinishing())
                         Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });

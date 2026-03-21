@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -29,6 +30,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -68,6 +70,7 @@ public class ChatActivity extends AppCompatActivity {
     private String chatId;
     private String editingMessageId = null;
     private Uri selectedImageUri = null;
+    private ChatMessage replyingToMessage = null; // Хранит сообщение, на которое отвечаем
 
     private LinearLayout userInfoContainer;
     private ImageView ivChatAvatar;
@@ -81,6 +84,11 @@ public class ChatActivity extends AppCompatActivity {
     private EditText etMessageInput;
     private ConstraintLayout imagePreviewContainer;
     private ImageView ivPreviewImage;
+
+    // UI для превью ответа
+    private ConstraintLayout replyPreviewContainer;
+    private TextView tvReplySender, tvReplyText;
+    private ImageButton btnCloseReply;
 
     private DatabaseReference chatRef;
     private DatabaseReference targetUserRef;
@@ -142,7 +150,7 @@ public class ChatActivity extends AppCompatActivity {
         Map<String, String> config = new HashMap<>();
         config.put("cloud_name", "dvbjhturp");
         config.put("api_key", "149561293632228");
-        config.put("api_secret", "U8ZmnwKrLwBxmLbBPMM5CxvEYdU"); // ВНИМАНИЕ: СМЕНИ КЛЮЧИ В КОНСОЛИ!
+        config.put("api_secret", "U8ZmnwKrLwBxmLbBPMM5CxvEYdU");
         cloudinary = new Cloudinary(config);
 
         progressDialog = new ProgressDialog(this);
@@ -177,6 +185,14 @@ public class ChatActivity extends AppCompatActivity {
         ivPreviewImage = findViewById(R.id.ivPreviewImage);
         btnRemoveImage = findViewById(R.id.btnRemoveImage);
 
+        // Инициализация UI для ответа
+        replyPreviewContainer = findViewById(R.id.replyPreviewContainer);
+        tvReplySender = findViewById(R.id.tvReplySender);
+        tvReplyText = findViewById(R.id.tvReplyText);
+        btnCloseReply = findViewById(R.id.btnCloseReply);
+
+        btnCloseReply.setOnClickListener(v -> closeReplyPreview());
+
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setStackFromEnd(true);
         chatRecyclerView.setLayoutManager(layoutManager);
@@ -188,7 +204,15 @@ public class ChatActivity extends AppCompatActivity {
                 etMessageInput.setText(message.getText());
                 etMessageInput.setSelection(message.getText().length());
                 editingMessageId = message.getMessageId();
+                closeReplyPreview(); // Сбрасываем реплай при редактировании
                 updateInputUI();
+
+                // Открываем клавиатуру при редактировании
+                etMessageInput.requestFocus();
+                InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                if (imm != null) {
+                    imm.showSoftInput(etMessageInput, InputMethodManager.SHOW_IMPLICIT);
+                }
             }
 
             @Override
@@ -199,8 +223,25 @@ public class ChatActivity extends AppCompatActivity {
                     chatRef.child(message.getMessageId()).child("deletedBy").setValue(currentUserId);
                 }
             }
+
+            @Override
+            public void onReplyMessage(ChatMessage message) {
+                setupReplyPreview(message);
+            }
         });
         chatRecyclerView.setAdapter(chatAdapter);
+
+        // ПОДКЛЮЧАЕМ СВАЙП ДЛЯ ОТВЕТА
+        MessageSwipeController swipeController = new MessageSwipeController(this, new MessageSwipeController.SwipeControllerActions() {
+            @Override
+            public void onSwipeToReply(int position) {
+                ChatMessage message = messageList.get(position);
+                chatAdapter.notifyItemChanged(position); // Возвращаем элемент на место
+                setupReplyPreview(message);
+            }
+        });
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(swipeController);
+        itemTouchHelper.attachToRecyclerView(chatRecyclerView);
 
         chatRecyclerView.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
             if (bottom < oldBottom && !messageList.isEmpty()) {
@@ -208,7 +249,6 @@ public class ChatActivity extends AppCompatActivity {
             }
         });
 
-        // ЛОГИКА СКРЫТИЯ СКРЕПКИ ПРИ ВВОДЕ
         etMessageInput.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -245,6 +285,42 @@ public class ChatActivity extends AppCompatActivity {
                 updateInputUI();
             }
         });
+    }
+
+    private void setupReplyPreview(ChatMessage message) {
+        VibratorHelper.vibrate(this, 30);
+        replyingToMessage = message;
+        replyPreviewContainer.setVisibility(View.VISIBLE);
+        editingMessageId = null; // Сбрасываем редактирование, если начали отвечать
+
+        String sender = message.getSenderId().equals(currentUserId) ? "Вы" : tvChatUsername.getText().toString();
+        tvReplySender.setText(sender);
+
+        String previewText = "";
+        if ("text".equals(message.getType())) {
+            previewText = message.getText();
+        } else if ("image".equals(message.getType())) {
+            previewText = "📷 Фотография";
+            if (message.getText() != null && !message.getText().isEmpty()) previewText += " " + message.getText();
+        } else if ("post".equals(message.getType())) {
+            previewText = "🗺️ Воспоминание";
+        }
+        tvReplyText.setText(previewText);
+
+        // --- ОТКРЫТИЕ КЛАВИАТУРЫ ---
+        etMessageInput.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(etMessageInput, InputMethodManager.SHOW_IMPLICIT);
+        }
+        // ---------------------------
+
+        updateInputUI();
+    }
+
+    private void closeReplyPreview() {
+        replyingToMessage = null;
+        replyPreviewContainer.setVisibility(View.GONE);
     }
 
     private void updateInputUI() {
@@ -307,7 +383,6 @@ public class ChatActivity extends AppCompatActivity {
         );
     }
 
-    // ЗАГРУЗКА В CLOUDINARY
     private void uploadImageToCloudinaryAndSend(Uri imageUri, String caption) {
         progressDialog.show();
 
@@ -340,13 +415,30 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
+    private void attachReplyDataToMessage(ChatMessage message) {
+        if (replyingToMessage != null) {
+            message.setReplyMessageId(replyingToMessage.getMessageId());
+            message.setReplySenderId(replyingToMessage.getSenderId());
+
+            String replyTxt = "";
+            if ("text".equals(replyingToMessage.getType())) replyTxt = replyingToMessage.getText();
+            else if ("image".equals(replyingToMessage.getType())) replyTxt = "📷 Фотография";
+            else if ("post".equals(replyingToMessage.getType())) replyTxt = "🗺️ Воспоминание";
+
+            message.setReplyText(replyTxt);
+        }
+    }
+
     private void sendImageMessage(String imageUrl, String caption) {
         String messageId = chatRef.push().getKey();
         if (messageId != null) {
             ChatMessage message = new ChatMessage(currentUserId, targetUserId, imageUrl, caption, System.currentTimeMillis(), "image");
             message.setMessageId(messageId);
+            attachReplyDataToMessage(message);
+
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger(caption.isEmpty() ? "Отправил(а) фото 📷" : "📷 " + caption);
+            closeReplyPreview();
         }
     }
 
@@ -355,8 +447,11 @@ public class ChatActivity extends AppCompatActivity {
         if (messageId != null) {
             ChatMessage message = new ChatMessage(currentUserId, targetUserId, text, System.currentTimeMillis(), "text");
             message.setMessageId(messageId);
+            attachReplyDataToMessage(message);
+
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger(text);
+            closeReplyPreview();
         }
     }
 
@@ -365,8 +460,11 @@ public class ChatActivity extends AppCompatActivity {
         if (messageId != null) {
             ChatMessage message = new ChatMessage(currentUserId, targetUserId, postId, System.currentTimeMillis());
             message.setMessageId(messageId);
+            attachReplyDataToMessage(message);
+
             chatRef.child(messageId).setValue(message);
             sendNotificationTrigger("Отправил(а) воспоминание 🗺️");
+            closeReplyPreview();
         }
     }
 
@@ -403,14 +501,10 @@ public class ChatActivity extends AppCompatActivity {
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 ChatMessage msg = snapshot.getValue(ChatMessage.class);
                 if (msg != null && (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId))) {
-
-                    // --- ЛОГИКА: МЫ ПРОЧИТАЛИ ВХОДЯЩЕЕ СООБЩЕНИЕ ---
-                    // Сохраняем "read", чтобы оно соответствовало новой модели БД
                     if (msg.getReceiverId().equals(currentUserId) && !msg.isRead()) {
                         snapshot.getRef().child("read").setValue(true);
                         msg.setRead(true);
                     }
-
                     messageList.add(msg);
                     chatAdapter.notifyItemInserted(messageList.size() - 1);
                     chatRecyclerView.scrollToPosition(messageList.size() - 1);
@@ -480,13 +574,10 @@ public class ChatActivity extends AppCompatActivity {
             case android.view.MotionEvent.ACTION_UP:
                 float endX = ev.getX();
                 float endY = ev.getY();
-
-                // Получаем плотность пикселей экрана для независимости от устройства
                 float density = getResources().getDisplayMetrics().density;
-                float edgeArea = 40 * density; // Зона 40dp от левого края
-                float minSwipeDist = 60 * density; // Минимальная длина свайпа 60dp
+                float edgeArea = 40 * density;
+                float minSwipeDist = 60 * density;
 
-                // Если свайпнут от края направо и палец не ушел сильно вверх/вниз
                 if (startX <= edgeArea && (endX - startX) >= minSwipeDist && Math.abs(endY - startY) < minSwipeDist) {
                     finish();
                     return true;

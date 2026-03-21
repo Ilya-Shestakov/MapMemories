@@ -47,6 +47,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     public interface ChatActionListener {
         void onEditMessage(ChatMessage message);
         void onDeleteMessage(ChatMessage message, boolean forEveryone);
+        void onReplyMessage(ChatMessage message); // НОВЫЙ МЕТОД
     }
 
     public ChatAdapter(Context context, List<ChatMessage> messages, ChatActionListener listener) {
@@ -68,7 +69,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         ChatMessage message = messages.get(position);
         boolean isMine = message.getSenderId().equals(currentUserId);
 
-        // 1. НАСТРОЙКА ДИЗАЙНА (Линии, прозрачность, выравнивание)
         ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) holder.contentLayout.getLayoutParams();
         holder.tvTextMessage.setTextColor(context.getResources().getColor(R.color.text_primary));
 
@@ -95,7 +95,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         }
         holder.contentLayout.setLayoutParams(params);
 
-        // Время
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
         holder.timeText.setText(sdf.format(message.getTimestamp()));
 
@@ -103,9 +102,18 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         holder.tvTextMessage.setVisibility(View.GONE);
         holder.postLayout.setVisibility(View.GONE);
         holder.chatAttachedImage.setVisibility(View.GONE);
+        holder.replyQuotedLayout.setVisibility(View.GONE); // Сброс цитаты
         holder.itemView.setOnClickListener(null);
 
-        // 2. ОБРАБОТКА ТИПОВ СООБЩЕНИЙ
+        // --- ЛОГИКА ОТОБРАЖЕНИЯ ОТВЕТА (ЦИТАТЫ) ---
+        if (message.getReplyMessageId() != null) {
+            holder.replyQuotedLayout.setVisibility(View.VISIBLE);
+            String senderName = message.getReplySenderId().equals(currentUserId) ? "Вы" : "Собеседник";
+            holder.tvQuotedSender.setText(senderName);
+            holder.tvQuotedText.setText(message.getReplyText());
+        }
+
+        // ОБРАБОТКА ТИПОВ СООБЩЕНИЙ
         if ("text".equals(message.getType())) {
             holder.tvTextMessage.setVisibility(View.VISIBLE);
             holder.tvTextMessage.setText(message.getText());
@@ -132,7 +140,6 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             });
         }
 
-        // 3. МЕНЮ ПО ДОЛГОМУ НАЖАТИЮ (Привязываем к contentLayout - к самому пузырю, а не пустой строке)
         holder.rootMessageLayout.setOnLongClickListener(v -> {
             showContextMenu(message, isMine, v);
             return true;
@@ -145,13 +152,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
                 popupView,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-                true // True чтобы окно закрывалось по клику снаружи
+                true
         );
 
         popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         popupWindow.setElevation(10f);
 
         TextView btnOpenPost = popupView.findViewById(R.id.btnOpenPost);
+        //TextView btnReply = popupView.findViewById(R.id.btnReply); // Добавил кнопку ответа в меню (если она есть в XML)
         TextView btnEdit = popupView.findViewById(R.id.btnEdit);
         TextView btnDeleteMe = popupView.findViewById(R.id.btnDeleteMe);
         TextView btnDeleteAll = popupView.findViewById(R.id.btnDeleteAll);
@@ -160,6 +168,7 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         boolean isImage = "image".equals(message.getType());
 
         if (isPost) btnOpenPost.setVisibility(View.VISIBLE);
+        //if (btnReply != null) btnReply.setVisibility(View.VISIBLE); // Показываем кнопку ответа всегда
         if (isMine && !isPost && !isImage) btnEdit.setVisibility(View.VISIBLE);
         if (isMine) btnDeleteAll.setVisibility(View.VISIBLE);
 
@@ -169,6 +178,13 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             intent.putExtra("postId", message.getPostId());
             context.startActivity(intent);
         });
+
+//        if (btnReply != null) {
+//            btnReply.setOnClickListener(v -> {
+//                popupWindow.dismiss();
+//                actionListener.onReplyMessage(message);
+//            });
+//        }
 
         btnEdit.setOnClickListener(v -> {
             popupWindow.dismiss();
@@ -185,17 +201,14 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             actionListener.onDeleteMessage(message, true);
         });
 
-        // Расчет позиции окна относительно пузыря сообщения
         int[] location = new int[2];
         anchorView.getLocationOnScreen(location);
 
-        // Если мое (справа) - сдвигаем влево, иначе (слева) - сдвигаем вправо
         int xOffset = isMine ? location[0] - 200 : location[0] + anchorView.getWidth() + 20;
         int yOffset = location[1] + (anchorView.getHeight() / 4);
 
         popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, Math.max(0, xOffset), yOffset);
 
-        // Логика плавного следования окна за сообщением при прокрутке чата
         ViewTreeObserver.OnPreDrawListener preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
             @Override
             public boolean onPreDraw() {
@@ -257,8 +270,8 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        LinearLayout contentLayout, postLayout;
-        TextView tvTextMessage, postTitle, timeText;
+        LinearLayout contentLayout, postLayout, replyQuotedLayout;
+        TextView tvTextMessage, postTitle, timeText, tvQuotedSender, tvQuotedText;
         ImageView postImage, chatAttachedImage;
         View lineTop, lineBottom;
         ConstraintLayout rootMessageLayout;
@@ -275,6 +288,11 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             chatAttachedImage = itemView.findViewById(R.id.chatAttachedImage);
             lineTop = itemView.findViewById(R.id.lineTop);
             lineBottom = itemView.findViewById(R.id.lineBottom);
+
+            // Новые вьюшки для цитаты
+            replyQuotedLayout = itemView.findViewById(R.id.replyQuotedLayout);
+            tvQuotedSender = itemView.findViewById(R.id.tvQuotedSender);
+            tvQuotedText = itemView.findViewById(R.id.tvQuotedText);
         }
     }
 

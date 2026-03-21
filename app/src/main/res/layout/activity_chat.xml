@@ -80,7 +80,6 @@
         app:layout_constraintTop_toBottomOf="@id/appBarLayout"
         app:layout_constraintBottom_toTopOf="@id/bottomInputContainer"/>
 
-    <!-- КОНТЕЙНЕР ВВОДА -->
     <LinearLayout
         android:id="@+id/bottomInputContainer"
         android:layout_width="match_parent"
@@ -89,7 +88,6 @@
         android:background="@color/primary"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- ПРЕВЬЮ КАРТИНКИ -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/imagePreviewContainer"
             android:layout_width="match_parent"
@@ -129,7 +127,65 @@
                 android:layout_marginTop="-4dp"/>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- ПАНЕЛЬ ВВОДА -->
+        <!-- ПРЕВЬЮ ОТВЕТА -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/replyPreviewContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:background="@color/primary"
+            android:visibility="gone">
+
+            <View
+                android:id="@+id/replyLine"
+                android:layout_width="3dp"
+                android:layout_height="0dp"
+                android:background="@color/text_primary"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"/>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginStart="8dp"
+                app:layout_constraintStart_toEndOf="@id/replyLine"
+                app:layout_constraintEnd_toStartOf="@id/btnCloseReply"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:id="@+id/tvReplySender"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvReplyText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textSize="14sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/btnCloseReply"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                app:tint="@color/text_secondary"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -154,7 +210,6 @@
                 android:textSize="16sp"
                 android:inputType="textMultiLine|textCapSentences"/>
 
-            <!-- Скрепка -->
             <ImageButton
                 android:id="@+id/btnAttach"
                 android:layout_width="44dp"
@@ -164,7 +219,6 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 app:tint="@color/text_secondary" />
 
-            <!-- Отправить -->
             <ImageButton
                 android:id="@+id/btnSend"
                 android:layout_width="44dp"

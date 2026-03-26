@@ -21,6 +21,14 @@
         android:visibility="gone" />
 
     <TextView
+        android:id="@+id/btnCopy"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Копировать"
+        android:padding="12dp"
+        android:textColor="@color/text_primary"/>
+
+    <TextView
         android:id="@+id/btnEdit"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

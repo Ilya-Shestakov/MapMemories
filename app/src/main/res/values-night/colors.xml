@@ -10,11 +10,13 @@
     <color name="offline_indicator">#FF5252</color>
 
     <!-- НОВЫЕ ЦВЕТА ДЛЯ ЧАТА -->
-    <color name="chat_me_bg">#FF7A45</color>
+    <color name="chat_me_bg">#5D5D5D</color>
     <color name="chat_me_text">#FFFFFF</color>
     <color name="chat_other_bg">#1F3A5F</color> <!-- Твой secondary -->
     <color name="chat_other_text">#FFFFFF</color>
     <color name="chat_input_bg">#1A2B3C</color>
+
+    <color name="chat_me_bg_soft">#4E4E4E</color>
 
     <!-- ЦВЕТА ТЕМНОЙ ТЕМЫ (твои оригинальные) -->
     <color name="primary">#0F1C2E</color>

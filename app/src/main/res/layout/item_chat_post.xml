@@ -5,72 +5,64 @@
     android:id="@+id/rootMessageLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginTop="8dp"
-    android:layout_marginBottom="8dp"
-    android:background="?android:attr/selectableItemBackground"
-    android:clickable="true"
-    android:focusable="true">
+    android:layout_marginTop="2dp"
+    android:layout_marginBottom="2dp"
+    android:paddingHorizontal="8dp">
 
-    <View
-        android:id="@+id/lineTop"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <LinearLayout
+    <!-- Сам пузырь теперь ConstraintLayout -->
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/contentLayout"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
         app:layout_constrainedWidth="true"
         app:layout_constraintWidth_max="wrap"
-        app:layout_constraintWidth_percent="0.85"
-        app:layout_constraintTop_toBottomOf="@id/lineTop"
-        app:layout_constraintBottom_toTopOf="@id/lineBottom"
+        app:layout_constraintWidth_percent="0.80"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1.0">
+        app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- БЛОК ЦИТИРУЕМОГО СООБЩЕНИЯ -->
         <LinearLayout
             android:id="@+id/replyQuotedLayout"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:visibility="gone"
             android:layout_marginBottom="6dp"
-            android:background="#1A808080"
-            android:padding="6dp">
+            android:background="#1A000000"
+            android:padding="6dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
 
             <View
+                android:id="@+id/quoteLine"
                 android:layout_width="3dp"
                 android:layout_height="match_parent"
-                android:background="@color/text_primary"/>
+                android:layout_marginEnd="8dp"/>
 
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:layout_marginStart="6dp">
+                android:orientation="vertical">
 
                 <TextView
                     android:id="@+id/tvQuotedSender"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textStyle="bold"
-                    android:textSize="12sp"
-                    android:textColor="@color/text_primary" />
+                    android:textSize="13sp"
+                    android:maxLines="1"/>
 
                 <TextView
                     android:id="@+id/tvQuotedText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:maxLines="2"
+                    android:maxLines="3"
                     android:ellipsize="end"
                     android:textSize="13sp"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_marginTop="2dp"/>
             </LinearLayout>
         </LinearLayout>
 
@@ -81,65 +73,74 @@
             android:adjustViewBounds="true"
             android:maxWidth="250dp"
             android:maxHeight="300dp"
-            android:scaleType="centerCrop"
             android:visibility="gone"
-            android:layout_marginBottom="8dp" />
-
-        <TextView
-            android:id="@+id/tvTextMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="16sp"
-            android:lineSpacingExtra="4dp"
-            android:visibility="gone" />
+            android:layout_marginBottom="4dp"
+            app:layout_constraintTop_toBottomOf="@id/replyQuotedLayout"
+            app:layout_constraintStart_toStartOf="parent"/>
 
         <LinearLayout
             android:id="@+id/postLayout"
-            android:layout_width="240dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:visibility="gone">
-
+            android:visibility="gone"
+            android:layout_marginBottom="4dp"
+            app:layout_constraintTop_toBottomOf="@id/chatAttachedImage"
+            app:layout_constraintStart_toStartOf="parent">
             <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="160dp"
-                app:cardCornerRadius="12dp"
+                android:layout_width="200dp"
+                android:layout_height="140dp"
+                app:cardCornerRadius="8dp"
                 app:cardElevation="0dp">
                 <ImageView
                     android:id="@+id/postImage"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:scaleType="centerCrop" />
+                    android:scaleType="centerCrop"/>
             </com.google.android.material.card.MaterialCardView>
-
             <TextView
                 android:id="@+id/postTitle"
-                android:layout_width="match_parent"
+                android:layout_width="200dp"
                 android:layout_height="wrap_content"
-                android:textColor="@color/text_primary"
                 android:textStyle="bold"
-                android:textSize="15sp"
-                android:layout_marginTop="8dp"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp"
                 android:maxLines="2"
                 android:ellipsize="end"/>
         </LinearLayout>
 
         <TextView
+            android:id="@+id/tvTextMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:visibility="gone"
+            android:autoLink="web"
+            android:linksClickable="true"
+            android:paddingEnd="46dp"
+            app:layout_constraintTop_toBottomOf="@id/postLayout"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+        <TextView
             android:id="@+id/msgTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:textColor="@color/text_secondary"
             android:textSize="11sp"
-            android:layout_marginTop="6dp" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"/>
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <View
-        android:id="@+id/lineBottom"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        android:id="@+id/highlightOverlay"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#33000000"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/contentLayout"
+        app:layout_constraintBottom_toBottomOf="@id/contentLayout"
+        app:layout_constraintStart_toStartOf="@id/contentLayout"
+        app:layout_constraintEnd_toEndOf="@id/contentLayout"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

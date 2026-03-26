@@ -17,13 +17,11 @@ public class MessageSwipeController extends ItemTouchHelper.Callback {
 
     public MessageSwipeController(Context context, SwipeControllerActions buttonsActions) {
         this.buttonsActions = buttonsActions;
-        // Используем стандартную иконку стрелочки Android (можешь заменить на свою R.drawable.ic_reply)
         this.replyIcon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_revert);
     }
 
     @Override
     public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
-        // Разрешаем свайп только ВЛЕВО
         return makeMovementFlags(0, ItemTouchHelper.LEFT);
     }
 
@@ -34,7 +32,6 @@ public class MessageSwipeController extends ItemTouchHelper.Callback {
 
     @Override
     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-        // Вызываем интерфейс ответа
         buttonsActions.onSwipeToReply(viewHolder.getAdapterPosition());
     }
 
@@ -43,21 +40,15 @@ public class MessageSwipeController extends ItemTouchHelper.Callback {
         if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
             View itemView = viewHolder.itemView;
 
-            // Ограничиваем свайп, чтобы элемент не улетал за экран (максимум сдвиг на четверть экрана)
-            float maxSwipe = itemView.getWidth() / 4f;
-            float translationX = dX;
-            if (translationX < -maxSwipe) {
-                translationX = -maxSwipe;
-            }
+            // Эффект "резинки": делим сдвиг на 5, чтобы тянулось очень туго и плавно
+            float translationX = dX / 5f;
 
-            // Рисуем иконку ответа
             if (replyIcon != null && dX < 0) {
                 int iconMargin = (itemView.getHeight() - replyIcon.getIntrinsicHeight()) / 2;
-                int iconTop = itemView.getTop() + (itemView.getHeight() - replyIcon.getIntrinsicHeight()) / 2;
+                int iconTop = itemView.getTop() + iconMargin;
                 int iconBottom = iconTop + replyIcon.getIntrinsicHeight();
 
-                // Иконка появляется справа
-                int iconLeft = itemView.getRight() + (int)dX + iconMargin;
+                int iconLeft = itemView.getRight() + (int)translationX + iconMargin;
                 int iconRight = iconLeft + replyIcon.getIntrinsicWidth();
 
                 replyIcon.setBounds(iconLeft, iconTop, iconRight, iconBottom);
@@ -72,7 +63,7 @@ public class MessageSwipeController extends ItemTouchHelper.Callback {
 
     @Override
     public float getSwipeThreshold(@NonNull RecyclerView.ViewHolder viewHolder) {
-        return 0.5f;
+        return 0.15f; // Очень легкое срабатывание
     }
 
     @Override

@@ -1,25 +1,33 @@
 package com.example.mapmemories.Chats;
 
+import android.app.Dialog;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.net.Uri;
+import android.os.Environment;
+import android.os.Handler;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
+import android.view.Window;
+import android.view.animation.AlphaAnimation;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.resource.bitmap.CenterCrop;
 import com.bumptech.glide.load.resource.bitmap.RoundedCorners;
 import com.example.mapmemories.Post.ViewPostDetailsActivity;
 import com.example.mapmemories.R;
@@ -41,13 +49,21 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     private Context context;
     private List<ChatMessage> messages;
     private String currentUserId;
+    private String targetUserName = "Собеседник";
     private ChatActionListener actionListener;
     private Map<String, PostCacheData> postCache = new HashMap<>();
+
+    private String highlightedMessageId = null;
+    private final Handler highlightHandler = new Handler();
+    private static final long HIGHLIGHT_DURATION = 2000;
 
     public interface ChatActionListener {
         void onEditMessage(ChatMessage message);
         void onDeleteMessage(ChatMessage message, boolean forEveryone);
-        void onReplyMessage(ChatMessage message); // НОВЫЙ МЕТОД
+        void onReplyMessage(ChatMessage message);
+        void onQuoteClicked(String messageId);
+        void onMessageHighlighted(String messageId);
+        void onPinMessage(ChatMessage message);
     }
 
     public ChatAdapter(Context context, List<ChatMessage> messages, ChatActionListener listener) {
@@ -55,6 +71,25 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
         this.messages = messages;
         this.actionListener = listener;
         this.currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
+    public void setTargetUserName(String name) {
+        if (name != null && !name.isEmpty()) {
+            this.targetUserName = name;
+            notifyDataSetChanged();
+        }
+    }
+
+    public void highlightMessage(String messageId) {
+        this.highlightedMessageId = messageId;
+        notifyDataSetChanged();
+        highlightHandler.postDelayed(() -> {
+            if (messageId.equals(highlightedMessageId)) {
+                highlightedMessageId = null;
+                notifyDataSetChanged();
+            }
+        }, HIGHLIGHT_DURATION);
+        if (actionListener != null) actionListener.onMessageHighlighted(messageId);
     }
 
     @NonNull
@@ -68,71 +103,78 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         ChatMessage message = messages.get(position);
         boolean isMine = message.getSenderId().equals(currentUserId);
+        boolean isHighlighted = message.getMessageId() != null && message.getMessageId().equals(highlightedMessageId);
 
         ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) holder.contentLayout.getLayoutParams();
-        holder.tvTextMessage.setTextColor(context.getResources().getColor(R.color.text_primary));
 
         if (isMine) {
             params.horizontalBias = 1.0f;
-            holder.contentLayout.setGravity(Gravity.END);
-            holder.tvTextMessage.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_END);
+            holder.contentLayout.setBackgroundResource(R.drawable.bg_msg_mine);
+            // Я УДАЛИЛ setTint! Теперь цвет берется из твоего colors.xml
 
-            int primaryColor = context.getResources().getColor(R.color.text_primary);
-            holder.lineTop.setBackgroundColor(primaryColor);
-            holder.lineBottom.setBackgroundColor(primaryColor);
-            holder.lineTop.setAlpha(0.15f);
-            holder.lineBottom.setAlpha(0.15f);
+            int myTextColor = Color.WHITE;
+            holder.tvTextMessage.setTextColor(myTextColor);
+            holder.timeText.setTextColor(myTextColor);
+            holder.timeText.setAlpha(0.7f);
+
+            holder.tvQuotedSender.setTextColor(myTextColor);
+            holder.tvQuotedText.setTextColor(myTextColor);
+            holder.tvQuotedText.setAlpha(0.8f);
+            holder.itemView.findViewById(R.id.quoteLine).setBackgroundColor(myTextColor);
         } else {
             params.horizontalBias = 0.0f;
-            holder.contentLayout.setGravity(Gravity.START);
-            holder.tvTextMessage.setTextAlignment(View.TEXT_ALIGNMENT_VIEW_START);
+            holder.contentLayout.setBackgroundResource(R.drawable.bg_msg_theirs);
 
-            int secondaryColor = context.getResources().getColor(R.color.text_secondary);
-            holder.lineTop.setBackgroundColor(secondaryColor);
-            holder.lineBottom.setBackgroundColor(secondaryColor);
-            holder.lineTop.setAlpha(0.15f);
-            holder.lineBottom.setAlpha(0.15f);
+            int otherTextColor = ContextCompat.getColor(context, R.color.chat_other_text);
+            holder.tvTextMessage.setTextColor(otherTextColor);
+            holder.timeText.setTextColor(otherTextColor);
+            holder.timeText.setAlpha(0.6f);
+
+            holder.tvQuotedSender.setTextColor(ContextCompat.getColor(context, R.color.accent_coral));
+            holder.tvQuotedText.setTextColor(otherTextColor);
+            holder.tvQuotedText.setAlpha(0.8f);
+            holder.itemView.findViewById(R.id.quoteLine).setBackgroundColor(ContextCompat.getColor(context, R.color.accent_coral));
         }
         holder.contentLayout.setLayoutParams(params);
 
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm", Locale.getDefault());
         holder.timeText.setText(sdf.format(message.getTimestamp()));
 
-        // Сброс видимости
-        holder.tvTextMessage.setVisibility(View.GONE);
-        holder.postLayout.setVisibility(View.GONE);
-        holder.chatAttachedImage.setVisibility(View.GONE);
-        holder.replyQuotedLayout.setVisibility(View.GONE); // Сброс цитаты
-        holder.itemView.setOnClickListener(null);
+        resetViewHolders(holder);
 
-        // --- ЛОГИКА ОТОБРАЖЕНИЯ ОТВЕТА (ЦИТАТЫ) ---
-        if (message.getReplyMessageId() != null) {
-            holder.replyQuotedLayout.setVisibility(View.VISIBLE);
-            String senderName = message.getReplySenderId().equals(currentUserId) ? "Вы" : "Собеседник";
-            holder.tvQuotedSender.setText(senderName);
-            holder.tvQuotedText.setText(message.getReplyText());
+        if (isHighlighted) {
+            holder.highlightOverlay.setVisibility(View.VISIBLE);
+            AlphaAnimation fadeIn = new AlphaAnimation(0.0f, 1.0f);
+            fadeIn.setDuration(300);
+            holder.highlightOverlay.startAnimation(fadeIn);
         }
 
-        // ОБРАБОТКА ТИПОВ СООБЩЕНИЙ
+        if (message.getReplyMessageId() != null && !message.getReplyMessageId().isEmpty()) {
+            holder.replyQuotedLayout.setVisibility(View.VISIBLE);
+            String senderName = targetUserName;
+            if (message.getReplySenderId() != null && message.getReplySenderId().equals(currentUserId)) senderName = "Вы";
+            holder.tvQuotedSender.setText(senderName);
+            holder.tvQuotedText.setText(message.getReplyText() != null ? message.getReplyText() : "");
+            holder.replyQuotedLayout.setOnClickListener(v -> {
+                if (actionListener != null) actionListener.onQuoteClicked(message.getReplyMessageId());
+            });
+        }
+
         if ("text".equals(message.getType())) {
             holder.tvTextMessage.setVisibility(View.VISIBLE);
             holder.tvTextMessage.setText(message.getText());
-
         } else if ("image".equals(message.getType())) {
             holder.chatAttachedImage.setVisibility(View.VISIBLE);
-            Glide.with(context).load(message.getImageUrl())
-                    .transform(new CenterCrop(), new RoundedCorners(24))
-                    .into(holder.chatAttachedImage);
-
+            Glide.with(context).load(message.getImageUrl()).transform(new RoundedCorners(24)).into(holder.chatAttachedImage);
             if (message.getText() != null && !message.getText().isEmpty()) {
                 holder.tvTextMessage.setVisibility(View.VISIBLE);
                 holder.tvTextMessage.setText(message.getText());
             }
-
+            // ПРОСМОТР ФОТО
+            holder.chatAttachedImage.setOnClickListener(v -> showImageDialog(message.getImageUrl()));
         } else if ("post".equals(message.getType())) {
             holder.postLayout.setVisibility(View.VISIBLE);
             loadPostDataOptimized(message.getPostId(), holder);
-
             holder.contentLayout.setOnClickListener(v -> {
                 Intent intent = new Intent(context, ViewPostDetailsActivity.class);
                 intent.putExtra("postId", message.getPostId());
@@ -140,122 +182,243 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             });
         }
 
-        holder.rootMessageLayout.setOnLongClickListener(v -> {
-            showContextMenu(message, isMine, v);
+        holder.contentLayout.setOnLongClickListener(v -> {
+            showContextMenu(message, isMine, holder.contentLayout);
             return true;
         });
     }
 
+    private void showImageDialog(String imageUrl) {
+        Dialog dialog = new Dialog(context, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(R.layout.dialog_view_avatar); // Создадим ниже программно или используй свой
+
+        ImageView fullImage = new ImageView(context);
+        fullImage.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        fullImage.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        Glide.with(context).load(imageUrl).into(fullImage);
+
+        ImageButton btnDownload = new ImageButton(context);
+        btnDownload.setImageResource(android.R.drawable.ic_menu_save);
+        btnDownload.setBackgroundColor(Color.TRANSPARENT);
+        btnDownload.setPadding(32, 32, 32, 32);
+
+        ConstraintLayout layout = new ConstraintLayout(context);
+        layout.addView(fullImage);
+        layout.addView(btnDownload);
+
+        ConstraintLayout.LayoutParams btnParams = new ConstraintLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        btnParams.bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID;
+        btnParams.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID;
+        btnParams.setMargins(0, 0, 32, 32);
+        btnDownload.setLayoutParams(btnParams);
+
+        dialog.setContentView(layout);
+
+        btnDownload.setOnClickListener(v -> {
+            DownloadManager downloadManager = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+            Uri uri = Uri.parse(imageUrl);
+            DownloadManager.Request request = new DownloadManager.Request(uri);
+            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "MapMemories_" + System.currentTimeMillis() + ".jpg");
+            downloadManager.enqueue(request);
+            Toast.makeText(context, "Скачивание началось", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void resetViewHolders(ViewHolder holder) {
+        holder.tvTextMessage.setVisibility(View.GONE);
+        holder.postLayout.setVisibility(View.GONE);
+        holder.chatAttachedImage.setVisibility(View.GONE);
+        holder.replyQuotedLayout.setVisibility(View.GONE);
+        holder.highlightOverlay.setVisibility(View.GONE);
+        holder.contentLayout.setOnClickListener(null);
+        holder.replyQuotedLayout.setOnClickListener(null);
+        holder.chatAttachedImage.setOnClickListener(null);
+    }
+
+//    private void showContextMenu(ChatMessage message, boolean isMine, View anchorView) {
+//        View popupView = LayoutInflater.from(context).inflate(R.layout.popup_message_options, null);
+//        PopupWindow popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true);
+//        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+//        popupWindow.setElevation(10f);
+//
+//        popupWindow.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
+//
+//        TextView btnCopy = popupView.findViewById(R.id.btnCopy);
+//        TextView btnOpenPost = popupView.findViewById(R.id.btnOpenPost);
+//        TextView btnEdit = popupView.findViewById(R.id.btnEdit);
+//        TextView btnDeleteMe = popupView.findViewById(R.id.btnDeleteMe);
+//        TextView btnDeleteAll = popupView.findViewById(R.id.btnDeleteAll);
+//
+//        // Добавляем кнопку закрепа программно, если её нет в XML
+//        TextView btnPin = new TextView(context);
+//        btnPin.setText("📌 Закрепить");
+//        btnPin.setPadding(40, 24, 40, 24);
+//        btnPin.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+//        btnPin.setTextSize(16f);
+//        ((LinearLayout) popupView).addView(btnPin, 0);
+//
+//        boolean isPost = "post".equals(message.getType());
+//        boolean isImage = "image".equals(message.getType());
+//
+//        if (btnCopy != null && "text".equals(message.getType())) {
+//            btnCopy.setVisibility(View.VISIBLE);
+//            btnCopy.setOnClickListener(v -> {
+//                popupWindow.dismiss();
+//                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+//                android.content.ClipData clip = android.content.ClipData.newPlainText("Message", message.getText());
+//                clipboard.setPrimaryClip(clip);
+//            });
+//        } else if (btnCopy != null) {
+//            btnCopy.setVisibility(View.GONE);
+//        }
+//
+//        if (isPost && btnOpenPost != null) btnOpenPost.setVisibility(View.VISIBLE);
+//        if (isMine && !isPost && !isImage && btnEdit != null) btnEdit.setVisibility(View.VISIBLE);
+//
+//        // ИСПРАВЛЕНИЕ: Удалить у всех теперь доступно для всех СВОИХ сообщений (включая фото)
+//        if (isMine && btnDeleteAll != null) btnDeleteAll.setVisibility(View.VISIBLE);
+//
+//        btnPin.setOnClickListener(v -> {
+//            popupWindow.dismiss();
+//            if (actionListener != null) actionListener.onPinMessage(message);
+//        });
+//
+//        if (btnOpenPost != null) btnOpenPost.setOnClickListener(v -> {
+//            popupWindow.dismiss();
+//            Intent intent = new Intent(context, ViewPostDetailsActivity.class);
+//            intent.putExtra("postId", message.getPostId());
+//            context.startActivity(intent);
+//        });
+//
+//        if (btnEdit != null) btnEdit.setOnClickListener(v -> {
+//            popupWindow.dismiss();
+//            if (actionListener != null) actionListener.onEditMessage(message);
+//        });
+//
+//        if (btnDeleteMe != null) btnDeleteMe.setOnClickListener(v -> {
+//            popupWindow.dismiss();
+//            if (actionListener != null) actionListener.onDeleteMessage(message, false);
+//        });
+//
+//        if (btnDeleteAll != null) btnDeleteAll.setOnClickListener(v -> {
+//            popupWindow.dismiss();
+//            if (actionListener != null) actionListener.onDeleteMessage(message, true);
+//        });
+//
+//        popupWindow.showAsDropDown(anchorView, 0, 0, Gravity.BOTTOM | (isMine ? Gravity.END : Gravity.START));
+//    }
+
+
     private void showContextMenu(ChatMessage message, boolean isMine, View anchorView) {
-        View popupView = LayoutInflater.from(context).inflate(R.layout.popup_message_options, null);
-        PopupWindow popupWindow = new PopupWindow(
-                popupView,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                true
-        );
+        com.google.android.material.bottomsheet.BottomSheetDialog bottomSheetDialog =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(context);
 
-        popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        popupWindow.setElevation(10f);
-
-        TextView btnOpenPost = popupView.findViewById(R.id.btnOpenPost);
-        //TextView btnReply = popupView.findViewById(R.id.btnReply); // Добавил кнопку ответа в меню (если она есть в XML)
-        TextView btnEdit = popupView.findViewById(R.id.btnEdit);
-        TextView btnDeleteMe = popupView.findViewById(R.id.btnDeleteMe);
-        TextView btnDeleteAll = popupView.findViewById(R.id.btnDeleteAll);
+        // Создаем меню программно, чтобы не создавать новый XML файл
+        LinearLayout layout = new LinearLayout(context);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(0, 24, 0, 24);
+        layout.setBackgroundColor(ContextCompat.getColor(context, R.color.primary));
 
         boolean isPost = "post".equals(message.getType());
         boolean isImage = "image".equals(message.getType());
 
-        if (isPost) btnOpenPost.setVisibility(View.VISIBLE);
-        //if (btnReply != null) btnReply.setVisibility(View.VISIBLE); // Показываем кнопку ответа всегда
-        if (isMine && !isPost && !isImage) btnEdit.setVisibility(View.VISIBLE);
-        if (isMine) btnDeleteAll.setVisibility(View.VISIBLE);
-
-        btnOpenPost.setOnClickListener(v -> {
-            popupWindow.dismiss();
-            Intent intent = new Intent(context, ViewPostDetailsActivity.class);
-            intent.putExtra("postId", message.getPostId());
-            context.startActivity(intent);
+        // Кнопка Ответить
+        addMenuItem(layout, "↩️ Ответить", v -> {
+            bottomSheetDialog.dismiss();
+            if (actionListener != null) actionListener.onReplyMessage(message);
         });
 
-//        if (btnReply != null) {
-//            btnReply.setOnClickListener(v -> {
-//                popupWindow.dismiss();
-//                actionListener.onReplyMessage(message);
-//            });
-//        }
+        // Кнопка Копировать
+        if ("text".equals(message.getType())) {
+            addMenuItem(layout, "📋 Копировать", v -> {
+                bottomSheetDialog.dismiss();
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Message", message.getText());
+                clipboard.setPrimaryClip(clip);
+            });
+        }
 
-        btnEdit.setOnClickListener(v -> {
-            popupWindow.dismiss();
-            actionListener.onEditMessage(message);
+        // Кнопка Закрепить
+        addMenuItem(layout, "📌 Закрепить", v -> {
+            bottomSheetDialog.dismiss();
+            if (actionListener != null) actionListener.onPinMessage(message);
         });
 
-        btnDeleteMe.setOnClickListener(v -> {
-            popupWindow.dismiss();
-            actionListener.onDeleteMessage(message, false);
+        // Кнопка Открыть пост
+        if (isPost) {
+            addMenuItem(layout, "🗺️ Открыть воспоминание", v -> {
+                bottomSheetDialog.dismiss();
+                Intent intent = new Intent(context, ViewPostDetailsActivity.class);
+                intent.putExtra("postId", message.getPostId());
+                context.startActivity(intent);
+            });
+        }
+
+        // Кнопка Изменить
+        if (isMine && !isPost && !isImage) {
+            addMenuItem(layout, "✏️ Изменить", v -> {
+                bottomSheetDialog.dismiss();
+                if (actionListener != null) actionListener.onEditMessage(message);
+            });
+        }
+
+        // Кнопка Удалить у меня
+        addMenuItem(layout, "🗑️ Удалить у меня", v -> {
+            bottomSheetDialog.dismiss();
+            if (actionListener != null) actionListener.onDeleteMessage(message, false);
         });
 
-        btnDeleteAll.setOnClickListener(v -> {
-            popupWindow.dismiss();
-            actionListener.onDeleteMessage(message, true);
-        });
+        // Кнопка Удалить у всех
+        if (isMine) {
+            addMenuItem(layout, "💥 Удалить у всех", v -> {
+                bottomSheetDialog.dismiss();
+                if (actionListener != null) actionListener.onDeleteMessage(message, true);
+            });
+        }
 
-        int[] location = new int[2];
-        anchorView.getLocationOnScreen(location);
+        bottomSheetDialog.setContentView(layout);
+        bottomSheetDialog.show();
+    }
 
-        int xOffset = isMine ? location[0] - 200 : location[0] + anchorView.getWidth() + 20;
-        int yOffset = location[1] + (anchorView.getHeight() / 4);
+    // Вспомогательный метод для создания кнопок меню
+    private void addMenuItem(LinearLayout parent, String text, View.OnClickListener listener) {
+        TextView textView = new TextView(context);
+        textView.setText(text);
+        textView.setTextSize(16f);
+        textView.setTextColor(ContextCompat.getColor(context, R.color.text_primary));
+        textView.setPadding(48, 32, 48, 32);
 
-        popupWindow.showAtLocation(anchorView, Gravity.NO_GRAVITY, Math.max(0, xOffset), yOffset);
+        android.util.TypedValue outValue = new android.util.TypedValue();
+        context.getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+        textView.setBackgroundResource(outValue.resourceId);
 
-        ViewTreeObserver.OnPreDrawListener preDrawListener = new ViewTreeObserver.OnPreDrawListener() {
-            @Override
-            public boolean onPreDraw() {
-                if (popupWindow.isShowing()) {
-                    int[] newLoc = new int[2];
-                    anchorView.getLocationOnScreen(newLoc);
-                    int newX = isMine ? newLoc[0] - 200 : newLoc[0] + anchorView.getWidth() + 20;
-                    popupWindow.update(Math.max(0, newX), newLoc[1] + (anchorView.getHeight() / 4), -1, -1);
-                }
-                return true;
-            }
-        };
-
-        anchorView.getViewTreeObserver().addOnPreDrawListener(preDrawListener);
-        popupWindow.setOnDismissListener(() -> anchorView.getViewTreeObserver().removeOnPreDrawListener(preDrawListener));
+        textView.setOnClickListener(listener);
+        parent.addView(textView);
     }
 
     private void loadPostDataOptimized(String postId, ViewHolder holder) {
         if (postCache.containsKey(postId)) {
             PostCacheData data = postCache.get(postId);
             holder.postTitle.setText(data.title);
-            if (data.imageUrl != null) {
-                Glide.with(context).load(data.imageUrl).transform(new CenterCrop(), new RoundedCorners(24)).into(holder.postImage);
-            }
+            if (data.imageUrl != null) Glide.with(context).load(data.imageUrl).transform(new RoundedCorners(24)).into(holder.postImage);
             return;
         }
-
         holder.postTitle.setText("Загрузка...");
-        DatabaseReference postRef = FirebaseDatabase.getInstance().getReference("posts").child(postId);
-        postRef.addListenerForSingleValueEvent(new ValueEventListener() {
+        FirebaseDatabase.getInstance().getReference("posts").child(postId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 if (snapshot.exists()) {
                     String title = snapshot.child("title").getValue(String.class);
-                    String imageUrl = null;
-                    if (snapshot.child("mediaUrls").exists()) {
-                        imageUrl = snapshot.child("mediaUrls").child("0").getValue(String.class);
-                    } else {
-                        imageUrl = snapshot.child("mediaUrl").getValue(String.class);
-                    }
-
+                    String imageUrl = snapshot.child("mediaUrls").exists() ? snapshot.child("mediaUrls").child("0").getValue(String.class) : snapshot.child("mediaUrl").getValue(String.class);
                     title = title != null ? title : "Без названия";
                     postCache.put(postId, new PostCacheData(title, imageUrl));
                     holder.postTitle.setText(title);
-                    if (imageUrl != null) {
-                        Glide.with(context).load(imageUrl).transform(new CenterCrop(), new RoundedCorners(24)).into(holder.postImage);
-                    }
+                    if (imageUrl != null) Glide.with(context).load(imageUrl).transform(new RoundedCorners(24)).into(holder.postImage);
                 } else {
                     holder.postTitle.setText("Пост удален");
                 }
@@ -265,20 +428,17 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
     }
 
     @Override
-    public int getItemCount() {
-        return messages.size();
-    }
+    public int getItemCount() { return messages.size(); }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        LinearLayout contentLayout, postLayout, replyQuotedLayout;
+        ConstraintLayout contentLayout;
+        LinearLayout postLayout, replyQuotedLayout;
         TextView tvTextMessage, postTitle, timeText, tvQuotedSender, tvQuotedText;
         ImageView postImage, chatAttachedImage;
-        View lineTop, lineBottom;
-        ConstraintLayout rootMessageLayout;
+        View highlightOverlay;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            rootMessageLayout = itemView.findViewById(R.id.rootMessageLayout);
             contentLayout = itemView.findViewById(R.id.contentLayout);
             postLayout = itemView.findViewById(R.id.postLayout);
             tvTextMessage = itemView.findViewById(R.id.tvTextMessage);
@@ -286,22 +446,15 @@ public class ChatAdapter extends RecyclerView.Adapter<ChatAdapter.ViewHolder> {
             postTitle = itemView.findViewById(R.id.postTitle);
             timeText = itemView.findViewById(R.id.msgTime);
             chatAttachedImage = itemView.findViewById(R.id.chatAttachedImage);
-            lineTop = itemView.findViewById(R.id.lineTop);
-            lineBottom = itemView.findViewById(R.id.lineBottom);
-
-            // Новые вьюшки для цитаты
             replyQuotedLayout = itemView.findViewById(R.id.replyQuotedLayout);
             tvQuotedSender = itemView.findViewById(R.id.tvQuotedSender);
             tvQuotedText = itemView.findViewById(R.id.tvQuotedText);
+            highlightOverlay = itemView.findViewById(R.id.highlightOverlay);
         }
     }
 
     private static class PostCacheData {
-        String title;
-        String imageUrl;
-        PostCacheData(String title, String imageUrl) {
-            this.title = title;
-            this.imageUrl = imageUrl;
-        }
+        String title, imageUrl;
+        PostCacheData(String title, String imageUrl) { this.title = title; this.imageUrl = imageUrl; }
     }
 }

@@ -10,7 +10,7 @@
     <color name="offline_indicator">#FF5252</color>
 
     <!-- НОВЫЕ ЦВЕТА ДЛЯ ЧАТА -->
-    <color name="chat_me_bg">#FF7A45</color> <!-- Твой акцентный -->
+    <color name="chat_me_bg">#4B4B4B</color>
     <color name="chat_me_text">#FFFFFF</color>
     <color name="chat_other_bg">#E4E7EB</color>
     <color name="chat_other_text">#1A1A1A</color>

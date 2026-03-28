@@ -143,4 +143,20 @@
         app:layout_constraintStart_toStartOf="@id/contentLayout"
         app:layout_constraintEnd_toEndOf="@id/contentLayout"/>
 
+    <TextView
+        android:id="@+id/tvReactionBadge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_reaction_badge"
+        android:paddingHorizontal="6dp"
+        android:paddingVertical="2dp"
+        android:textSize="14sp"
+        android:visibility="gone"
+        android:elevation="4dp"
+
+        app:layout_constraintTop_toBottomOf="@id/contentLayout"
+        app:layout_constraintBottom_toBottomOf="@id/contentLayout"
+        app:layout_constraintEnd_toEndOf="@id/contentLayout"
+        android:layout_marginEnd="12dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

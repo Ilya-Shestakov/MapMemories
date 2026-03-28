@@ -32,7 +32,9 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".Chats.ChatActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.MapMemories.Transparent"
+            />
         <activity
             android:name=".Profile.PickPostActivity"
             android:exported="false" />

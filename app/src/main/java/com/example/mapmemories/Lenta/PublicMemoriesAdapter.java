@@ -18,7 +18,7 @@ import com.example.mapmemories.Profile.UserProfileActivity;
 import com.example.mapmemories.R;
 import com.example.mapmemories.systemHelpers.AnimUtils;
 import com.example.mapmemories.systemHelpers.ImageCarouselAdapter;
-import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.Post.Post;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseAuth;

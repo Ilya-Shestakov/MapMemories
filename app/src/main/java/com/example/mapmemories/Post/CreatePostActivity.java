@@ -38,7 +38,6 @@ import com.cloudinary.Cloudinary;
 import com.example.mapmemories.Lenta.PickLocationActivity;
 import com.example.mapmemories.systemHelpers.ImageCarouselAdapter;
 import com.example.mapmemories.systemHelpers.NetworkUtils;
-import com.example.mapmemories.systemHelpers.Post;
 import com.example.mapmemories.R;
 import com.example.mapmemories.systemHelpers.SwipeBackHelper;
 import com.example.mapmemories.systemHelpers.UploadWorker;

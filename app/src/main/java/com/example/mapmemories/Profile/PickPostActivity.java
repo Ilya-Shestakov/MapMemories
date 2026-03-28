@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.mapmemories.Lenta.MemoriesAdapter;
 import com.example.mapmemories.R;
-import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.Post.Post;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;

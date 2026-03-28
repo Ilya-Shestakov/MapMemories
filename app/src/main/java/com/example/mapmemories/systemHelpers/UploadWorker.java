@@ -6,6 +6,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.cloudinary.Cloudinary;
+import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.database.AppDatabase;
 import com.example.mapmemories.database.OfflinePost;
 import com.google.firebase.auth.FirebaseAuth;

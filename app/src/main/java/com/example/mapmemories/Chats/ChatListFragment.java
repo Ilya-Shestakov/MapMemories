@@ -110,6 +110,11 @@ public class ChatListFragment extends Fragment {
                 Intent intent = new Intent(getActivity(), ChatActivity.class);
                 intent.putExtra("targetUserId", item.user.getId());
                 startActivity(intent);
+
+                if (getActivity() != null) {
+                    getActivity().overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left);
+                }
+
             }
 
             @Override

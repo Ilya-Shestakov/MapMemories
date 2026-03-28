@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -12,14 +13,15 @@ import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -39,12 +41,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.cloudinary.Cloudinary;
 import com.example.mapmemories.Profile.PickPostActivity;
+import com.example.mapmemories.Profile.User;
 import com.example.mapmemories.Profile.UserProfileActivity;
 import com.example.mapmemories.R;
 import com.example.mapmemories.Settings.Setting;
 import com.example.mapmemories.systemHelpers.TimeFormatter;
 import com.example.mapmemories.systemHelpers.VibratorHelper;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
@@ -59,6 +63,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Executors;
 
 public class ChatActivity extends AppCompatActivity {
@@ -77,6 +82,11 @@ public class ChatActivity extends AppCompatActivity {
     private TextView tvChatUsername, tvChatStatus, btnSayHello, tvPinnedText;
     private ImageButton btnUnpin;
 
+    private View rootLayout;
+    private boolean isSwipingToClose = false;
+    private boolean canSwipeBack = false;
+    private int screenWidth;
+
     private RecyclerView chatRecyclerView;
     private ChatAdapter chatAdapter;
     private List<ChatMessage> messageList;
@@ -89,14 +99,17 @@ public class ChatActivity extends AppCompatActivity {
     private TextView tvReplySender, tvReplyText;
     private ImageButton btnCloseReply;
 
+    // --- ПАНЕЛЬ ВЫДЕЛЕНИЯ ---
+    private LinearLayout selectionToolbar;
+    private TextView tvSelectedCount;
+    private ImageButton btnCloseSelection, btnSelectionReact, btnSelectionCopy, btnSelectionForward, btnSelectionDelete;
+
     private DatabaseReference chatRef, targetUserRef, myStatusRef, pinnedRef;
     private ValueEventListener statusListener, pinnedListener;
     private ChildEventListener messagesListener;
 
     private ActivityResultLauncher<Intent> pickPostLauncher;
     private ActivityResultLauncher<String> pickImageLauncher;
-
-    private boolean isSwipingToClose = false;
 
     private Cloudinary cloudinary;
     private ProgressDialog progressDialog;
@@ -155,6 +168,8 @@ public class ChatActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        rootLayout = findViewById(R.id.rootLayout);
+        screenWidth = getResources().getDisplayMetrics().widthPixels;
         userInfoContainer = findViewById(R.id.userInfoContainer);
         ivChatAvatar = findViewById(R.id.ivChatAvatar);
         tvChatUsername = findViewById(R.id.tvChatUsername);
@@ -164,6 +179,17 @@ public class ChatActivity extends AppCompatActivity {
         pinnedMessageContainer = findViewById(R.id.pinnedMessageContainer);
         tvPinnedText = findViewById(R.id.tvPinnedText);
         btnUnpin = findViewById(R.id.btnUnpin);
+
+        // --- ИНИЦИАЛИЗАЦИЯ ПАНЕЛИ ВЫДЕЛЕНИЯ ---
+        selectionToolbar = findViewById(R.id.selectionToolbar);
+        tvSelectedCount = findViewById(R.id.tvSelectedCount);
+        btnCloseSelection = findViewById(R.id.btnCloseSelection);
+        btnSelectionReact = findViewById(R.id.btnSelectionReact);
+        btnSelectionCopy = findViewById(R.id.btnSelectionCopy);
+        btnSelectionForward = findViewById(R.id.btnSelectionForward);
+        btnSelectionDelete = findViewById(R.id.btnSelectionDelete);
+
+        setupSelectionActions();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -178,7 +204,7 @@ public class ChatActivity extends AppCompatActivity {
         });
 
         chatRecyclerView = findViewById(R.id.chatRecyclerView);
-        chatRecyclerView.setItemAnimator(new DefaultItemAnimator()); // Плавные анимации
+        chatRecyclerView.setItemAnimator(new DefaultItemAnimator());
         fabScrollDown = findViewById(R.id.fabScrollDown);
         btnAttach = findViewById(R.id.btnAttach);
         btnSend = findViewById(R.id.btnSend);
@@ -212,18 +238,41 @@ public class ChatActivity extends AppCompatActivity {
         messageList = new ArrayList<>();
         chatAdapter = new ChatAdapter(this, messageList, new ChatAdapter.ChatActionListener() {
             @Override
+            public void onSelectionChanged(int selectedCount) {
+                if (selectedCount > 0) {
+                    if (selectionToolbar.getVisibility() == View.GONE) {
+                        // Анимация плавного выезда сверху
+                        selectionToolbar.setVisibility(View.VISIBLE);
+                        selectionToolbar.setAlpha(0f);
+                        selectionToolbar.setTranslationY(-50f);
+                        selectionToolbar.animate().alpha(1f).translationY(0f).setDuration(200).start();
+                    }
+                    tvSelectedCount.setText("Выбрано: " + selectedCount);
+                } else {
+                    // Анимация плавного скрытия
+                    selectionToolbar.animate().alpha(0f).translationY(-50f).setDuration(200).withEndAction(() -> {
+                        selectionToolbar.setVisibility(View.GONE);
+                    }).start();
+                }
+            }
+
+            @Override
+            public void onReactionSelected(ChatMessage message, String reaction) {
+                VibratorHelper.vibrate(ChatActivity.this, 20);
+                if (reaction == null) chatRef.child(message.getMessageId()).child("reaction").removeValue();
+                else chatRef.child(message.getMessageId()).child("reaction").setValue(reaction);
+            }
+
+            @Override
             public void onEditMessage(ChatMessage message) {
-                // 1. Сначала устанавливаем ID редактируемого сообщения
                 editingMessageId = message.getMessageId();
                 etMessageInput.setText(message.getText());
                 etMessageInput.setSelection(message.getText().length());
 
-                // 2. Показываем плашку "Редактирование" над полем ввода
                 replyPreviewContainer.setVisibility(View.VISIBLE);
                 tvReplySender.setText("Редактирование");
                 tvReplyText.setText(message.getText());
 
-                // 3. Сохраняем старую цитату в фоне (чтобы не затереть её при сохранении)
                 if (message.getReplyMessageId() != null) {
                     replyingToMessage = new ChatMessage();
                     replyingToMessage.setMessageId(message.getReplyMessageId());
@@ -242,11 +291,9 @@ public class ChatActivity extends AppCompatActivity {
 
             @Override
             public void onDeleteMessage(ChatMessage message, boolean forEveryone) {
-                // Удаляем само сообщение
                 if (forEveryone) chatRef.child(message.getMessageId()).removeValue();
                 else chatRef.child(message.getMessageId()).child("deletedBy").setValue(currentUserId);
 
-                // ИСПРАВЛЕНИЕ: Проверяем, было ли оно в закрепе, и если да — удаляем закреп
                 pinnedRef.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
@@ -285,7 +332,7 @@ public class ChatActivity extends AppCompatActivity {
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 if (!recyclerView.canScrollVertically(1)) fabScrollDown.setVisibility(View.GONE);
-                else if (dy < 0) fabScrollDown.setVisibility(View.VISIBLE); // Показываем только если скроллим вверх
+                else if (dy < 0) fabScrollDown.setVisibility(View.VISIBLE);
             }
         });
 
@@ -323,11 +370,10 @@ public class ChatActivity extends AppCompatActivity {
                 updateInputUI();
             } else if (!text.isEmpty()) {
                 if (editingMessageId != null) {
-                    String editedId = editingMessageId; // Сохраняем ID перед очисткой
+                    String editedId = editingMessageId;
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("text", text);
 
-                    // Восстанавливаем цитату, если она была
                     if (replyingToMessage != null) {
                         updates.put("replyMessageId", replyingToMessage.getMessageId());
                         updates.put("replySenderId", replyingToMessage.getSenderId());
@@ -338,10 +384,8 @@ public class ChatActivity extends AppCompatActivity {
                         updates.put("replyText", null);
                     }
 
-                    // Обновляем само сообщение
                     chatRef.child(editedId).updateChildren(updates);
 
-                    // ИСПРАВЛЕНИЕ: Ищем все сообщения, которые цитируют это, и обновляем в них текст
                     chatRef.orderByChild("replyMessageId").equalTo(editedId)
                             .addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
@@ -353,7 +397,7 @@ public class ChatActivity extends AppCompatActivity {
                                 @Override public void onCancelled(@NonNull DatabaseError error) {}
                             });
 
-                    closeReplyPreview(); // Это сбросит editingMessageId и очистит поле
+                    closeReplyPreview();
                 } else {
                     etMessageInput.setText("");
                     sendTextMessage(text);
@@ -363,10 +407,229 @@ public class ChatActivity extends AppCompatActivity {
         });
     }
 
+    // --- ЛОГИКА КНОПОК ПАНЕЛИ ВЫДЕЛЕНИЯ ---
+    private void setupSelectionActions() {
+        btnCloseSelection.setOnClickListener(v -> chatAdapter.clearSelection());
+
+        btnSelectionCopy.setOnClickListener(v -> {
+            Set<String> selectedIds = chatAdapter.getSelectedMessageIds();
+            StringBuilder sb = new StringBuilder();
+            for (ChatMessage msg : messageList) {
+                if (selectedIds.contains(msg.getMessageId()) && "text".equals(msg.getType())) {
+                    sb.append(msg.getText()).append("\n");
+                }
+            }
+            if (sb.length() > 0) {
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Copied Messages", sb.toString().trim());
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "Текст скопирован", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Нет текста для копирования", Toast.LENGTH_SHORT).show();
+            }
+            chatAdapter.clearSelection();
+        });
+
+        btnSelectionDelete.setOnClickListener(v -> {
+            new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
+                    .setTitle("Удалить сообщения?")
+                    .setMessage("Вы хотите удалить эти сообщения только у себя или у всех?")
+                    .setPositiveButton("У всех", (dialog, which) -> {
+                        for (String id : chatAdapter.getSelectedMessageIds()) {
+                            chatRef.child(id).removeValue();
+                        }
+                        chatAdapter.clearSelection();
+                    })
+                    .setNegativeButton("У меня", (dialog, which) -> {
+                        for (String id : chatAdapter.getSelectedMessageIds()) {
+                            chatRef.child(id).child("deletedBy").setValue(currentUserId);
+                        }
+                        chatAdapter.clearSelection();
+                    })
+                    .setNeutralButton("Отмена", null)
+                    .show();
+        });
+
+        btnSelectionReact.setOnClickListener(v -> {
+            BottomSheetDialog dialog = new BottomSheetDialog(this);
+            View view = LayoutInflater.from(this).inflate(R.layout.popup_telegram_menu, null);
+            dialog.setContentView(view);
+            ((View) view.getParent()).setBackgroundColor(Color.TRANSPARENT);
+
+            LinearLayout reactionContainer = view.findViewById(R.id.reactionContainer);
+            view.findViewById(R.id.actionsContainer).setVisibility(View.GONE); // Прячем лишние кнопки
+
+            String[] emojis = {"👍", "👎", "❤️", "🔥", "🥰", "👏", "😂", "😮", "😢", "😡", "🎉", "💩"};
+            for (String emoji : emojis) {
+                TextView tvEmoji = new TextView(this);
+                tvEmoji.setText(emoji);
+                tvEmoji.setTextSize(26f);
+                tvEmoji.setPadding(20, 12, 20, 12);
+                tvEmoji.setOnClickListener(click -> {
+                    dialog.dismiss();
+                    for (String id : chatAdapter.getSelectedMessageIds()) {
+                        chatRef.child(id).child("reaction").setValue(emoji);
+                    }
+                    chatAdapter.clearSelection();
+                });
+                reactionContainer.addView(tvEmoji);
+            }
+            dialog.show();
+        });
+
+        btnSelectionForward.setOnClickListener(v -> showForwardDialog());
+    }
+
+    // --- ЛОГИКА ПЕРЕСЫЛКИ (FORWARD) КРАСИВЫЙ ДИЗАЙН ---
+    private void showForwardDialog() {
+        BottomSheetDialog dialog = new BottomSheetDialog(this, R.style.Theme_MapMemories); // Используем тему приложения для скруглений
+
+        // Главный контейнер
+        LinearLayout mainLayout = new LinearLayout(this);
+        mainLayout.setOrientation(LinearLayout.VERTICAL);
+        mainLayout.setPadding(0, 32, 0, 32);
+        mainLayout.setBackgroundResource(R.drawable.bg_telegram_popup); // Используем твой красивый фон с закруглениями
+
+        // Заголовок
+        TextView title = new TextView(this);
+        title.setText("Переслать сообщение");
+        title.setTextSize(18f);
+        title.setTextColor(getResources().getColor(R.color.text_primary));
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setPadding(48, 16, 48, 32);
+        mainLayout.addView(title);
+
+        // Список пользователей
+        RecyclerView usersRecycler = new RecyclerView(this);
+        usersRecycler.setLayoutManager(new LinearLayoutManager(this));
+        mainLayout.addView(usersRecycler);
+        dialog.setContentView(mainLayout);
+
+        // Загружаем пользователей
+        FirebaseDatabase.getInstance().getReference("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                List<User> userList = new ArrayList<>();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    if (!ds.getKey().equals(currentUserId)) {
+                        User user = ds.getValue(User.class);
+                        if (user != null) {
+                            user.setId(ds.getKey());
+                            userList.add(user);
+                        }
+                    }
+                }
+
+                usersRecycler.setAdapter(new RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+                    @NonNull @Override public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                        // Создаем красивый элемент списка программно
+                        LinearLayout itemLayout = new LinearLayout(ChatActivity.this);
+                        itemLayout.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                        itemLayout.setOrientation(LinearLayout.HORIZONTAL);
+                        itemLayout.setGravity(android.view.Gravity.CENTER_VERTICAL);
+                        itemLayout.setPadding(48, 24, 48, 24);
+
+                        // Добавляем эффект нажатия
+                        android.util.TypedValue outValue = new android.util.TypedValue();
+                        getTheme().resolveAttribute(android.R.attr.selectableItemBackground, outValue, true);
+                        itemLayout.setBackgroundResource(outValue.resourceId);
+
+                        // Аватарка
+                        ImageView avatar = new ImageView(ChatActivity.this);
+                        avatar.setLayoutParams(new LinearLayout.LayoutParams(120, 120)); // Размер аватарки
+                        itemLayout.addView(avatar);
+
+                        // Имя пользователя
+                        TextView tvName = new TextView(ChatActivity.this);
+                        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                        textParams.setMargins(32, 0, 0, 0);
+                        tvName.setLayoutParams(textParams);
+                        tvName.setTextSize(16f);
+                        tvName.setTextColor(getResources().getColor(R.color.text_primary));
+                        itemLayout.addView(tvName);
+
+                        return new RecyclerView.ViewHolder(itemLayout) {};
+                    }
+
+                    @Override public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+                        User u = userList.get(position);
+                        LinearLayout layout = (LinearLayout) holder.itemView;
+                        ImageView avatar = (ImageView) layout.getChildAt(0);
+                        TextView tvName = (TextView) layout.getChildAt(1);
+
+                        tvName.setText(u.getUsername() != null ? u.getUsername() : "Пользователь");
+
+                        // Грузим аватарку через Glide
+                        if (u.getProfileImageUrl() != null && !u.getProfileImageUrl().isEmpty()) {
+                            Glide.with(ChatActivity.this).load(u.getProfileImageUrl()).circleCrop().placeholder(R.drawable.ic_profile_placeholder).into(avatar);
+                        } else {
+                            avatar.setImageResource(R.drawable.ic_profile_placeholder);
+                        }
+
+                        holder.itemView.setOnClickListener(v -> {
+                            dialog.dismiss();
+                            forwardMessagesToUser(u.getId());
+                        });
+                    }
+                    @Override public int getItemCount() { return userList.size(); }
+                });
+            }
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        dialog.show();
+    }
+
+    private void forwardMessagesToUser(String targetId) {
+        String targetChatId = currentUserId.compareTo(targetId) < 0 ? currentUserId + "_" + targetId : targetId + "_" + currentUserId;
+        DatabaseReference targetChatRef = FirebaseDatabase.getInstance().getReference("chats").child(targetChatId).child("messages");
+
+        Set<String> selectedIds = chatAdapter.getSelectedMessageIds();
+        for (ChatMessage msg : messageList) {
+            if (selectedIds.contains(msg.getMessageId())) {
+                String newId = targetChatRef.push().getKey();
+                if (newId != null) {
+                    // Создаем копию сообщения
+                    ChatMessage forwardedMsg = new ChatMessage();
+                    forwardedMsg.setMessageId(newId);
+                    forwardedMsg.setSenderId(currentUserId);
+                    forwardedMsg.setReceiverId(targetId);
+                    forwardedMsg.setText(msg.getText());
+                    forwardedMsg.setImageUrl(msg.getImageUrl());
+                    forwardedMsg.setPostId(msg.getPostId());
+                    forwardedMsg.setType(msg.getType());
+                    forwardedMsg.setTimestamp(System.currentTimeMillis());
+                    forwardedMsg.setRead(false);
+
+                    targetChatRef.child(newId).setValue(forwardedMsg);
+                }
+            }
+        }
+        chatAdapter.clearSelection();
+        Toast.makeText(this, "Сообщения пересланы", Toast.LENGTH_SHORT).show();
+    }
+
     private void scrollToAndHighlightMessage(String messageId) {
         for (int i = 0; i < messageList.size(); i++) {
             if (messageList.get(i).getMessageId() != null && messageList.get(i).getMessageId().equals(messageId)) {
-                chatRecyclerView.smoothScrollToPosition(i);
+
+                androidx.recyclerview.widget.LinearSmoothScroller smoothScroller =
+                        new androidx.recyclerview.widget.LinearSmoothScroller(this) {
+                            @Override
+                            protected int getVerticalSnapPreference() {
+                                return androidx.recyclerview.widget.LinearSmoothScroller.SNAP_TO_ANY;
+                            }
+                            @Override
+                            public int calculateDtToFit(int viewStart, int viewEnd, int boxStart, int boxEnd, int snapPreference) {
+                                return (boxStart + (boxEnd - boxStart) / 2) - (viewStart + (viewEnd - viewStart) / 2);
+                            }
+                        };
+
+                smoothScroller.setTargetPosition(i);
+                if (chatRecyclerView.getLayoutManager() != null) {
+                    chatRecyclerView.getLayoutManager().startSmoothScroll(smoothScroller);
+                }
+
                 new Handler().postDelayed(() -> chatAdapter.highlightMessage(messageId), 400);
                 break;
             }
@@ -406,23 +669,77 @@ public class ChatActivity extends AppCompatActivity {
 
     @Override
     public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
-        if (ev.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-            startX = ev.getX();
-            startY = ev.getY();
-        } else if (ev.getAction() == android.view.MotionEvent.ACTION_UP) {
-            float endX = ev.getX();
-            float endY = ev.getY();
-            float density = getResources().getDisplayMetrics().density;
+        if (rootLayout == null) return super.dispatchTouchEvent(ev);
 
-            // Если начали свайп с левого края (меньше 40dp), провели вправо больше 80dp и не сильно ушли вверх/вниз
-            if (startX < 40 * density && (endX - startX) > 80 * density && Math.abs(endY - startY) < 60 * density) {
-                finish();
-                overridePendingTransition(android.R.anim.slide_in_left, android.R.anim.slide_out_right);
-                return true;
-            }
+        switch (ev.getActionMasked()) {
+            case android.view.MotionEvent.ACTION_DOWN:
+                startX = ev.getRawX();
+                startY = ev.getRawY();
+                isSwipingToClose = false;
+                canSwipeBack = startX < screenWidth / 2f;
+                break;
+
+            case android.view.MotionEvent.ACTION_MOVE:
+                if (!canSwipeBack) break;
+
+                float dx = ev.getRawX() - startX;
+                float dy = ev.getRawY() - startY;
+
+                if (!isSwipingToClose && dx > 40 && Math.abs(dx) > Math.abs(dy) * 1.5f) {
+                    isSwipingToClose = true;
+
+                    InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null && getCurrentFocus() != null) {
+                        imm.hideSoftInputFromWindow(getCurrentFocus().getWindowToken(), 0);
+                    }
+
+                    android.view.MotionEvent cancelEvent = android.view.MotionEvent.obtain(ev);
+                    cancelEvent.setAction(android.view.MotionEvent.ACTION_CANCEL);
+                    super.dispatchTouchEvent(cancelEvent);
+                    cancelEvent.recycle();
+                }
+
+                if (isSwipingToClose) {
+                    rootLayout.setTranslationX(Math.max(0, dx));
+                    return true;
+                }
+                break;
+
+            case android.view.MotionEvent.ACTION_UP:
+            case android.view.MotionEvent.ACTION_CANCEL:
+                if (isSwipingToClose) {
+                    float dxUp = ev.getRawX() - startX;
+                    if (dxUp > screenWidth / 3f) {
+                        rootLayout.animate()
+                                .translationX(screenWidth)
+                                .setDuration(200)
+                                .withEndAction(() -> {
+                                    finish();
+                                    overridePendingTransition(0, 0);
+                                })
+                                .start();
+                    } else {
+                        rootLayout.animate()
+                                .translationX(0)
+                                .setDuration(200)
+                                .start();
+                    }
+                    isSwipingToClose = false;
+                    return true;
+                }
+                break;
         }
         return super.dispatchTouchEvent(ev);
     }
+
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right);
+    }
+
+    // ... ОСТАЛЬНЫЕ МЕТОДЫ (setupReplyPreview, closeReplyPreview, updateInputUI, showAttachmentMenu, setupLaunchers, uploadImageToCloudinaryAndSend, attachReplyDataToMessage, sendImageMessage, sendTextMessage, sendPostMessage, loadTargetUserData, loadMessagesOptimized, updateMyStatus, onResume, onPause, onDestroy) ОСТАЮТСЯ БЕЗ ИЗМЕНЕНИЙ ИЗ ТВОЕГО КОДА ...
+    // (Чтобы не превышать лимит символов, я не дублирую их, они 1 в 1 как в твоем предыдущем файле)
 
     private void setupReplyPreview(ChatMessage message, boolean isEditing) {
         VibratorHelper.vibrate(this, 30);
@@ -431,7 +748,6 @@ public class ChatActivity extends AppCompatActivity {
 
         if (!isEditing) {
             editingMessageId = null;
-            // Я УДАЛИЛ ОТСЮДА etMessageInput.setText(""); ТЕПЕРЬ ТЕКСТ НЕ СТИРАЕТСЯ
         }
 
         String sender = message.getSenderId().equals(currentUserId) ? "Вы" : tvChatUsername.getText().toString();

@@ -9,6 +9,16 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import android.Manifest;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
+import com.example.mapmemories.systemHelpers.MessageListenerService;
+
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -53,10 +63,25 @@ public class MainActivity extends AppCompatActivity {
     private long backPressedTime;
     private boolean isDockVisible = true;
 
+    private ActivityResultLauncher<String> requestPermissionLauncher;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    SharedPreferences prefs = getSharedPreferences(Setting.PREFS_NAME, Context.MODE_PRIVATE);
+                    prefs.edit().putBoolean("notifications_enabled", isGranted).apply();
+
+                    if (isGranted) {
+                        startService(new Intent(this, MessageListenerService.class));
+                        Toast.makeText(this, "Уведомления включены", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
 
         // ИСПРАВЛЕНИЕ БАГА СО СТАТУС-БАРОМ
         View rootLayout = findViewById(R.id.topHeader); // Указываем на верхний элемент
@@ -75,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
         loadUserAvatar();
         observeOfflinePosts();
         setupDoubleBackExit();
+        checkNotificationPermission();
     }
 
     private void checkCurrentUser() {
@@ -84,6 +110,28 @@ public class MainActivity extends AppCompatActivity {
             finish();
         } else {
             userRef = FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid());
+        }
+    }
+
+    private void checkNotificationPermission() {
+        SharedPreferences prefs = getSharedPreferences(Setting.PREFS_NAME, Context.MODE_PRIVATE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+                // Разрешение уже есть
+                prefs.edit().putBoolean("notifications_enabled", true).apply();
+                startService(new Intent(this, MessageListenerService.class));
+            } else if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                // Пользователь ранее отказал, но не нажал "Больше не спрашивать"
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            } else {
+                // Запрашиваем в первый раз
+                requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
+        } else {
+            // Для Android ниже 13 разрешение дается при установке
+            prefs.edit().putBoolean("notifications_enabled", true).apply();
+            startService(new Intent(this, MessageListenerService.class));
         }
     }
 

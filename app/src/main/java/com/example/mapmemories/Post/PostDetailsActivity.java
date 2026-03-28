@@ -24,7 +24,6 @@ import com.example.mapmemories.Lenta.PickLocationActivity;
 import com.example.mapmemories.R;
 import com.example.mapmemories.systemHelpers.DownloadHelper;
 import com.example.mapmemories.systemHelpers.ImageCarouselAdapter;
-import com.example.mapmemories.systemHelpers.Post;
 import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.switchmaterial.SwitchMaterial;

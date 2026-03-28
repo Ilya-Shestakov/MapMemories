@@ -1,4 +1,4 @@
-package com.example.mapmemories.systemHelpers;
+package com.example.mapmemories.Post;
 
 import com.google.firebase.database.PropertyName;
 import java.util.HashMap;

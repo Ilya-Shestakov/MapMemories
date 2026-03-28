@@ -98,7 +98,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ViewHo
             if ("image".equals(item.lastMessage.getType())) {
                 previewText = item.lastMessage.getText() != null && !item.lastMessage.getText().isEmpty() ? "📷 " + item.lastMessage.getText() : "📷 Фотография";
             } else if ("post".equals(item.lastMessage.getType())) {
-                previewText = "🗺️ Воспоминание";
+                previewText = "🗺️ Пост";
             } else {
                 previewText = item.lastMessage.getText();
             }
@@ -141,7 +141,7 @@ public class ChatListAdapter extends RecyclerView.Adapter<ChatListAdapter.ViewHo
         holder.itemView.setOnClickListener(v -> listener.onChatClick(item));
 
         holder.itemView.setOnLongClickListener(v -> {
-            listener.onChatLongClick(item, v); // Передаем View, на которое нажали
+            listener.onChatLongClick(item, v);
             return true;
         });
     }

@@ -20,7 +20,7 @@ import com.example.mapmemories.Chats.ChatActivity;
 import com.example.mapmemories.Post.ViewPostDetailsActivity;
 import com.example.mapmemories.Lenta.PublicMemoriesAdapter;
 import com.example.mapmemories.R;
-import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.systemHelpers.TimeFormatter;
 import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;

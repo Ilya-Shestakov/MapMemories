@@ -12,7 +12,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.Post.PostDetailsActivity;
 import com.example.mapmemories.R;
 import com.google.firebase.auth.FirebaseAuth;

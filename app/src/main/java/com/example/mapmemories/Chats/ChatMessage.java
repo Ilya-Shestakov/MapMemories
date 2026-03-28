@@ -16,6 +16,7 @@ public class ChatMessage {
     private String replyMessageId;
     private String replySenderId;
     private String replyText;
+    private String reaction;
 
     public ChatMessage() {
         // Пустой конструктор для Firebase
@@ -63,6 +64,9 @@ public class ChatMessage {
 
     public String getText() { return text; }
     public void setText(String text) { this.text = text; }
+
+    public String getReaction() { return reaction; }
+    public void setReaction(String reaction) { this.reaction = reaction; }
 
     public String getImageUrl() { return imageUrl; }
     public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }

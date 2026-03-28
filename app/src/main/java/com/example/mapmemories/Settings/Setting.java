@@ -20,6 +20,10 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import android.provider.Settings;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
@@ -48,6 +52,8 @@ public class Setting extends AppCompatActivity {
     private ImageView btnBack;
     private TextView btnChangePassword, btnPrivacy, btnTextSize, btnClearCache, btnSupport, btnLogout, btnDeleteAccount;
     private SwitchMaterial switchTheme, switchNotifications;
+
+    private ActivityResultLauncher<String> requestPermissionLauncher;
 
     private SharedPreferences prefs;
     public static final String PREFS_NAME = "AppPrefs";
@@ -82,6 +88,19 @@ public class Setting extends AppCompatActivity {
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         swipeBackHelper = new SwipeBackHelper(this);
 
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    prefs.edit().putBoolean(PREF_NOTIFICATIONS, isGranted).apply();
+                    switchNotifications.setChecked(isGranted);
+                    if (isGranted) {
+                        startService(new Intent(this, MessageListenerService.class));
+                    } else {
+                        stopService(new Intent(this, MessageListenerService.class));
+                    }
+                }
+        );
+
         initViews();
         loadSettings();
         setupClickListeners();
@@ -104,8 +123,30 @@ public class Setting extends AppCompatActivity {
     }
 
     private void loadSettings() {
-        switchNotifications.setChecked(prefs.getBoolean(PREF_NOTIFICATIONS, true));
         switchTheme.setChecked(prefs.getBoolean(PREF_DARK_THEME, true));
+        syncNotificationSwitch();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Синхронизируем реальное системное разрешение со свитчем при каждом открытии окна
+        syncNotificationSwitch();
+    }
+
+    private void syncNotificationSwitch() {
+        boolean hasPermission = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        // Временно убираем слушатель, чтобы программное изменение не вызывало код в setOnCheckedChangeListener
+        switchNotifications.setOnCheckedChangeListener(null);
+        switchNotifications.setChecked(hasPermission);
+        prefs.edit().putBoolean(PREF_NOTIFICATIONS, hasPermission).apply();
+
+        // Возвращаем слушатель
+        setupNotificationSwitchListener();
     }
 
     private void setupClickListeners() {
@@ -137,12 +178,6 @@ public class Setting extends AppCompatActivity {
             showTextSizeDialog();
         });
 
-        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (buttonView.isPressed()) {
-                VibratorHelper.vibrate(this, 30);
-                handleNotificationsToggle(isChecked);
-            }
-        });
 
         btnClearCache.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 30);
@@ -169,6 +204,52 @@ public class Setting extends AppCompatActivity {
             VibratorHelper.vibrate(this, 100);
             showDeleteAccountDialog();
         });
+    }
+
+    private void setupNotificationSwitchListener() {
+        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) return; // Реагируем только на нажатия пальцем
+
+            VibratorHelper.vibrate(this, 30);
+
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        // Если система заблокировала диалог (пользователь ранее нажал "Не разрешать"),
+                        // отправляем его в системные настройки
+                        if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+                            showSettingsDialog();
+                        } else {
+                            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                        }
+                    } else {
+                        enableNotifications();
+                    }
+                } else {
+                    enableNotifications();
+                }
+            } else {
+                disableNotifications();
+                // В Android нельзя программно отобрать у себя разрешение.
+                // Мы просто выключаем сервис. Если юзер хочет выключить их системно - отправляем в настройки.
+                Toast.makeText(this, "Уведомления отключены в приложении", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+    private void showSettingsDialog() {
+        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
+                .setTitle("Разрешение требуется")
+                .setMessage("Вы запретили уведомления. Чтобы включить их, перейдите в настройки телефона.")
+                .setPositiveButton("В настройки", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                    Uri uri = Uri.fromParts("package", getPackageName(), null);
+                    intent.setData(uri);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Отмена", (dialog, which) -> {
+                    switchNotifications.setChecked(false); // Возвращаем свитч обратно
+                })
+                .show();
     }
 
     // --- АНИМАЦИИ И СИСТЕМНЫЕ МЕТОДЫ ---

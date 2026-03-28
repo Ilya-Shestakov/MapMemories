@@ -29,7 +29,6 @@ import com.example.mapmemories.systemHelpers.SwipeBackHelper;
 import com.example.mapmemories.Profile.UserProfileActivity;
 import com.example.mapmemories.systemHelpers.DownloadHelper;
 import com.example.mapmemories.systemHelpers.ImageCarouselAdapter;
-import com.example.mapmemories.systemHelpers.Post;
 import com.github.chrisbanes.photoview.PhotoView;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.tabs.TabLayout;

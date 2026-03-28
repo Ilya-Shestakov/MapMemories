@@ -16,7 +16,7 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import com.example.mapmemories.Post.PostDetailsActivity;
 import com.example.mapmemories.Post.ViewPostDetailsActivity;
 import com.example.mapmemories.R;
-import com.example.mapmemories.systemHelpers.Post;
+import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.systemHelpers.VibratorHelper;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;

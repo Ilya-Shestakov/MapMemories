@@ -7,10 +7,10 @@
       </SelectionState>
       <SelectionState runConfigName="SplashActivity">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-01-05T13:46:31.112199700Z">
+        <DropdownSelection timestamp="2026-04-17T15:03:00.465777300Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=RFCR20WT0QF" />
+              <DeviceId pluginId="PhysicalDevice" identifier="serial=1626f19c" />
             </handle>
           </Target>
         </DropdownSelection>

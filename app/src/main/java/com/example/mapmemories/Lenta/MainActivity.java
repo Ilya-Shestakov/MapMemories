@@ -9,6 +9,10 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import com.google.android.material.badge.BadgeDrawable;
+import com.example.mapmemories.Chats.ChatMessage; // Убедись, что импорт правильный для твоего проекта
+import androidx.core.content.ContextCompat;
+
 import android.Manifest;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -96,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
 
         initViews();
         setupViewPager();
+        observeUnreadMessages();
         setupClickListeners();
         loadUserAvatar();
         observeOfflinePosts();
@@ -151,6 +156,71 @@ public class MainActivity extends AppCompatActivity {
             bottomDock.animate().translationY(0).setDuration(300).withStartAction(() -> isDockVisible = true).start();
         } else if (!show && isDockVisible) {
             bottomDock.animate().translationY(bottomDock.getHeight() + 150).setDuration(300).withEndAction(() -> isDockVisible = false).start();
+        }
+    }
+
+    private void observeUnreadMessages() {
+        if (mAuth.getCurrentUser() == null) return;
+
+        String currentUserId = mAuth.getCurrentUser().getUid();
+        DatabaseReference chatsRef = FirebaseDatabase.getInstance().getReference("chats");
+
+        chatsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                int totalUnreadCount = 0;
+
+                // Проходимся по всем чатам
+                for (DataSnapshot chatSnap : snapshot.getChildren()) {
+                    String chatId = chatSnap.getKey();
+
+                    // Если текущий пользователь есть в этом чате
+                    if (chatId != null && chatId.contains(currentUserId)) {
+                        DataSnapshot messagesSnap = chatSnap.child("messages");
+
+                        // Считаем непрочитанные сообщения
+                        for (DataSnapshot msgSnap : messagesSnap.getChildren()) {
+                            ChatMessage msg = msgSnap.getValue(ChatMessage.class);
+                            if (msg != null &&
+                                    msg.getReceiverId() != null &&
+                                    msg.getReceiverId().equals(currentUserId) &&
+                                    !msg.isRead()) {
+
+                                // Проверка, не удалено ли сообщение (как у тебя в ChatListFragment)
+                                if (msg.getDeletedBy() == null || !msg.getDeletedBy().equals(currentUserId)) {
+                                    totalUnreadCount++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Обновляем UI бейджа
+                updateChatsTabBadge(totalUnreadCount);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void updateChatsTabBadge(int unreadCount) {
+        // Вкладка "Чаты" имеет индекс 1 (так как 0 это "Лента")
+        TabLayout.Tab chatTab = tabLayout.getTabAt(1);
+
+        if (chatTab != null) {
+            if (unreadCount > 0) {
+                BadgeDrawable badge = chatTab.getOrCreateBadge();
+                badge.setNumber(unreadCount);
+                // Красим бейдж в акцентный цвет (возьмет @color/accent из твоих ресурсов)
+                badge.setBackgroundColor(ContextCompat.getColor(this, R.color.accent));
+                // Цвет текста внутри кружочка (сделаем белый или цвет фона для контраста)
+                badge.setBadgeTextColor(ContextCompat.getColor(this, R.color.primary));
+                badge.setVisible(true);
+            } else {
+                // Если непрочитанных нет — удаляем кружочек
+                chatTab.removeBadge();
+            }
         }
     }
 

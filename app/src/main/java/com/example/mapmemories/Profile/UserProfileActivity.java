@@ -1,11 +1,31 @@
 package com.example.mapmemories.Profile;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.app.DownloadManager;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Point;
+import android.graphics.Rect;
+import android.graphics.RenderEffect;
+import android.graphics.Shader;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,6 +34,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.example.mapmemories.Chats.ChatActivity;
@@ -22,7 +43,7 @@ import com.example.mapmemories.Lenta.PublicMemoriesAdapter;
 import com.example.mapmemories.R;
 import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.systemHelpers.TimeFormatter;
-import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -36,29 +57,37 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class UserProfileActivity extends AppCompatActivity {
 
     private String targetUserId;
     private String currentUserId;
 
-    private ImageView profileImage;
     private View onlineIndicator;
-    private TextView profileUsername, profileStatus, profileAbout, profileJoinDate, countMemories, countLikes, friendsCount;
+    private TextView profileUsername, profileStatus, profileAbout, profileJoinDate;
+    private TextView countMemories, countLikes, followersCount, followingCount;
     private RecyclerView userPostsRecyclerView;
-    private MaterialButton btnFriendAction, btnChat;
+    private ImageButton btnFriendAction, btnChat;
+
+    // Zoom & Аватарки
+    private ViewPager2 profileImageViewPager, expandedViewPager;
+    private AvatarAdapter avatarAdapter, expandedAdapter;
+    private List<String> avatarUrls = new ArrayList<>();
+
+    private View mainContentLayout, expandedBackground;
+    private FrameLayout expandedContainer;
+    private MaterialCardView expandedCard;
+    private LinearLayout expandedActionsContainer;
+    private ImageButton btnShareExpanded, btnDownloadExpanded;
+    private Animator currentAnimator;
 
     private DatabaseReference userRef, postsRef, rootRef;
     private PublicMemoriesAdapter adapter;
     private List<Post> userPostList;
 
-    private static final String STATE_NOT_FRIENDS = "not_friends";
-    private static final String STATE_REQUEST_SENT = "request_sent";
-    private static final String STATE_REQUEST_RECEIVED = "request_received";
-    private static final String STATE_FRIENDS = "friends";
-
-    private String currentFriendState = STATE_NOT_FRIENDS;
+    private static final String STATE_NOT_FOLLOWING = "not_following";
+    private static final String STATE_FOLLOWING = "following";
+    private String currentFollowState = STATE_NOT_FOLLOWING;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,21 +105,21 @@ public class UserProfileActivity extends AppCompatActivity {
 
         initViews();
         setupFirebase();
+        setupAvatarPagers();
 
         if (currentUserId.equals(targetUserId)) {
             btnFriendAction.setVisibility(View.GONE);
             btnChat.setVisibility(View.GONE);
-            // Если это наш профиль, скрываем статус (мы и так знаем, что мы онлайн)
             profileStatus.setVisibility(View.GONE);
             onlineIndicator.setVisibility(View.GONE);
         } else {
-            btnFriendAction.setOnClickListener(v -> performFriendAction());
+            btnFriendAction.setOnClickListener(v -> performFollowAction());
             btnChat.setOnClickListener(v -> {
                 Intent intent = new Intent(UserProfileActivity.this, ChatActivity.class);
                 intent.putExtra("targetUserId", targetUserId);
                 startActivity(intent);
             });
-            checkFriendStatus();
+            checkFollowStatus();
         }
 
         loadUserInfo();
@@ -101,21 +130,51 @@ public class UserProfileActivity extends AppCompatActivity {
     private void initViews() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        profileImage = findViewById(R.id.profileImage);
+        mainContentLayout = findViewById(R.id.mainContentLayout);
+        profileImageViewPager = findViewById(R.id.profileImageViewPager);
         onlineIndicator = findViewById(R.id.onlineIndicator);
         profileUsername = findViewById(R.id.profileUsername);
         profileStatus = findViewById(R.id.profileStatus);
         profileAbout = findViewById(R.id.profileAbout);
         profileJoinDate = findViewById(R.id.profileJoinDate);
+
         countMemories = findViewById(R.id.countMemories);
         countLikes = findViewById(R.id.countLikes);
-        friendsCount = findViewById(R.id.friendsCount);
-        userPostsRecyclerView = findViewById(R.id.userPostsRecyclerView);
+        followersCount = findViewById(R.id.followersCount);
+        followingCount = findViewById(R.id.followingCount);
 
+        userPostsRecyclerView = findViewById(R.id.userPostsRecyclerView);
         btnFriendAction = findViewById(R.id.btnFriendAction);
         btnChat = findViewById(R.id.btnChat);
+
+        // Расширенный просмотр
+        expandedContainer = findViewById(R.id.expandedContainer);
+        expandedBackground = findViewById(R.id.expandedBackground);
+        expandedCard = findViewById(R.id.expandedCard);
+        expandedViewPager = findViewById(R.id.expandedViewPager);
+        expandedActionsContainer = findViewById(R.id.expandedActionsContainer);
+        btnShareExpanded = findViewById(R.id.btnShareExpanded);
+        btnDownloadExpanded = findViewById(R.id.btnDownloadExpanded);
+
+        btnShareExpanded.setOnClickListener(v -> shareCurrentPhoto());
+        btnDownloadExpanded.setOnClickListener(v -> downloadCurrentPhoto());
+    }
+
+    private void setupAvatarPagers() {
+        avatarAdapter = new AvatarAdapter(avatarUrls, position -> {
+            if (!avatarUrls.isEmpty()) zoomImageFromThumb(profileImageViewPager, position);
+        });
+        profileImageViewPager.setAdapter(avatarAdapter);
+
+        expandedAdapter = new AvatarAdapter(avatarUrls, position -> closeExpandedImage());
+        expandedViewPager.setAdapter(expandedAdapter);
     }
 
     private void setupFirebase() {
@@ -133,10 +192,8 @@ public class UserProfileActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     String username = snapshot.child("username").getValue(String.class);
                     String about = snapshot.child("about").getValue(String.class);
-                    String imageUrl = snapshot.child("profileImageUrl").getValue(String.class);
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
 
-                    // --- ЛОГИКА СТАТУСА ---
                     if (!currentUserId.equals(targetUserId)) {
                         Object statusObj = snapshot.child("status").getValue();
                         boolean isHidden = false;
@@ -155,27 +212,36 @@ public class UserProfileActivity extends AppCompatActivity {
                             profileStatus.setTextColor(getResources().getColor(R.color.text_secondary));
                         }
                     }
-                    // ----------------------
 
-                    long friendsCounter = snapshot.child("friends").getChildrenCount();
+                    long followers = snapshot.child("requests_incoming").getChildrenCount();
+                    long following = snapshot.child("requests_sent").getChildrenCount();
                     long memCount = snapshot.child("memoriesCount").exists() ? snapshot.child("memoriesCount").getValue(Long.class) : 0;
-                    long likesCount = snapshot.child("likesCount").exists() ? snapshot.child("likesCount").getValue(Long.class) : 0;
+                    long likesCnt = snapshot.child("likesCount").exists() ? snapshot.child("likesCount").getValue(Long.class) : 0;
 
                     profileUsername.setText(TextUtils.isEmpty(username) ? "Пользователь" : username);
                     profileAbout.setText(TextUtils.isEmpty(about) ? "" : about);
                     profileAbout.setVisibility(TextUtils.isEmpty(about) ? View.GONE : View.VISIBLE);
-                    friendsCount.setText(String.valueOf(friendsCounter));
+
+                    followersCount.setText(String.valueOf(followers));
+                    followingCount.setText(String.valueOf(following));
                     countMemories.setText(String.valueOf(memCount));
-                    countLikes.setText(String.valueOf(likesCount));
+                    countLikes.setText(String.valueOf(likesCnt));
 
                     if (joinDate != null) {
-                        String date = DateFormat.format("dd.MM.yyyy", new Date(joinDate)).toString();
-                        profileJoinDate.setText("На сайте с: " + date);
+                        profileJoinDate.setText("На сайте с: " + DateFormat.format("dd.MM.yyyy", new Date(joinDate)));
                     }
 
-                    if (!TextUtils.isEmpty(imageUrl)) {
-                        Glide.with(UserProfileActivity.this).load(imageUrl).placeholder(R.drawable.ic_profile_placeholder).circleCrop().into(profileImage);
+                    avatarUrls.clear();
+                    if (snapshot.hasChild("profileImages")) {
+                        for (DataSnapshot imgSnap : snapshot.child("profileImages").getChildren()) {
+                            avatarUrls.add(imgSnap.getValue(String.class));
+                        }
+                    } else if (snapshot.hasChild("profileImageUrl")) {
+                        String oldUrl = snapshot.child("profileImageUrl").getValue(String.class);
+                        if (oldUrl != null && !oldUrl.isEmpty()) avatarUrls.add(oldUrl);
                     }
+                    avatarAdapter.notifyDataSetChanged();
+                    expandedAdapter.notifyDataSetChanged();
                 }
             }
 
@@ -184,143 +250,61 @@ public class UserProfileActivity extends AppCompatActivity {
         });
     }
 
-    private void checkFriendStatus() {
-        rootRef.child("users").child(currentUserId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (isFinishing() || isDestroyed()) return;
+    // --- ЛОГИКА ПОДПИСКИ С ИКОНКАМИ ---
+    private void checkFollowStatus() {
+        rootRef.child("users").child(currentUserId).child("requests_sent")
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (isFinishing() || isDestroyed()) return;
 
-                if (snapshot.child("friends").hasChild(targetUserId)) {
-                    currentFriendState = STATE_FRIENDS;
-                    updateButtonUI("Удалить", R.color.secondary);
-                } else if (snapshot.child("requests_sent").hasChild(targetUserId)) {
-                    currentFriendState = STATE_REQUEST_SENT;
-                    updateButtonUI("Отменить", R.color.secondary);
-                } else if (snapshot.child("requests_incoming").hasChild(targetUserId)) {
-                    currentFriendState = STATE_REQUEST_RECEIVED;
-                    updateButtonUI("Принять", R.color.accent);
-                } else {
-                    currentFriendState = STATE_NOT_FRIENDS;
-                    updateButtonUI("Добавить", R.color.accent);
-                }
-                btnFriendAction.setEnabled(true);
-            }
+                        if (snapshot.hasChild(targetUserId)) {
+                            currentFollowState = STATE_FOLLOWING;
+                            // Иконка "галочка", цвет серый
+                            btnFriendAction.setImageResource(R.drawable.ic_check); // Создай если нет
+                            btnFriendAction.setBackgroundTintList(getResources().getColorStateList(R.color.secondary));
+                            btnFriendAction.setColorFilter(getResources().getColor(R.color.text_primary));
+                        } else {
+                            currentFollowState = STATE_NOT_FOLLOWING;
+                            // Иконка "плюс", цвет акцентный
+                            btnFriendAction.setImageResource(R.drawable.ic_add);
+                            btnFriendAction.setBackgroundTintList(getResources().getColorStateList(R.color.accent));
+                            btnFriendAction.setColorFilter(getResources().getColor(android.R.color.white));
+                        }
+                        btnFriendAction.setEnabled(true);
+                    }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {}
+                });
     }
 
-    private void updateButtonUI(String text, int colorResId) {
-        btnFriendAction.setVisibility(View.VISIBLE);
-        btnFriendAction.setText(text);
-        btnFriendAction.setBackgroundTintList(getResources().getColorStateList(colorResId));
-
-        if (currentFriendState.equals(STATE_FRIENDS)) {
-            btnChat.setVisibility(View.VISIBLE);
-        } else {
-            btnChat.setVisibility(View.GONE);
-        }
-    }
-
-    private void performFriendAction() {
+    private void performFollowAction() {
         btnFriendAction.setEnabled(false);
-
-        switch (currentFriendState) {
-            case STATE_NOT_FRIENDS:
-                sendFriendRequest();
-                break;
-            case STATE_REQUEST_SENT:
-                cancelFriendRequest();
-                break;
-            case STATE_REQUEST_RECEIVED:
-                acceptFriendRequest();
-                break;
-            case STATE_FRIENDS:
-                unfriendPerson();
-                break;
-        }
+        if (currentFollowState.equals(STATE_NOT_FOLLOWING)) followUser();
+        else unfollowUser();
     }
 
-    private void sendFriendRequest() {
-        Map<String, Object> updates = new HashMap<>();
+    private void followUser() {
+        HashMap<String, Object> updates = new HashMap<>();
         updates.put("users/" + currentUserId + "/requests_sent/" + targetUserId, true);
         updates.put("users/" + targetUserId + "/requests_incoming/" + currentUserId, true);
 
         rootRef.updateChildren(updates).addOnCompleteListener(task -> {
-            if (!isFinishing()) {
-                if (task.isSuccessful()) {
-                    Toast.makeText(this, "Заявка отправлена", Toast.LENGTH_SHORT).show();
-                    sendFriendRequestNotification();
-                } else {
-                    btnFriendAction.setEnabled(true);
-                    Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
-                }
+            if (!isFinishing() && !task.isSuccessful()) {
+                btnFriendAction.setEnabled(true);
             }
         });
     }
 
-    private void sendFriendRequestNotification() {
-        DatabaseReference notifRef = FirebaseDatabase.getInstance()
-                .getReference("notifications")
-                .child(targetUserId)
-                .push();
-
-        HashMap<String, String> notifData = new HashMap<>();
-        notifData.put("senderId", currentUserId);
-        notifData.put("text", "Хочет добавить вас в друзья");
-        notifData.put("type", "friend_request");
-
-        notifRef.setValue(notifData);
-    }
-
-    private void cancelFriendRequest() {
-        Map<String, Object> updates = new HashMap<>();
+    private void unfollowUser() {
+        HashMap<String, Object> updates = new HashMap<>();
         updates.put("users/" + currentUserId + "/requests_sent/" + targetUserId, null);
         updates.put("users/" + targetUserId + "/requests_incoming/" + currentUserId, null);
 
         rootRef.updateChildren(updates).addOnCompleteListener(task -> {
             if (!isFinishing() && !task.isSuccessful()) {
                 btnFriendAction.setEnabled(true);
-                Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void acceptFriendRequest() {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("users/" + currentUserId + "/friends/" + targetUserId, true);
-        updates.put("users/" + targetUserId + "/friends/" + currentUserId, true);
-        updates.put("users/" + currentUserId + "/requests_incoming/" + targetUserId, null);
-        updates.put("users/" + targetUserId + "/requests_sent/" + currentUserId, null);
-
-        rootRef.updateChildren(updates).addOnCompleteListener(task -> {
-            if (!isFinishing()) {
-                if (task.isSuccessful()) {
-                    Toast.makeText(this, "Теперь вы друзья!", Toast.LENGTH_SHORT).show();
-                } else {
-                    btnFriendAction.setEnabled(true);
-                    Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
-
-    private void unfriendPerson() {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("users/" + currentUserId + "/friends/" + targetUserId, null);
-        updates.put("users/" + targetUserId + "/friends/" + currentUserId, null);
-        updates.put("users/" + currentUserId + "/requests_incoming/" + targetUserId, true);
-        updates.put("users/" + targetUserId + "/requests_sent/" + currentUserId, true);
-
-        rootRef.updateChildren(updates).addOnCompleteListener(task -> {
-            if (!isFinishing()) {
-                if (task.isSuccessful()) {
-                    Toast.makeText(this, "Пользователь переведен в подписчики", Toast.LENGTH_SHORT).show();
-                } else {
-                    btnFriendAction.setEnabled(true);
-                    Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show();
-                }
             }
         });
     }
@@ -346,17 +330,194 @@ public class UserProfileActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     for (DataSnapshot postSnap : snapshot.getChildren()) {
                         Post post = postSnap.getValue(Post.class);
-                        if (post != null && post.isPublic()) {
-                            userPostList.add(post);
-                        }
+                        if (post != null && post.isPublic()) userPostList.add(post);
                     }
                     Collections.reverse(userPostList);
                 }
                 adapter.notifyDataSetChanged();
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    // --- ФУНКЦИИ СКАЧИВАНИЯ И ШАРИНГА ---
+    private void downloadCurrentPhoto() {
+        if (avatarUrls.isEmpty()) return;
+        String url = avatarUrls.get(expandedViewPager.getCurrentItem());
+
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        request.setTitle("Сохранение фото");
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "Avatar_" + System.currentTimeMillis() + ".jpg");
+
+        DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        if (manager != null) {
+            manager.enqueue(request);
+            Toast.makeText(this, "Загрузка началась...", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void shareCurrentPhoto() {
+        if (avatarUrls.isEmpty()) return;
+        String url = avatarUrls.get(expandedViewPager.getCurrentItem());
+
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, url);
+        startActivity(Intent.createChooser(shareIntent, "Поделиться фото"));
+    }
+
+    // --- АНИМАЦИИ ОТКРЫТИЯ/ЗАКРЫТИЯ (С блюром) ---
+    private void zoomImageFromThumb(final View thumbView, int startPosition) {
+        if (currentAnimator != null) currentAnimator.cancel();
+
+        expandedViewPager.setCurrentItem(startPosition, false);
+        expandedContainer.setAlpha(0f);
+        expandedContainer.setVisibility(View.VISIBLE);
+
+        expandedCard.post(() -> {
+            if (isFinishing() || isDestroyed()) return;
+
+            Rect startBounds = new Rect();
+            Rect finalBounds = new Rect();
+            Point globalOffset = new Point();
+
+            thumbView.getGlobalVisibleRect(startBounds);
+            expandedCard.getGlobalVisibleRect(finalBounds, globalOffset);
+
+            startBounds.offset(-globalOffset.x, -globalOffset.y);
+            finalBounds.offset(-globalOffset.x, -globalOffset.y);
+
+            float startScale = (float) startBounds.width() / finalBounds.width();
+            float startX = startBounds.left - finalBounds.left;
+            float startY = startBounds.top - finalBounds.top;
+
+            expandedCard.setPivotX(0f);
+            expandedCard.setPivotY(0f);
+            expandedCard.setTranslationX(startX);
+            expandedCard.setTranslationY(startY);
+            expandedCard.setScaleX(startScale);
+            expandedCard.setScaleY(startScale);
+
+            expandedActionsContainer.setAlpha(0f);
+            expandedBackground.setAlpha(0f);
+            expandedContainer.setAlpha(1f);
+            thumbView.setAlpha(0f);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                mainContentLayout.setRenderEffect(RenderEffect.createBlurEffect(20f, 20f, Shader.TileMode.MIRROR));
+            }
+
+            AnimatorSet set = new AnimatorSet();
+            set.play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, 0f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, 0f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, 1f))
+                    .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, 1f))
+                    .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f, 1f))
+                    .with(ObjectAnimator.ofFloat(expandedActionsContainer, View.ALPHA, 0f, 1f));
+
+            set.setDuration(300);
+            set.setInterpolator(new DecelerateInterpolator());
+            set.addListener(new AnimatorListenerAdapter() {
+                @Override public void onAnimationEnd(Animator animation) { currentAnimator = null; }
+            });
+            set.start();
+            currentAnimator = set;
+
+            expandedBackground.setOnClickListener(v -> closeExpandedImage());
+        });
+    }
+
+    private void closeExpandedImage() {
+        if (currentAnimator != null) currentAnimator.cancel();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) mainContentLayout.setRenderEffect(null);
+
+        profileImageViewPager.setCurrentItem(expandedViewPager.getCurrentItem(), false);
+
+        Rect startBounds = new Rect();
+        Rect finalBounds = new Rect();
+        Point globalOffset = new Point();
+
+        profileImageViewPager.getGlobalVisibleRect(startBounds);
+        expandedCard.getGlobalVisibleRect(finalBounds, globalOffset);
+
+        startBounds.offset(-globalOffset.x, -globalOffset.y);
+        finalBounds.offset(-globalOffset.x, -globalOffset.y);
+
+        float startScale = (float) startBounds.width() / finalBounds.width();
+        float startX = startBounds.left - finalBounds.left;
+        float startY = startBounds.top - finalBounds.top;
+
+        AnimatorSet closeSet = new AnimatorSet();
+        closeSet.play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, startX))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, startY))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, startScale))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, startScale))
+                .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f))
+                .with(ObjectAnimator.ofFloat(expandedActionsContainer, View.ALPHA, 0f));
+
+        closeSet.setDuration(250);
+        closeSet.setInterpolator(new AccelerateInterpolator());
+        closeSet.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                profileImageViewPager.setAlpha(1f);
+                expandedContainer.setVisibility(View.GONE);
+                currentAnimator = null;
+                expandedCard.setTranslationX(0f);
+                expandedCard.setTranslationY(0f);
+                expandedCard.setScaleX(1f);
+                expandedCard.setScaleY(1f);
+            }
+        });
+        closeSet.start();
+        currentAnimator = closeSet;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (expandedContainer.getVisibility() == View.VISIBLE) closeExpandedImage();
+        else super.onBackPressed();
+    }
+
+    // --- АДАПТЕР ДЛЯ VIEWPAGER2 ---
+    private static class AvatarAdapter extends RecyclerView.Adapter<AvatarAdapter.ViewHolder> {
+        private final List<String> urls;
+        private final OnItemClickListener listener;
+
+        interface OnItemClickListener { void onItemClick(int position); }
+
+        public AvatarAdapter(List<String> urls, OnItemClickListener listener) {
+            this.urls = urls;
+            this.listener = listener;
+        }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_avatar, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (urls.isEmpty()) {
+                Glide.with(holder.imageView.getContext()).load(R.drawable.ic_profile_placeholder).into(holder.imageView);
+                holder.itemView.setOnClickListener(v -> { if (listener != null) listener.onItemClick(0); });
+                return;
+            }
+            Glide.with(holder.imageView.getContext()).load(urls.get(position)).placeholder(R.drawable.ic_profile_placeholder).into(holder.imageView);
+            holder.itemView.setOnClickListener(v -> { if (listener != null) listener.onItemClick(position); });
+        }
+
+        @Override public int getItemCount() { return urls.isEmpty() ? 1 : urls.size(); }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView imageView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                imageView = itemView.findViewById(R.id.avatarImageItem);
+            }
+        }
     }
 }

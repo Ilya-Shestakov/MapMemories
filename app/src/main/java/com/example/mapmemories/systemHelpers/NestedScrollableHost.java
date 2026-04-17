@@ -31,9 +31,13 @@ public class NestedScrollableHost extends FrameLayout {
     }
 
     private ViewPager2 getParentViewPager() {
-        View v = (View) getParent();
+        android.view.ViewParent v = getParent();
         while (v != null && !(v instanceof ViewPager2)) {
-            v = (View) v.getParent();
+            // ДОБАВЛЕНА ЭТА ПРОВЕРКА, ЧТОБЫ ИЗБЕЖАТЬ КРАША
+            if (!(v instanceof android.view.View)) {
+                return null;
+            }
+            v = v.getParent();
         }
         return (ViewPager2) v;
     }

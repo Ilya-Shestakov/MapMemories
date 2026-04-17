@@ -58,24 +58,26 @@ dependencies {
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
 
-    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    implementation libs.firebase.bom.v34110
 
-    implementation 'com.google.firebase:firebase-database'
+    implementation libs.firebase.database
 
-    implementation 'com.google.firebase:firebase-auth'
-    implementation 'com.google.firebase:firebase-storage'
+    implementation libs.com.google.firebase.firebase.auth2
+    implementation libs.firebase.storage
 
-    implementation 'com.github.bumptech.glide:glide:4.16.0'
-    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    implementation libs.github.glide
+    implementation libs.circleimageview
 
-    implementation 'com.cloudinary:cloudinary-android:2.3.1'
+    implementation libs.cloudinary.android
 
     def room_version = "2.6.1"
-    implementation "androidx.room:room-runtime:$room_version"
+    implementation libs.room.runtime
     annotationProcessor "androidx.room:room-compiler:$room_version"
 
-    implementation "androidx.work:work-runtime:2.9.0"
+    implementation libs.work.runtime
 
-    implementation 'org.osmdroid:osmdroid-android:6.1.18'
+    implementation libs.osmdroid.android.v6118
+
+    implementation libs.photoview
 
 }

@@ -4,7 +4,10 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ObjectAnimator;
+import android.app.AlertDialog;
+import android.app.DownloadManager;
 import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -13,11 +16,12 @@ import android.graphics.Shader;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.text.InputType;
 import android.text.TextUtils;
-import android.transition.AutoTransition;
-import android.transition.TransitionManager;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewAnimationUtils;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
@@ -33,10 +37,10 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.bumptech.glide.Glide;
 import com.cloudinary.Cloudinary;
@@ -46,7 +50,6 @@ import com.example.mapmemories.Post.Post;
 import com.example.mapmemories.Post.PostDetailsActivity;
 import com.example.mapmemories.R;
 import com.google.android.material.card.MaterialCardView;
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -66,51 +69,48 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 
+import com.google.android.material.appbar.AppBarLayout;
+import com.google.android.material.appbar.CollapsingToolbarLayout;
+
 public class Profile extends AppCompatActivity {
 
-    // Firebase
     private FirebaseAuth mAuth;
     private FirebaseUser currentUser;
     private DatabaseReference userRef;
-
-    // Cloudinary
     private Cloudinary cloudinary;
 
-    // UI элементы
-    private ConstraintLayout rootLayout;
-    private ConstraintLayout mainContentLayout;
-
-    private MaterialCardView infoCard, memoriesCard, headerCard;
-
-    private ImageView profileImage;
+    private View mainContentLayout;
     private TextView usernameText, emailText, phoneText, aboutText, joinDateText;
+    private TextView memoriesCount, likesCount, followersCount, followingCount;
+    private LinearLayout followersCountContainer, followingCountContainer;
 
-    // Статистика
-    private TextView memoriesCount, likesCount;
-    private TextView friendsCount, followersCount, followingCount;
-    private LinearLayout friendsCountContainer, followersCountContainer, followingCountContainer;
-
-    private ImageButton buttonBack, editPhoneButton, editAboutButton, editNameButton;
+    private ImageButton editPhoneButton, editAboutButton, editNameButton, btnAddAvatar;
     private RecyclerView memoriesRecyclerView;
     private TextView emptyMemoriesText;
-    private ImageButton viewAllMemories;
+
+    private ViewPager2 profileImageViewPager;
+    private AvatarAdapter smallAvatarAdapter;
+    private List<String> avatarUrls = new ArrayList<>();
+    private List<String> avatarKeys = new ArrayList<>();
+
+    private CollapsingToolbarLayout collapsingToolbar;
 
     // Zoom
     private FrameLayout expandedContainer;
     private MaterialCardView expandedCard;
-    private ImageView expandedImage;
+    private ViewPager2 expandedViewPager;
+    private AvatarAdapter expandedAvatarAdapter;
     private View expandedBackground;
-    private ExtendedFloatingActionButton btnEditExpanded;
+    private LinearLayout expandedActionsContainer;
+    private ImageButton btnShareExpanded, btnDownloadExpanded, btnDeleteExpanded;
     private Animator currentAnimator;
 
     private ProgressDialog progressDialog;
     private MemoriesAdapter memoriesAdapter;
     private List<Post> myPostList;
 
-    private boolean isMemoriesExpanded = false;
-    private boolean isClosing = false; // ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ДВОЙНОГО ЗАКРЫТИЯ
+    private boolean isClosing = false;
     private ActivityResultLauncher<Intent> imagePickerLauncher;
-    private String currentProfileImageUrl = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,6 +132,7 @@ public class Profile extends AppCompatActivity {
         setupImagePicker();
 
         initViews();
+        setupAdapters();
         setupClickListeners();
 
         loadUserData();
@@ -167,11 +168,7 @@ public class Profile extends AppCompatActivity {
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri imageUri = result.getData().getData();
-                        if (imageUri != null) {
-                            Glide.with(this).load(imageUri).circleCrop().into(profileImage);
-                            currentProfileImageUrl = imageUri.toString();
-                            uploadImageToCloudinary(imageUri);
-                        }
+                        if (imageUri != null) uploadImageToCloudinary(imageUri);
                     }
                 }
         );
@@ -179,11 +176,13 @@ public class Profile extends AppCompatActivity {
 
     private void initViews() {
         mainContentLayout = findViewById(R.id.mainContentLayout);
-        rootLayout = mainContentLayout;
 
-        headerCard = findViewById(R.id.headerCard);
-        infoCard = findViewById(R.id.infoCard);
-        memoriesCard = findViewById(R.id.memoriesCard);
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayShowTitleEnabled(false);
+        }
+        toolbar.setNavigationOnClickListener(v -> Close());
 
         usernameText = findViewById(R.id.usernameText);
         emailText = findViewById(R.id.emailText);
@@ -191,40 +190,51 @@ public class Profile extends AppCompatActivity {
         aboutText = findViewById(R.id.aboutText);
         joinDateText = findViewById(R.id.joinDateText);
 
-        friendsCount = findViewById(R.id.friendsCount);
+        collapsingToolbar = findViewById(R.id.collapsingToolbar);
+
         followersCount = findViewById(R.id.followersCount);
         followingCount = findViewById(R.id.followingCount);
         memoriesCount = findViewById(R.id.memoriesCount);
         likesCount = findViewById(R.id.likesCount);
 
-        friendsCountContainer = findViewById(R.id.friendsCountContainer);
         followersCountContainer = findViewById(R.id.followersCountContainer);
         followingCountContainer = findViewById(R.id.followingCountContainer);
 
-        buttonBack = findViewById(R.id.buttonBack);
-        profileImage = findViewById(R.id.profileImage);
+        profileImageViewPager = findViewById(R.id.profileImageViewPager);
+        btnAddAvatar = findViewById(R.id.btnAddAvatar);
+
         editPhoneButton = findViewById(R.id.editPhoneButton);
         editAboutButton = findViewById(R.id.editAboutButton);
         editNameButton = findViewById(R.id.editNameButton);
-        viewAllMemories = findViewById(R.id.viewAllMemories);
 
         memoriesRecyclerView = findViewById(R.id.memoriesRecyclerView);
-        emptyMemoriesText = findViewById(R.id.emptyMemoriesText);
 
         expandedContainer = findViewById(R.id.expandedContainer);
         expandedCard = findViewById(R.id.expandedCard);
-        expandedImage = findViewById(R.id.expandedImage);
+        expandedViewPager = findViewById(R.id.expandedViewPager);
         expandedBackground = findViewById(R.id.expandedBackground);
-        btnEditExpanded = findViewById(R.id.btnEditExpanded);
+
+        expandedActionsContainer = findViewById(R.id.expandedActionsContainer);
+        btnShareExpanded = findViewById(R.id.btnShareExpanded);
+        btnDownloadExpanded = findViewById(R.id.btnDownloadExpanded);
+        btnDeleteExpanded = findViewById(R.id.btnDeleteExpanded);
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка...");
         progressDialog.setCancelable(false);
     }
 
-    private void setupClickListeners() {
-        buttonBack.setOnClickListener(v -> Close());
+    private void setupAdapters() {
+        smallAvatarAdapter = new AvatarAdapter(avatarUrls, position -> {
+            if (!avatarUrls.isEmpty()) zoomImageFromThumb(profileImageViewPager, position);
+        });
+        profileImageViewPager.setAdapter(smallAvatarAdapter);
 
+        expandedAvatarAdapter = new AvatarAdapter(avatarUrls, position -> closeExpandedImage());
+        expandedViewPager.setAdapter(expandedAvatarAdapter);
+    }
+
+    private void setupClickListeners() {
         editPhoneButton.setOnClickListener(v ->
                 DialogHelper.showInput(this, "Изменить телефон", phoneText.getText().toString(),
                         InputType.TYPE_CLASS_PHONE, R.drawable.ic_phone,
@@ -240,18 +250,7 @@ public class Profile extends AppCompatActivity {
                         InputType.TYPE_CLASS_TEXT, R.drawable.ic_edit,
                         newValue -> updateUserField("username", newValue)));
 
-        profileImage.setOnClickListener(v -> {
-            if (currentProfileImageUrl != null && !currentProfileImageUrl.isEmpty()) {
-                zoomImageFromThumb(profileImage, currentProfileImageUrl);
-            } else {
-                changeProfileImage();
-            }
-        });
-
-        friendsCountContainer.setOnClickListener(v -> {
-            FriendsBottomSheetDialogFragment bottomSheet = FriendsBottomSheetDialogFragment.newInstance("friends", currentUser.getUid());
-            bottomSheet.show(getSupportFragmentManager(), "friendsSheet");
-        });
+        btnAddAvatar.setOnClickListener(v -> changeProfileImage());
 
         followersCountContainer.setOnClickListener(v -> {
             FriendsBottomSheetDialogFragment bottomSheet = FriendsBottomSheetDialogFragment.newInstance("followers", currentUser.getUid());
@@ -263,16 +262,9 @@ public class Profile extends AppCompatActivity {
             bottomSheet.show(getSupportFragmentManager(), "followingSheet");
         });
 
-        btnEditExpanded.setOnClickListener(v -> {
-            if (currentAnimator != null) currentAnimator.cancel();
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                mainContentLayout.setRenderEffect(null);
-            }
-            expandedContainer.setVisibility(View.GONE);
-            changeProfileImage();
-        });
-
-        viewAllMemories.setOnClickListener(v -> toggleMemoriesState());
+        btnShareExpanded.setOnClickListener(v -> shareCurrentPhoto());
+        btnDownloadExpanded.setOnClickListener(v -> downloadCurrentPhoto());
+        btnDeleteExpanded.setOnClickListener(v -> deleteCurrentPhoto());
     }
 
     private void loadUserData() {
@@ -282,21 +274,16 @@ public class Profile extends AppCompatActivity {
                 if (isDestroyed() || isFinishing()) return;
 
                 if (snapshot.exists()) {
-                    if (currentUser.getEmail() != null) {
-                        emailText.setText(currentUser.getEmail());
-                    }
+                    if (currentUser.getEmail() != null) emailText.setText(currentUser.getEmail());
 
                     String username = snapshot.child("username").getValue(String.class);
                     String phone = snapshot.child("phone").getValue(String.class);
                     String about = snapshot.child("about").getValue(String.class);
-                    String remoteImageUrl = snapshot.child("profileImageUrl").getValue(String.class);
                     Long joinDate = snapshot.child("joinDate").getValue(Long.class);
 
-                    long friends = snapshot.child("friends").getChildrenCount();
                     long followers = snapshot.child("requests_incoming").getChildrenCount();
                     long following = snapshot.child("requests_sent").getChildrenCount();
 
-                    friendsCount.setText(String.valueOf(friends));
                     followersCount.setText(String.valueOf(followers));
                     followingCount.setText(String.valueOf(following));
 
@@ -307,25 +294,29 @@ public class Profile extends AppCompatActivity {
                     if (joinDate != null) {
                         SimpleDateFormat sdf = new SimpleDateFormat("d MMMM yyyy", new Locale("ru"));
                         joinDateText.setText(sdf.format(new Date(joinDate)));
-                    } else {
-                        joinDateText.setText("Недавно");
+                    } else joinDateText.setText("Недавно");
+
+                    avatarUrls.clear();
+                    avatarKeys.clear();
+
+                    if (snapshot.hasChild("profileImages")) {
+                        for (DataSnapshot imgSnap : snapshot.child("profileImages").getChildren()) {
+                            avatarKeys.add(imgSnap.getKey());
+                            avatarUrls.add(imgSnap.getValue(String.class));
+                        }
+                    } else if (snapshot.hasChild("profileImageUrl")) {
+                        String oldUrl = snapshot.child("profileImageUrl").getValue(String.class);
+                        if (oldUrl != null && !oldUrl.isEmpty()) {
+                            avatarKeys.add("legacy_image");
+                            avatarUrls.add(oldUrl);
+                        }
                     }
 
-                    if (remoteImageUrl != null && !remoteImageUrl.equals(currentProfileImageUrl)) {
-                        currentProfileImageUrl = remoteImageUrl;
-                        Glide.with(Profile.this).load(currentProfileImageUrl).placeholder(R.drawable.ic_profile_placeholder).circleCrop().into(profileImage);
-                    } else if (currentProfileImageUrl == null && remoteImageUrl != null) {
-                        currentProfileImageUrl = remoteImageUrl;
-                        Glide.with(Profile.this).load(currentProfileImageUrl).placeholder(R.drawable.ic_profile_placeholder).circleCrop().into(profileImage);
-                    }
-
-                } else {
-                    createUserProfile();
-                }
+                    smallAvatarAdapter.notifyDataSetChanged();
+                    expandedAvatarAdapter.notifyDataSetChanged();
+                } else createUserProfile();
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
+            @Override public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
@@ -362,7 +353,6 @@ public class Profile extends AppCompatActivity {
 
                         if (myPostList == null) myPostList = new ArrayList<>();
                         myPostList.clear();
-
                         int totalLikesCounter = 0;
 
                         if (snapshot.exists()) {
@@ -370,9 +360,7 @@ public class Profile extends AppCompatActivity {
                                 Post post = postSnapshot.getValue(Post.class);
                                 if (post != null) {
                                     myPostList.add(post);
-                                    if (post.getLikes() != null) {
-                                        totalLikesCounter += post.getLikes().size();
-                                    }
+                                    if (post.getLikes() != null) totalLikesCounter += post.getLikes().size();
                                 }
                             }
                             Collections.reverse(myPostList);
@@ -382,17 +370,25 @@ public class Profile extends AppCompatActivity {
                         memoriesCount.setText(String.valueOf(myPostList.size()));
                         likesCount.setText(String.valueOf(totalLikesCounter));
 
-                        if (myPostList.isEmpty()) {
-                            emptyMemoriesText.setVisibility(View.VISIBLE);
-                            memoriesRecyclerView.setVisibility(View.GONE);
-                        } else {
-                            emptyMemoriesText.setVisibility(View.GONE);
-                            memoriesRecyclerView.setVisibility(View.VISIBLE);
-                        }
-                    }
+                        // Получаем параметры шапки
+                        AppBarLayout.LayoutParams params = (AppBarLayout.LayoutParams) collapsingToolbar.getLayoutParams();
 
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {}
+                        if (myPostList.isEmpty()) {
+                            memoriesRecyclerView.setVisibility(View.GONE);
+
+                            // ОТКЛЮЧАЕМ СКРОЛЛ (шапка становится неподвижной)
+                            params.setScrollFlags(0);
+                        } else {
+                            memoriesRecyclerView.setVisibility(View.VISIBLE);
+
+                            // ВКЛЮЧАЕМ СКРОЛЛ обратно (когда есть хотя бы 1 пост)
+                            params.setScrollFlags(AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL | AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED);
+                        }
+
+                        // Применяем параметры
+                        collapsingToolbar.setLayoutParams(params);
+                    }
+                    @Override public void onCancelled(@NonNull DatabaseError error) {}
                 });
     }
 
@@ -422,8 +418,6 @@ public class Profile extends AppCompatActivity {
 
     private void uploadImageToCloudinary(Uri imageUri) {
         if (isFinishing() || isDestroyed()) return;
-
-        // ПОКАЗЫВАЕМ ДИАЛОГ, ЧТОБЫ ПОЛЬЗОВАТЕЛЬ НЕ ВЫШЕЛ ВО ВРЕМЯ ЗАГРУЗКИ
         progressDialog.setMessage("Загрузка фото...");
         progressDialog.show();
 
@@ -437,17 +431,13 @@ public class Profile extends AppCompatActivity {
                 String imageUrl = (String) uploadResult.get("secure_url");
 
                 runOnUiThread(() -> {
-                    if (!isFinishing() && !isDestroyed()) {
-                        updateProfileImageUrlInFirebase(imageUrl);
-                    }
+                    if (!isFinishing() && !isDestroyed()) updateProfileImageUrlInFirebase(imageUrl);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
                 runOnUiThread(() -> {
-                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ ОШИБКЕ
-                    if (!isFinishing() && !isDestroyed()) {
-                        Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    }
+                    progressDialog.dismiss();
+                    if (!isFinishing() && !isDestroyed()) Toast.makeText(Profile.this, "Ошибка загрузки: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             } finally {
                 if (inputStream != null) {
@@ -458,26 +448,77 @@ public class Profile extends AppCompatActivity {
     }
 
     private void updateProfileImageUrlInFirebase(String imageUrl) {
-        userRef.child("profileImageUrl").setValue(imageUrl)
-                .addOnSuccessListener(aVoid -> {
-                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ УСПЕХЕ
-                    if (!isFinishing())
-                        Toast.makeText(Profile.this, "Фото сохранено!", Toast.LENGTH_SHORT).show();
-                })
-                .addOnFailureListener(e -> {
-                    progressDialog.dismiss(); // СКРЫВАЕМ ПРИ ОШИБКЕ
-                    if (!isFinishing())
-                        Toast.makeText(Profile.this, "Ошибка сохранения: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
+        String newKey = userRef.child("profileImages").push().getKey();
+        if (newKey != null) {
+            userRef.child("profileImages").child(newKey).setValue(imageUrl);
+            userRef.child("profileImageUrl").setValue(imageUrl)
+                    .addOnSuccessListener(aVoid -> {
+                        progressDialog.dismiss();
+                        if (!isFinishing()) Toast.makeText(Profile.this, "Фото добавлено!", Toast.LENGTH_SHORT).show();
+                        if(!avatarUrls.isEmpty()) profileImageViewPager.setCurrentItem(avatarUrls.size(), true);
+                    })
+                    .addOnFailureListener(e -> {
+                        progressDialog.dismiss();
+                        if (!isFinishing()) Toast.makeText(Profile.this, "Ошибка: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+        }
     }
 
-    private void zoomImageFromThumb(final View thumbView, String imageUrl) {
-        if (currentAnimator != null) {
-            currentAnimator.cancel();
+    private void deleteCurrentPhoto() {
+        if (avatarUrls.isEmpty() || avatarKeys.isEmpty()) return;
+        int currentIndex = expandedViewPager.getCurrentItem();
+        String currentKey = avatarKeys.get(currentIndex);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Удалить фото?")
+                .setMessage("Вы уверены, что хотите удалить эту фотографию?")
+                .setPositiveButton("Удалить", (dialog, which) -> {
+                    if (currentKey.equals("legacy_image")) {
+                        userRef.child("profileImageUrl").setValue("");
+                    } else {
+                        userRef.child("profileImages").child(currentKey).removeValue();
+                        if (avatarUrls.size() > 1) {
+                            int prevIndex = currentIndex > 0 ? currentIndex - 1 : 1;
+                            userRef.child("profileImageUrl").setValue(avatarUrls.get(prevIndex));
+                        } else {
+                            userRef.child("profileImageUrl").setValue("");
+                        }
+                    }
+                    Toast.makeText(this, "Фото удалено", Toast.LENGTH_SHORT).show();
+                    if(avatarUrls.size() <= 1) closeExpandedImage();
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private void downloadCurrentPhoto() {
+        if (avatarUrls.isEmpty()) return;
+        String url = avatarUrls.get(expandedViewPager.getCurrentItem());
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+        request.setTitle("Сохранение фото");
+        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_PICTURES, "Avatar_" + System.currentTimeMillis() + ".jpg");
+
+        DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        if (manager != null) {
+            manager.enqueue(request);
+            Toast.makeText(this, "Загрузка началась...", Toast.LENGTH_SHORT).show();
         }
+    }
 
-        Glide.with(this).load(imageUrl).placeholder(R.drawable.ic_profile_placeholder).into(expandedImage);
+    private void shareCurrentPhoto() {
+        if (avatarUrls.isEmpty()) return;
+        String url = avatarUrls.get(expandedViewPager.getCurrentItem());
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, url);
+        startActivity(Intent.createChooser(shareIntent, "Поделиться фото"));
+    }
 
+    private void zoomImageFromThumb(final View thumbView, int startPosition) {
+        if (currentAnimator != null) currentAnimator.cancel();
+
+        expandedViewPager.setCurrentItem(startPosition, false);
         expandedContainer.setAlpha(0f);
         expandedContainer.setVisibility(View.VISIBLE);
 
@@ -500,15 +541,13 @@ public class Profile extends AppCompatActivity {
 
             expandedCard.setPivotX(0f);
             expandedCard.setPivotY(0f);
-
             expandedCard.setTranslationX(startX);
             expandedCard.setTranslationY(startY);
             expandedCard.setScaleX(startScale);
             expandedCard.setScaleY(startScale);
 
-            btnEditExpanded.setAlpha(0f);
+            expandedActionsContainer.setAlpha(0f);
             expandedBackground.setAlpha(0f);
-
             expandedContainer.setAlpha(1f);
             thumbView.setAlpha(0f);
 
@@ -522,96 +561,74 @@ public class Profile extends AppCompatActivity {
                     .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, 1f))
                     .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, 1f))
                     .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f, 1f))
-                    .with(ObjectAnimator.ofFloat(btnEditExpanded, View.ALPHA, 0f, 1f));
+                    .with(ObjectAnimator.ofFloat(expandedActionsContainer, View.ALPHA, 0f, 1f));
 
             set.setDuration(300);
             set.setInterpolator(new DecelerateInterpolator());
             set.addListener(new AnimatorListenerAdapter() {
-                @Override
-                public void onAnimationEnd(Animator animation) {
-                    currentAnimator = null;
-                }
+                @Override public void onAnimationEnd(Animator animation) { currentAnimator = null; }
             });
             set.start();
             currentAnimator = set;
-
-            View.OnClickListener closeListener = v -> {
-                if (currentAnimator != null) currentAnimator.cancel();
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    mainContentLayout.setRenderEffect(null);
-                }
-
-                AnimatorSet closeSet = new AnimatorSet();
-                closeSet.play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, startX))
-                        .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, startY))
-                        .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, startScale))
-                        .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, startScale))
-                        .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f))
-                        .with(ObjectAnimator.ofFloat(btnEditExpanded, View.ALPHA, 0f));
-
-                closeSet.setDuration(250);
-                closeSet.setInterpolator(new AccelerateInterpolator());
-                closeSet.addListener(new AnimatorListenerAdapter() {
-                    @Override
-                    public void onAnimationEnd(Animator animation) {
-                        thumbView.setAlpha(1f);
-                        expandedContainer.setVisibility(View.GONE);
-                        currentAnimator = null;
-
-                        expandedCard.setTranslationX(0f);
-                        expandedCard.setTranslationY(0f);
-                        expandedCard.setScaleX(1f);
-                        expandedCard.setScaleY(1f);
-                    }
-                });
-                closeSet.start();
-                currentAnimator = closeSet;
-            };
-
-            expandedImage.setOnClickListener(closeListener);
-            expandedBackground.setOnClickListener(closeListener);
+            expandedBackground.setOnClickListener(v -> closeExpandedImage());
         });
     }
 
-    private void toggleMemoriesState() {
-        isMemoriesExpanded = !isMemoriesExpanded;
-        ConstraintSet constraintSet = new ConstraintSet();
-        constraintSet.clone(rootLayout);
+    private void closeExpandedImage() {
+        if (currentAnimator != null) currentAnimator.cancel();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) mainContentLayout.setRenderEffect(null);
 
-        AutoTransition transition = new AutoTransition();
-        transition.setDuration(500);
-        TransitionManager.beginDelayedTransition(rootLayout, transition);
+        profileImageViewPager.setCurrentItem(expandedViewPager.getCurrentItem(), false);
 
-        if (isMemoriesExpanded) {
-            infoCard.setVisibility(View.GONE);
-            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.headerCard, ConstraintSet.BOTTOM);
-            viewAllMemories.animate().rotation(180f).setDuration(400).start();
-        } else {
-            infoCard.setVisibility(View.VISIBLE);
-            constraintSet.connect(R.id.memoriesCard, ConstraintSet.TOP, R.id.infoCard, ConstraintSet.BOTTOM);
-            viewAllMemories.animate().rotation(0f).setDuration(400).start();
-        }
-        constraintSet.applyTo(rootLayout);
+        Rect startBounds = new Rect();
+        Rect finalBounds = new Rect();
+        Point globalOffset = new Point();
+
+        profileImageViewPager.getGlobalVisibleRect(startBounds);
+        expandedCard.getGlobalVisibleRect(finalBounds, globalOffset);
+
+        startBounds.offset(-globalOffset.x, -globalOffset.y);
+        finalBounds.offset(-globalOffset.x, -globalOffset.y);
+
+        float startScale = (float) startBounds.width() / finalBounds.width();
+        float startX = startBounds.left - finalBounds.left;
+        float startY = startBounds.top - finalBounds.top;
+
+        AnimatorSet closeSet = new AnimatorSet();
+        closeSet.play(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_X, startX))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.TRANSLATION_Y, startY))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_X, startScale))
+                .with(ObjectAnimator.ofFloat(expandedCard, View.SCALE_Y, startScale))
+                .with(ObjectAnimator.ofFloat(expandedBackground, View.ALPHA, 0f))
+                .with(ObjectAnimator.ofFloat(expandedActionsContainer, View.ALPHA, 0f));
+
+        closeSet.setDuration(250);
+        closeSet.setInterpolator(new AccelerateInterpolator());
+        closeSet.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                profileImageViewPager.setAlpha(1f);
+                expandedContainer.setVisibility(View.GONE);
+                currentAnimator = null;
+                expandedCard.setTranslationX(0f);
+                expandedCard.setTranslationY(0f);
+                expandedCard.setScaleX(1f);
+                expandedCard.setScaleY(1f);
+            }
+        });
+        closeSet.start();
+        currentAnimator = closeSet;
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД ONBACKPRESSED
     @Override
     public void onBackPressed() {
-        if (expandedContainer.getVisibility() == View.VISIBLE) {
-            expandedImage.performClick();
-        } else if (isMemoriesExpanded) {
-            toggleMemoriesState();
-        } else {
-            Close(); // Убрали super.onBackPressed(), чтобы не убивать Activity до анимации
-        }
+        if (expandedContainer.getVisibility() == View.VISIBLE) closeExpandedImage();
+        else Close();
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД CLOSE
     public void Close() {
-        if (isClosing) return; // Защита от двойного нажатия
+        if (isClosing) return;
         isClosing = true;
-
         if (getIntent().hasExtra("revealX") && mainContentLayout != null) {
             int revealX = getIntent().getIntExtra("revealX", 0);
             int revealY = getIntent().getIntExtra("revealY", 0);
@@ -634,7 +651,7 @@ public class Profile extends AppCompatActivity {
     private void unRevealActivity(int x, int y) {
         float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
-        circularReveal.setDuration(400); // Сделали чуть быстрее для отзывчивости
+        circularReveal.setDuration(400);
         circularReveal.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
@@ -644,5 +661,43 @@ public class Profile extends AppCompatActivity {
             }
         });
         circularReveal.start();
+    }
+
+    private static class AvatarAdapter extends RecyclerView.Adapter<AvatarAdapter.ViewHolder> {
+        private final List<String> urls;
+        private final OnItemClickListener listener;
+        interface OnItemClickListener { void onItemClick(int position); }
+
+        public AvatarAdapter(List<String> urls, OnItemClickListener listener) {
+            this.urls = urls;
+            this.listener = listener;
+        }
+
+        @NonNull @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_avatar, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            if (urls.isEmpty()) {
+                Glide.with(holder.imageView.getContext()).load(R.drawable.ic_profile_placeholder).into(holder.imageView);
+                holder.itemView.setOnClickListener(v -> { if (listener != null) listener.onItemClick(0); });
+                return;
+            }
+            Glide.with(holder.imageView.getContext()).load(urls.get(position)).placeholder(R.drawable.ic_profile_placeholder).into(holder.imageView);
+            holder.itemView.setOnClickListener(v -> { if (listener != null) listener.onItemClick(position); });
+        }
+
+        @Override public int getItemCount() { return urls.isEmpty() ? 1 : urls.size(); }
+
+        static class ViewHolder extends RecyclerView.ViewHolder {
+            ImageView imageView;
+            ViewHolder(View itemView) {
+                super(itemView);
+                imageView = itemView.findViewById(R.id.avatarImageItem);
+            }
+        }
     }
 }

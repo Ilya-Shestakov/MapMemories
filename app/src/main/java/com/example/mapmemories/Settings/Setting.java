@@ -3,31 +3,32 @@ package com.example.mapmemories.Settings;
 import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewAnimationUtils;
 import android.view.ViewTreeObserver;
+import android.view.Window;
 import android.view.animation.AccelerateInterpolator;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import android.provider.Settings;
-
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.mapmemories.LogRegStart.LoginActivity;
@@ -51,9 +52,9 @@ public class Setting extends AppCompatActivity {
 
     private ImageView btnBack;
     private TextView btnChangePassword, btnPrivacy, btnTextSize, btnClearCache, btnSupport, btnLogout, btnDeleteAccount;
-    private SwitchMaterial switchTheme, switchNotifications;
 
-    private ActivityResultLauncher<String> requestPermissionLauncher;
+    // Новые свитчи
+    private SwitchMaterial switchTheme, switchNotifications, switchMic, switchGallery;
 
     private SharedPreferences prefs;
     public static final String PREFS_NAME = "AppPrefs";
@@ -61,19 +62,21 @@ public class Setting extends AppCompatActivity {
     private static final String PREF_DARK_THEME = "dark_theme_enabled";
     public static final String PREF_TEXT_SCALE = "text_scale";
 
-    // Ключи для приватности
     private static final String PREF_PRIVACY_CLOSED_PROFILE = "privacy_closed_profile";
     private static final String PREF_PRIVACY_HIDE_SEARCH = "privacy_hide_search";
     private static final String PREF_PRIVACY_HIDE_ONLINE = "privacy_hide_online";
 
-    private static final int NOTIFICATION_PERMISSION_CODE = 123;
-    private boolean isClosing = false; // ФЛАГ ДЛЯ ПРЕДОТВРАЩЕНИЯ ДВОЙНОГО ЗАКРЫТИЯ
+    private boolean isClosing = false;
+
+    // Лаунчеры для запроса разрешений
+    private ActivityResultLauncher<String> requestNotificationLauncher;
+    private ActivityResultLauncher<String> requestMicLauncher;
+    private ActivityResultLauncher<String> requestGalleryLauncher;
 
     @Override
     protected void attachBaseContext(Context newBase) {
         SharedPreferences preferences = newBase.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         float scale = preferences.getFloat(PREF_TEXT_SCALE, 1.0f);
-
         Configuration config = new Configuration(newBase.getResources().getConfiguration());
         config.fontScale = scale;
         Context context = newBase.createConfigurationContext(config);
@@ -88,23 +91,30 @@ public class Setting extends AppCompatActivity {
         prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         swipeBackHelper = new SwipeBackHelper(this);
 
-        requestPermissionLauncher = registerForActivityResult(
-                new ActivityResultContracts.RequestPermission(),
-                isGranted -> {
-                    prefs.edit().putBoolean(PREF_NOTIFICATIONS, isGranted).apply();
-                    switchNotifications.setChecked(isGranted);
-                    if (isGranted) {
-                        startService(new Intent(this, MessageListenerService.class));
-                    } else {
-                        stopService(new Intent(this, MessageListenerService.class));
-                    }
-                }
-        );
-
+        initLaunchers();
         initViews();
         loadSettings();
         setupClickListeners();
         handleRevealAnimation(savedInstanceState);
+    }
+
+    private void initLaunchers() {
+        requestNotificationLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            prefs.edit().putBoolean(PREF_NOTIFICATIONS, isGranted).apply();
+            switchNotifications.setChecked(isGranted);
+            if (isGranted) startService(new Intent(this, MessageListenerService.class));
+            else stopService(new Intent(this, MessageListenerService.class));
+        });
+
+        requestMicLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            switchMic.setChecked(isGranted);
+            if (!isGranted) Toast.makeText(this, "Микрофон недоступен", Toast.LENGTH_SHORT).show();
+        });
+
+        requestGalleryLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+            switchGallery.setChecked(isGranted);
+            if (!isGranted) Toast.makeText(this, "Галерея недоступна", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void initViews() {
@@ -120,50 +130,198 @@ public class Setting extends AppCompatActivity {
 
         switchTheme = findViewById(R.id.switchTheme);
         switchNotifications = findViewById(R.id.switchNotifications);
+        switchMic = findViewById(R.id.switchMic);
+        switchGallery = findViewById(R.id.switchGallery);
     }
 
     private void loadSettings() {
         switchTheme.setChecked(prefs.getBoolean(PREF_DARK_THEME, true));
-        syncNotificationSwitch();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Синхронизируем реальное системное разрешение со свитчем при каждом открытии окна
-        syncNotificationSwitch();
+        syncPermissions(); // При возврате в настройки перепроверяем реальные разрешения системы
     }
 
-    private void syncNotificationSwitch() {
-        boolean hasPermission = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            hasPermission = ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+    private void syncPermissions() {
+        // Убираем слушатели на секунду, чтобы свитч не вызывал код при программном переключении
+        switchNotifications.setOnCheckedChangeListener(null);
+        switchMic.setOnCheckedChangeListener(null);
+        switchGallery.setOnCheckedChangeListener(null);
+
+        // Проверяем реальные системные допуски
+        boolean hasNotification = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED;
+        boolean hasMic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED;
+
+        String galleryPerm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+        boolean hasGallery = ContextCompat.checkSelfPermission(this, galleryPerm) == PackageManager.PERMISSION_GRANTED;
+
+        switchNotifications.setChecked(hasNotification);
+        switchMic.setChecked(hasMic);
+        switchGallery.setChecked(hasGallery);
+        prefs.edit().putBoolean(PREF_NOTIFICATIONS, hasNotification).apply();
+
+        setupSwitchListeners();
+    }
+
+    private void setupSwitchListeners() {
+        // Уведомления
+        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) return;
+            VibratorHelper.vibrate(this, 30);
+            if (isChecked) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) showSettingsDialog("Уведомления", switchNotifications);
+                    else requestNotificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+                } else {
+                    prefs.edit().putBoolean(PREF_NOTIFICATIONS, true).apply();
+                    startService(new Intent(this, MessageListenerService.class));
+                }
+            } else {
+                prefs.edit().putBoolean(PREF_NOTIFICATIONS, false).apply();
+                stopService(new Intent(this, MessageListenerService.class));
+            }
+        });
+
+        // Микрофон
+        switchMic.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) return;
+            VibratorHelper.vibrate(this, 30);
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                    if (!shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) showSettingsDialog("Микрофон", switchMic);
+                    else requestMicLauncher.launch(Manifest.permission.RECORD_AUDIO);
+                }
+            } else {
+                showSettingsDialog("Микрофон", switchMic);
+            }
+        });
+
+        // Галерея
+        switchGallery.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (!buttonView.isPressed()) return;
+            VibratorHelper.vibrate(this, 30);
+            String galleryPerm = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU ? Manifest.permission.READ_MEDIA_IMAGES : Manifest.permission.READ_EXTERNAL_STORAGE;
+            if (isChecked) {
+                if (ContextCompat.checkSelfPermission(this, galleryPerm) != PackageManager.PERMISSION_GRANTED) {
+                    if (!shouldShowRequestPermissionRationale(galleryPerm)) showSettingsDialog("Галерея", switchGallery);
+                    else requestGalleryLauncher.launch(galleryPerm);
+                }
+            } else {
+                showSettingsDialog("Галерея", switchGallery);
+            }
+        });
+    }
+
+    private void showSettingsDialog(String type, SwitchMaterial switchToRevert) {
+        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+
+        View activityRootView = getWindow().getDecorView().findViewById(android.R.id.content);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && activityRootView != null) {
+            activityRootView.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(20f, 20f, android.graphics.Shader.TileMode.MIRROR));
         }
 
-        // Временно убираем слушатель, чтобы программное изменение не вызывало код в setOnCheckedChangeListener
-        switchNotifications.setOnCheckedChangeListener(null);
-        switchNotifications.setChecked(hasPermission);
-        prefs.edit().putBoolean(PREF_NOTIFICATIONS, hasPermission).apply();
+        android.widget.FrameLayout rootLayout = new android.widget.FrameLayout(this);
+        rootLayout.setBackgroundColor(Color.parseColor("#66000000"));
+        rootLayout.setAlpha(0f);
 
-        // Возвращаем слушатель
-        setupNotificationSwitchListener();
+        com.google.android.material.card.MaterialCardView cardView = new com.google.android.material.card.MaterialCardView(this);
+        cardView.setCardBackgroundColor(ContextCompat.getColor(this, R.color.chat_me_bg));
+        cardView.setRadius(48f);
+        cardView.setCardElevation(20f);
+        android.widget.FrameLayout.LayoutParams cardParams = new android.widget.FrameLayout.LayoutParams(
+                (int) (getResources().getDisplayMetrics().widthPixels * 0.85),
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        cardParams.gravity = android.view.Gravity.CENTER;
+        cardView.setLayoutParams(cardParams);
+
+        android.widget.LinearLayout cardContent = new android.widget.LinearLayout(this);
+        cardContent.setOrientation(android.widget.LinearLayout.VERTICAL);
+        cardContent.setPadding(64, 64, 64, 48);
+
+        TextView title = new TextView(this);
+        title.setText("Требуется разрешение");
+        title.setTextSize(20f);
+        title.setTypeface(null, android.graphics.Typeface.BOLD);
+        title.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        title.setGravity(android.view.Gravity.CENTER);
+        cardContent.addView(title);
+
+        TextView desc = new TextView(this);
+        desc.setText("Разрешение для «" + type + "» заблокировано. Чтобы использовать эту функцию, включите его в настройках вашего телефона.");
+        desc.setTextSize(14f);
+        desc.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
+        desc.setGravity(android.view.Gravity.CENTER);
+        desc.setPadding(0, 24, 0, 48);
+        cardContent.addView(desc);
+
+        android.widget.LinearLayout btnContainer = new android.widget.LinearLayout(this);
+        btnContainer.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+
+        TextView btnCancel = new TextView(this);
+        btnCancel.setText("Отмена");
+        btnCancel.setGravity(android.view.Gravity.CENTER);
+        btnCancel.setTextSize(16f);
+        btnCancel.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+        btnCancel.setPadding(0, 32, 0, 32);
+        btnCancel.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        TextView btnSettings = new TextView(this);
+        btnSettings.setText("В настройки");
+        btnSettings.setGravity(android.view.Gravity.CENTER);
+        btnSettings.setTextSize(16f);
+        btnSettings.setTypeface(null, android.graphics.Typeface.BOLD);
+        btnSettings.setTextColor(Color.parseColor("#E27950")); // Твой акцентный цвет
+        btnSettings.setPadding(0, 32, 0, 32);
+        btnSettings.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        btnContainer.addView(btnCancel);
+        btnContainer.addView(btnSettings);
+        cardContent.addView(btnContainer);
+
+        cardView.addView(cardContent);
+        rootLayout.addView(cardView);
+        dialog.setContentView(rootLayout);
+
+        rootLayout.animate().alpha(1f).setDuration(200).start();
+        cardView.setScaleX(0.8f); cardView.setScaleY(0.8f);
+        cardView.animate().scaleX(1f).scaleY(1f).setDuration(300).setInterpolator(new android.view.animation.OvershootInterpolator(1.2f)).start();
+
+        Runnable closeDialog = () -> {
+            rootLayout.animate().alpha(0f).setDuration(200).withEndAction(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && activityRootView != null) {
+                    activityRootView.setRenderEffect(null);
+                }
+                dialog.dismiss();
+                syncPermissions(); // Возвращаем свитч на место
+            }).start();
+        };
+
+        btnCancel.setOnClickListener(v -> closeDialog.run());
+        btnSettings.setOnClickListener(v -> {
+            closeDialog.run();
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+            intent.setData(Uri.fromParts("package", getPackageName(), null));
+            startActivity(intent);
+        });
+
+        dialog.setOnCancelListener(d -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && activityRootView != null) activityRootView.setRenderEffect(null);
+            syncPermissions();
+        });
+
+        dialog.show();
     }
 
     private void setupClickListeners() {
-        btnBack.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            Close();
-        });
-
-        btnChangePassword.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            sendPasswordResetEmail();
-        });
-
-        btnPrivacy.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            showPrivacyDialog();
-        });
+        btnBack.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); Close(); });
+        btnChangePassword.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); sendPasswordResetEmail(); });
+        btnPrivacy.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); showPrivacyDialog(); });
 
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (buttonView.isPressed()) {
@@ -173,21 +331,9 @@ public class Setting extends AppCompatActivity {
             }
         });
 
-        btnTextSize.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            showTextSizeDialog();
-        });
-
-
-        btnClearCache.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            clearAppCache();
-        });
-
-        btnSupport.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 30);
-            contactSupport();
-        });
+        btnTextSize.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); showTextSizeDialog(); });
+        btnClearCache.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); clearAppCache(); });
+        btnSupport.setOnClickListener(v -> { VibratorHelper.vibrate(this, 30); contactSupport(); });
 
         btnLogout.setOnClickListener(v -> {
             VibratorHelper.vibrate(this, 50);
@@ -200,60 +346,10 @@ public class Setting extends AppCompatActivity {
             });
         });
 
-        btnDeleteAccount.setOnClickListener(v -> {
-            VibratorHelper.vibrate(this, 100);
-            showDeleteAccountDialog();
-        });
+        btnDeleteAccount.setOnClickListener(v -> { VibratorHelper.vibrate(this, 100); showDeleteAccountDialog(); });
     }
 
-    private void setupNotificationSwitchListener() {
-        switchNotifications.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            if (!buttonView.isPressed()) return; // Реагируем только на нажатия пальцем
-
-            VibratorHelper.vibrate(this, 30);
-
-            if (isChecked) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                        // Если система заблокировала диалог (пользователь ранее нажал "Не разрешать"),
-                        // отправляем его в системные настройки
-                        if (!shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
-                            showSettingsDialog();
-                        } else {
-                            requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
-                        }
-                    } else {
-                        enableNotifications();
-                    }
-                } else {
-                    enableNotifications();
-                }
-            } else {
-                disableNotifications();
-                // В Android нельзя программно отобрать у себя разрешение.
-                // Мы просто выключаем сервис. Если юзер хочет выключить их системно - отправляем в настройки.
-                Toast.makeText(this, "Уведомления отключены в приложении", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-    private void showSettingsDialog() {
-        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
-                .setTitle("Разрешение требуется")
-                .setMessage("Вы запретили уведомления. Чтобы включить их, перейдите в настройки телефона.")
-                .setPositiveButton("В настройки", (dialog, which) -> {
-                    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                    Uri uri = Uri.fromParts("package", getPackageName(), null);
-                    intent.setData(uri);
-                    startActivity(intent);
-                })
-                .setNegativeButton("Отмена", (dialog, which) -> {
-                    switchNotifications.setChecked(false); // Возвращаем свитч обратно
-                })
-                .show();
-    }
-
-    // --- АНИМАЦИИ И СИСТЕМНЫЕ МЕТОДЫ ---
-
+    // --- АНИМАЦИИ И СИСТЕМНЫЕ МЕТОДЫ ОСТАЛИСЬ КАК БЫЛИ ---
     private void handleRevealAnimation(Bundle savedInstanceState) {
         if (savedInstanceState == null && getIntent().hasExtra("revealX")) {
             mainContentLayout.setVisibility(View.INVISIBLE);
@@ -280,17 +376,12 @@ public class Setting extends AppCompatActivity {
     }
 
     private void unRevealActivity(int x, int y) {
-        if (mainContentLayout == null) {
-            finish();
-            overridePendingTransition(0, 0);
-            return;
-        }
+        if (mainContentLayout == null) { finish(); overridePendingTransition(0, 0); return; }
         float finalRadius = (float) (Math.max(mainContentLayout.getWidth(), mainContentLayout.getHeight()) * 1.1);
         Animator circularReveal = ViewAnimationUtils.createCircularReveal(mainContentLayout, x, y, finalRadius, 0);
         circularReveal.setDuration(400);
         circularReveal.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
+            @Override public void onAnimationEnd(Animator animation) {
                 mainContentLayout.setVisibility(View.INVISIBLE);
                 finish();
                 overridePendingTransition(0, 0);
@@ -299,122 +390,56 @@ public class Setting extends AppCompatActivity {
         circularReveal.start();
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД CLOSE
     public void Close() {
-        if (isClosing) return; // Защита от двойного нажатия
+        if (isClosing) return;
         isClosing = true;
-
         if (getIntent().hasExtra("revealX") && mainContentLayout != null) {
-            int revealX = getIntent().getIntExtra("revealX", 0);
-            int revealY = getIntent().getIntExtra("revealY", 0);
-            unRevealActivity(revealX, revealY);
+            unRevealActivity(getIntent().getIntExtra("revealX", 0), getIntent().getIntExtra("revealY", 0));
         } else {
             finish();
             overridePendingTransition(0, 0);
         }
     }
 
-    // ИСПРАВЛЕННЫЙ МЕТОД ONBACKPRESSED
-    @Override
-    public void onBackPressed() {
-        Close(); // Убрали super.onBackPressed(), чтобы не убивать Activity до анимации
-    }
+    @Override public void onBackPressed() { Close(); }
 
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        if (swipeBackHelper != null) {
-            return swipeBackHelper.dispatchTouchEvent(ev, event -> super.dispatchTouchEvent(event));
-        }
+    @Override public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (swipeBackHelper != null) return swipeBackHelper.dispatchTouchEvent(ev, event -> super.dispatchTouchEvent(event));
         return super.dispatchTouchEvent(ev);
     }
 
-    // --- ЛОГИКА ФУНКЦИЙ ---
-
+    // --- МЕТОДЫ ДИАЛОГОВ ---
     private void showPrivacyDialog() {
-        String[] privacyOptions = {
-                "Закрытый профиль (только для друзей)",
-                "Скрыть меня из глобального поиска",
-                "Скрыть статус «В сети»"
-        };
-
-        boolean[] checkedItems = {
-                prefs.getBoolean(PREF_PRIVACY_CLOSED_PROFILE, false),
-                prefs.getBoolean(PREF_PRIVACY_HIDE_SEARCH, false),
-                prefs.getBoolean(PREF_PRIVACY_HIDE_ONLINE, false)
-        };
-
-        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
-                .setTitle("Конфиденциальность")
-                .setMultiChoiceItems(privacyOptions, checkedItems, (dialog, which, isChecked) -> {
-                    checkedItems[which] = isChecked;
-                })
+        String[] privacyOptions = {"Закрытый профиль (только для друзей)", "Скрыть меня из глобального поиска", "Скрыть статус «В сети»"};
+        boolean[] checkedItems = {prefs.getBoolean(PREF_PRIVACY_CLOSED_PROFILE, false), prefs.getBoolean(PREF_PRIVACY_HIDE_SEARCH, false), prefs.getBoolean(PREF_PRIVACY_HIDE_ONLINE, false)};
+        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories).setTitle("Конфиденциальность").setMultiChoiceItems(privacyOptions, checkedItems, (dialog, which, isChecked) -> checkedItems[which] = isChecked)
                 .setPositiveButton("Сохранить", (dialog, which) -> {
-                    prefs.edit()
-                            .putBoolean(PREF_PRIVACY_CLOSED_PROFILE, checkedItems[0])
-                            .putBoolean(PREF_PRIVACY_HIDE_SEARCH, checkedItems[1])
-                            .putBoolean(PREF_PRIVACY_HIDE_ONLINE, checkedItems[2])
-                            .apply();
-
+                    prefs.edit().putBoolean(PREF_PRIVACY_CLOSED_PROFILE, checkedItems[0]).putBoolean(PREF_PRIVACY_HIDE_SEARCH, checkedItems[1]).putBoolean(PREF_PRIVACY_HIDE_ONLINE, checkedItems[2]).apply();
                     FirebaseUser currentUser = FirebaseAuth.getInstance().getCurrentUser();
                     if (currentUser != null) {
-                        FirebaseDatabase.getInstance().getReference("users")
-                                .child(currentUser.getUid())
-                                .child("privacy")
-                                .child("hide_online")
-                                .setValue(checkedItems[2]);
-
-                        if (checkedItems[2]) {
-                            FirebaseDatabase.getInstance().getReference("users")
-                                    .child(currentUser.getUid())
-                                    .child("status")
-                                    .setValue("hidden");
-                        } else {
-                            FirebaseDatabase.getInstance().getReference("users")
-                                    .child(currentUser.getUid())
-                                    .child("status")
-                                    .setValue("online");
-                        }
+                        FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid()).child("privacy").child("hide_online").setValue(checkedItems[2]);
+                        FirebaseDatabase.getInstance().getReference("users").child(currentUser.getUid()).child("status").setValue(checkedItems[2] ? "hidden" : "online");
                     }
-
-                    Toast.makeText(this, "Настройки приватности сохранены", Toast.LENGTH_SHORT).show();
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
+                    Toast.makeText(this, "Настройки сохранены", Toast.LENGTH_SHORT).show();
+                }).setNegativeButton("Отмена", null).show();
     }
 
     private void showTextSizeDialog() {
         String[] sizes = {"Мелкий", "Обычный", "Крупный"};
         float[] scaleValues = {0.85f, 1.0f, 1.15f};
-
         float currentScale = prefs.getFloat(PREF_TEXT_SCALE, 1.0f);
-        int checkedItem = 1;
-
-        if (currentScale == 0.85f) checkedItem = 0;
-        else if (currentScale == 1.15f) checkedItem = 2;
-
-        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
-                .setTitle("Размер текста")
-                .setSingleChoiceItems(sizes, checkedItem, (dialog, which) -> {
-                    float selectedScale = scaleValues[which];
-                    prefs.edit().putFloat(PREF_TEXT_SCALE, selectedScale).apply();
-                    dialog.dismiss();
-                    recreate();
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
+        int checkedItem = currentScale == 0.85f ? 0 : (currentScale == 1.15f ? 2 : 1);
+        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories).setTitle("Размер текста").setSingleChoiceItems(sizes, checkedItem, (dialog, which) -> {
+            prefs.edit().putFloat(PREF_TEXT_SCALE, scaleValues[which]).apply();
+            dialog.dismiss();
+            recreate();
+        }).setNegativeButton("Отмена", null).show();
     }
 
     private void sendPasswordResetEmail() {
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
         if (user != null && user.getEmail() != null) {
-            FirebaseAuth.getInstance().sendPasswordResetEmail(user.getEmail())
-                    .addOnCompleteListener(task -> {
-                        if (task.isSuccessful()) {
-                            Toast.makeText(this, "Письмо отправлено на " + user.getEmail(), Toast.LENGTH_LONG).show();
-                        } else {
-                            Toast.makeText(this, "Ошибка при отправке письма", Toast.LENGTH_SHORT).show();
-                        }
-                    });
+            FirebaseAuth.getInstance().sendPasswordResetEmail(user.getEmail()).addOnCompleteListener(task -> Toast.makeText(this, task.isSuccessful() ? "Письмо отправлено на " + user.getEmail() : "Ошибка при отправке письма", Toast.LENGTH_LONG).show());
         }
     }
 
@@ -423,88 +448,23 @@ public class Setting extends AppCompatActivity {
         intent.setData(Uri.parse("mailto:"));
         intent.putExtra(Intent.EXTRA_EMAIL, new String[]{"shvi.coffein@gmail.com"});
         intent.putExtra(Intent.EXTRA_SUBJECT, "MapMemories: Обращение в поддержку");
-
-        try {
-            startActivity(Intent.createChooser(intent, "Написать разработчикам"));
-        } catch (android.content.ActivityNotFoundException ex) {
-            Toast.makeText(this, "Нет установленных почтовых клиентов", Toast.LENGTH_SHORT).show();
-        }
+        try { startActivity(Intent.createChooser(intent, "Написать разработчикам")); } catch (Exception ex) { Toast.makeText(this, "Нет установленных почтовых клиентов", Toast.LENGTH_SHORT).show(); }
     }
 
     private void showDeleteAccountDialog() {
-        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories)
-                .setTitle("Удаление аккаунта")
-                .setMessage("Это действие необратимо. Все ваши воспоминания, фото и чаты будут удалены навсегда. Вы уверены?")
-                .setPositiveButton("Удалить навсегда", (dialog, which) -> {
-                    Toast.makeText(this, "Функция удаления в разработке", Toast.LENGTH_LONG).show();
-                })
-                .setNegativeButton("Отмена", null)
-                .show();
+        new MaterialAlertDialogBuilder(this, R.style.Theme_MapMemories).setTitle("Удаление аккаунта").setMessage("Это действие необратимо. Вы уверены?").setPositiveButton("Удалить", (dialog, which) -> Toast.makeText(this, "Функция в разработке", Toast.LENGTH_LONG).show()).setNegativeButton("Отмена", null).show();
     }
 
     private void clearAppCache() {
-        try {
-            File dir = getCacheDir();
-            if (deleteDir(dir)) {
-                Toast.makeText(this, "Кэш успешно очищен", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "Кэш уже пуст", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Toast.makeText(this, "Ошибка очистки кэша", Toast.LENGTH_SHORT).show();
-        }
+        try { Toast.makeText(this, deleteDir(getCacheDir()) ? "Кэш очищен" : "Кэш уже пуст", Toast.LENGTH_SHORT).show(); } catch (Exception e) { Toast.makeText(this, "Ошибка", Toast.LENGTH_SHORT).show(); }
     }
 
     private boolean deleteDir(File dir) {
         if (dir != null && dir.isDirectory()) {
             String[] children = dir.list();
-            if (children != null) {
-                for (String child : children) {
-                    boolean success = deleteDir(new File(dir, child));
-                    if (!success) return false;
-                }
-            }
+            if (children != null) { for (String child : children) { if (!deleteDir(new File(dir, child))) return false; } }
             return dir.delete();
-        } else if (dir != null && dir.isFile()) {
-            return dir.delete();
-        }
+        } else if (dir != null && dir.isFile()) return dir.delete();
         return false;
-    }
-
-    private void handleNotificationsToggle(boolean isChecked) {
-        if (isChecked) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, NOTIFICATION_PERMISSION_CODE);
-                    return;
-                }
-            }
-            enableNotifications();
-        } else {
-            disableNotifications();
-        }
-    }
-
-    private void enableNotifications() {
-        prefs.edit().putBoolean(PREF_NOTIFICATIONS, true).apply();
-        startService(new Intent(this, MessageListenerService.class));
-    }
-
-    private void disableNotifications() {
-        prefs.edit().putBoolean(PREF_NOTIFICATIONS, false).apply();
-        stopService(new Intent(this, MessageListenerService.class));
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                enableNotifications();
-            } else {
-                switchNotifications.setChecked(false);
-                Toast.makeText(this, "Необходимо разрешение для уведомлений", Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 }

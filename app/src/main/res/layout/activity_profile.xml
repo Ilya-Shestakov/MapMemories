@@ -1,396 +1,375 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+    android:background="@android:color/transparent"> <!-- Корень по-прежнему прозрачный -->
 
-    <androidx.constraintlayout.widget.ConstraintLayout
+    <!-- ВОТ НАШ НОВЫЙ СЛОЙ. Он всегда закрашен и именно он анимируется -->
+    <FrameLayout
         android:id="@+id/mainContentLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/primary"
-        android:fitsSystemWindows="true">
+        android:background="@color/primary">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/headerCard"
+        <!-- А вот Coordinator теперь без ID и без фона, просто делает свою работу со скроллом -->
+        <androidx.coordinatorlayout.widget.CoordinatorLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fitsSystemWindows="true">
+
+            <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginHorizontal="0dp"
-            android:layout_marginTop="0dp"
-            app:cardBackgroundColor="@android:color/transparent"
-            app:cardCornerRadius="0dp"
-            app:cardElevation="0dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:background="@color/primary"
+            app:elevation="0dp">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
+            <com.google.android.material.appbar.CollapsingToolbarLayout
+                android:id="@+id/collapsingToolbar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingBottom="16dp">
+                app:contentScrim="@color/primary"
+                app:titleEnabled="false"
+                app:layout_scrollFlags="scroll|exitUntilCollapsed">
 
-                <!-- КНОПКА НАЗАД -->
-                <ImageButton
-                    android:id="@+id/buttonBack"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:layout_marginStart="16dp"
-                    android:layout_marginTop="16dp"
-                    android:background="@drawable/circle_background"
-                    android:backgroundTint="@color/secondary"
-                    android:contentDescription="Назад"
-                    android:src="@drawable/ic_arrow_back"
-                    android:padding="12dp"
-                    android:scaleType="fitCenter"
-                    app:tint="@color/text_primary"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:paddingTop="?attr/actionBarSize"
+                    android:paddingBottom="16dp">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/avatarContainer"
-                    android:layout_width="110dp"
-                    android:layout_height="110dp"
-                    app:cardCornerRadius="55dp"
-                    app:cardElevation="8dp"
-                    android:layout_marginTop="20dp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent">
-
-                    <ImageView
-                        android:id="@+id/profileImage"
+                    <!-- КАРТОЧКА: Аватар слева, Статистика справа -->
+                    <com.google.android.material.card.MaterialCardView
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/ic_add_camera_black"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="16dp"
+                        android:layout_marginTop="8dp"
+                        app:cardBackgroundColor="@color/secondary"
+                        app:cardCornerRadius="24dp"
+                        app:cardElevation="2dp">
 
-                        />
-                </com.google.android.material.card.MaterialCardView>
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="12dp">
 
-                <LinearLayout
-                    android:id="@+id/nameContainer"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/avatarContainer">
+                            <ImageButton
+                                android:id="@+id/btnAddAvatar"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:layout_marginEnd="-8dp"
+                                android:layout_marginBottom="-8dp"
+                                android:background="@drawable/circle_background"
+                                android:backgroundTint="@color/accent"
+                                android:elevation="4dp"
+                                android:padding="6dp"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_add"
+                                app:layout_constraintBottom_toBottomOf="@id/avatarCard"
+                                app:layout_constraintEnd_toEndOf="@id/avatarCard"
+                                app:tint="@android:color/white" />
+
+                            <!-- Аватарка (Квадратная) -->
+                            <com.google.android.material.card.MaterialCardView
+                                android:id="@+id/avatarCard"
+                                android:layout_width="140dp"
+                                android:layout_height="140dp"
+                                app:cardCornerRadius="16dp"
+                                app:cardElevation="0dp"
+                                android:layout_marginBottom="20dp"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent">
+
+                                <androidx.viewpager2.widget.ViewPager2
+                                    android:id="@+id/profileImageViewPager"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="match_parent" />
+                            </com.google.android.material.card.MaterialCardView>
+
+
+                            <!-- СТАТИСТИКА -->
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="16dp"
+                                android:orientation="vertical"
+                                app:layout_constraintBottom_toBottomOf="parent"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintStart_toEndOf="@id/avatarCard"
+                                app:layout_constraintTop_toTopOf="parent">
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:baselineAligned="false"
+                                    android:orientation="horizontal">
+
+                                    <LinearLayout
+                                        android:id="@+id/followersCountContainer"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:background="?attr/selectableItemBackground"
+                                        android:gravity="center"
+                                        android:orientation="vertical">
+                                        <TextView android:id="@+id/followersCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписчики" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                                    </LinearLayout>
+
+                                    <LinearLayout
+                                        android:id="@+id/followingCountContainer"
+                                        android:layout_width="0dp"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1"
+                                        android:background="?attr/selectableItemBackground"
+                                        android:gravity="center"
+                                        android:orientation="vertical">
+                                        <TextView android:id="@+id/followingCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписки" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                                    </LinearLayout>
+                                </LinearLayout>
+
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="12dp"
+                                    android:baselineAligned="false"
+                                    android:orientation="horizontal">
+
+                                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Посты" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                                    </LinearLayout>
+
+                                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:orientation="vertical">
+                                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="16sp" android:textStyle="bold" />
+                                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайки" android:textColor="@color/text_secondary" android:textSize="10sp" />
+                                    </LinearLayout>
+                                </LinearLayout>
+                            </LinearLayout>
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- БЛОК РЕДАКТИРОВАНИЯ (Имя, Почта, Телефон, О себе) -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="20dp"
+                        android:layout_marginTop="20dp"
+                        android:orientation="vertical">
+
+                        <!-- Имя -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+                                <TextView
+                                    android:id="@+id/usernameText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="User Name"
+                                    android:textColor="@color/text_primary"
+                                    android:textSize="22sp"
+                                    android:textStyle="bold" />
+                                <TextView
+                                    android:id="@+id/emailText"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="user@email.com"
+                                    android:textColor="@color/text_secondary"
+                                    android:textSize="13sp" />
+                            </LinearLayout>
+
+                            <ImageButton
+                                android:id="@+id/editNameButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:background="?attr/selectableItemBackgroundBorderless"
+                                android:padding="8dp"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_edit"
+                                app:tint="@color/text_secondary" />
+                        </LinearLayout>
+
+                        <!-- Телефон -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_phone" app:tint="@color/text_secondary"/>
+
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:id="@+id/phoneText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Не указан" android:textColor="@color/text_primary" android:textSize="15sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Телефон" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <ImageButton android:id="@+id/editPhoneButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackgroundBorderless" android:padding="6dp" android:scaleType="fitCenter" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
+                        </LinearLayout>
+
+                        <!-- О себе -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:gravity="top"
+                            android:orientation="horizontal">
+
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_info" app:tint="@color/text_secondary" android:layout_marginTop="2dp"/>
+
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:id="@+id/aboutText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:lineSpacingMultiplier="1.2" android:text="Расскажите о себе..." android:textColor="@color/text_primary" android:textSize="15sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Био" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                            </LinearLayout>
+
+                            <ImageButton android:id="@+id/editAboutButton" android:layout_width="32dp" android:layout_height="32dp" android:background="?attr/selectableItemBackgroundBorderless" android:padding="6dp" android:scaleType="fitCenter" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" />
+                        </LinearLayout>
+
+                        <!-- Дата регистрации -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="16dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_calendar" app:tint="@color/text_secondary"/>
+
+                            <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp" android:layout_weight="1" android:orientation="vertical">
+                                <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="15sp" />
+                                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Дата регистрации" android:textColor="@color/text_secondary" android:textSize="11sp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                    </LinearLayout>
 
                     <TextView
-                        android:id="@+id/usernameText"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxWidth="250dp"
-                        android:singleLine="true"
-                        android:text="User Name"
-                        android:textColor="@color/text_primary"
-                        android:textSize="24sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:textStyle="bold" />
-
-                    <ImageButton
-                        android:id="@+id/editNameButton"
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:layout_marginStart="8dp"
-                        android:background="?attr/selectableItemBackgroundBorderless"
-                        android:src="@drawable/ic_edit"
-                        android:padding="4dp"
-                        app:tint="@color/text_secondary"
-                        android:scaleType="fitCenter" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/emailText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="user@email.com"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/nameContainer" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/infoCard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="12dp"
-            android:layout_marginTop="4dp"
-            app:cardBackgroundColor="@color/secondary"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/headerCard">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="20dp"
-                android:paddingHorizontal="16dp">
-
-                <!-- БЛОК СТАТИСТИКИ -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginBottom="20dp"
-                    android:gravity="center"
-                    android:orientation="horizontal"
-                    android:baselineAligned="false">
-
-                    <!-- Друзья -->
-                    <LinearLayout
-                        android:id="@+id/friendsCountContainer"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical"
-                        android:background="?attr/selectableItemBackground">
-                        <TextView android:id="@+id/friendsCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Друзей" android:textColor="@color/text_secondary" android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
-
-                    <!-- Подписчики (Новое) -->
-                    <LinearLayout
-                        android:id="@+id/followersCountContainer"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView android:id="@+id/followersCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписчики" android:textColor="@color/text_secondary" android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
-
-                    <!-- Подписки (Новое) -->
-                    <LinearLayout
-                        android:id="@+id/followingCountContainer"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView android:id="@+id/followingCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Подписки" android:textColor="@color/text_secondary" android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView android:id="@+id/memoriesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/text_primary" android:textSize="16sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Посты" android:textColor="@color/text_secondary" android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <View android:layout_width="1dp" android:layout_height="20dp" android:background="#20888888" />
-
-                    <!-- Лайки -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:gravity="center"
-                        android:orientation="vertical">
-                        <TextView android:id="@+id/likesCount" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/accent" android:textSize="16sp" android:textStyle="bold" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Лайков" android:textColor="@color/text_secondary" android:textSize="10sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#15FFFFFF"
-                    android:layout_marginBottom="16dp"/>
-
-
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/circle_background"
-                        android:backgroundTint="#10FFFFFF">
-                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_phone" app:tint="@color/accent"/>
-                    </FrameLayout>
-
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
-                        <TextView android:id="@+id/phoneText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Не указан" android:textColor="@color/text_primary" android:textSize="15sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Телефон" android:textColor="@color/text_secondary" android:textSize="11sp" />
-                    </LinearLayout>
-                    <ImageButton android:id="@+id/editPhoneButton" android:layout_width="24dp" android:layout_height="24dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" android:alpha="0.5"/>
-                </LinearLayout>
-
-                <!-- О себе -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="top" android:layout_marginBottom="16dp">
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/circle_background"
-                        android:backgroundTint="#10FFFFFF">
-                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_info" app:tint="@color/accent"/>
-                    </FrameLayout>
-
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
-                        <TextView android:id="@+id/aboutText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Расскажите о себе..." android:textColor="@color/text_primary" android:textSize="15sp" android:lineSpacingMultiplier="1.2" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Био" android:textColor="@color/text_secondary" android:textSize="11sp" />
-                    </LinearLayout>
-                    <ImageButton android:id="@+id/editAboutButton" android:layout_width="24dp" android:layout_height="24dp" android:layout_marginTop="4dp" android:background="?attr/selectableItemBackground" android:src="@drawable/ic_edit" app:tint="@color/text_secondary" android:alpha="0.5"/>
-                </LinearLayout>
-
-                <!-- Дата регистрации -->
-                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
-                    <FrameLayout
-                        android:layout_width="36dp"
-                        android:layout_height="36dp"
-                        android:background="@drawable/circle_background"
-                        android:backgroundTint="#10FFFFFF">
-                        <ImageView android:layout_width="18dp" android:layout_height="18dp" android:layout_gravity="center" android:src="@drawable/ic_calendar" app:tint="@color/accent"/>
-                    </FrameLayout>
-
-                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical" android:layout_marginStart="16dp">
-                        <TextView android:id="@+id/joinDateText" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Недавно" android:textColor="@color/text_primary" android:textSize="15sp" />
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Дата регистрации" android:textColor="@color/text_secondary" android:textSize="11sp" />
-                    </LinearLayout>
-                </LinearLayout>
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- MEMORIES CARD -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/memoriesCard"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="12dp"
-            android:layout_marginHorizontal="12dp"
-            android:layout_marginBottom="-16dp"
-            app:cardBackgroundColor="@color/secondary"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="4dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/infoCard">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:paddingHorizontal="20dp"
-                android:paddingTop="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="12dp">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
+                        android:layout_marginHorizontal="20dp"
+                        android:layout_marginTop="24dp"
                         android:text="Мои Воспоминания"
                         android:textColor="@color/text_primary"
                         android:textSize="18sp"
                         android:textStyle="bold" />
-
-                    <ImageButton
-                        android:id="@+id/viewAllMemories"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_arrow_drop"
-                        app:tint="@color/text_secondary"
-                        android:background="?attr/selectableItemBackgroundBorderless" />
                 </LinearLayout>
 
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/memoriesRecyclerView"
+                <androidx.appcompat.widget.Toolbar
+                    android:id="@+id/toolbar"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:clipToPadding="false"
-                    android:paddingBottom="24dp" />
+                    android:layout_height="?attr/actionBarSize"
+                    app:layout_collapseMode="pin"
+                    app:title=""
+                    app:navigationIcon="@drawable/ic_arrow_back" />
 
-                <TextView
-                    android:id="@+id/emptyMemoriesText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="32dp"
-                    android:text="Пока нет воспоминаний"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="14sp"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+            </com.google.android.material.appbar.CollapsingToolbarLayout>
+        </com.google.android.material.appbar.AppBarLayout>
 
-    </androidx.constraintlayout.widget.ConstraintLayout>
+        <!-- ЛЕНТА -->
+            <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/memoriesRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="24dp"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <!-- EXPANDED IMAGE CONTAINER (Осталось без изменений, так как это оверлей) -->
-    <FrameLayout
+
+        </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    </FrameLayout>
+
+    <!-- ОВЕРЛЕЙ УВЕЛИЧЕННОГО ФОТО (Снаружи блюра) -->
+        <FrameLayout
         android:id="@+id/expandedContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-        android:elevation="100dp">
+        android:elevation="100dp"
+        android:visibility="gone">
 
         <View
             android:id="@+id/expandedBackground"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:background="#DD000000"
-            android:alpha="0" />
+            android:alpha="0"
+            android:background="#DD000000" />
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/expandedCard"
             android:layout_width="320dp"
             android:layout_height="320dp"
             android:layout_gravity="center"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="24dp"
-            app:cardElevation="12dp"
-            app:cardBackgroundColor="@android:color/transparent">
+            app:cardElevation="12dp">
 
-            <ImageView
-                android:id="@+id/expandedImage"
+            <androidx.viewpager2.widget.ViewPager2
+                android:id="@+id/expandedViewPager"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/ic_profile_placeholder" />
-
+                android:layout_height="match_parent" />
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/btnEditExpanded"
+        <!-- КНОПКИ ПОДЕЛИТЬСЯ, СКАЧАТЬ И УДАЛИТЬ -->
+        <LinearLayout
+            android:id="@+id/expandedActionsContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal|bottom"
             android:layout_marginBottom="64dp"
-            android:text="Изменить фото"
-            android:textColor="@android:color/white"
-            app:icon="@drawable/ic_edit"
-            app:iconTint="@android:color/white"
-            app:backgroundTint="@color/secondary"
-            android:alpha="0" />
+            android:alpha="0"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnShareExpanded"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/circle_background"
+                android:backgroundTint="@color/secondary"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_share"
+                app:tint="@color/text_primary" />
+
+            <ImageButton
+                android:id="@+id/btnDownloadExpanded"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="16dp"
+                android:background="@drawable/circle_background"
+                android:backgroundTint="@color/accent"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/stat_sys_download"
+                app:tint="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/btnDeleteExpanded"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/circle_background"
+                android:backgroundTint="#D32F2F"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_delete"
+                app:tint="@android:color/white" />
+        </LinearLayout>
 
     </FrameLayout>
+
+
 
 </FrameLayout>

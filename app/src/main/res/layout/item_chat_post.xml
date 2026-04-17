@@ -9,7 +9,6 @@
     android:layout_marginBottom="2dp"
     android:paddingHorizontal="8dp">
 
-    <!-- Сам пузырь теперь ConstraintLayout -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/contentLayout"
         android:layout_width="wrap_content"
@@ -18,7 +17,7 @@
         android:paddingVertical="8dp"
         app:layout_constrainedWidth="true"
         app:layout_constraintWidth_max="wrap"
-        app:layout_constraintWidth_percent="0.80"
+        app:layout_constraintWidth_percent="0.82"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -66,17 +65,87 @@
             </LinearLayout>
         </LinearLayout>
 
-        <ImageView
-            android:id="@+id/chatAttachedImage"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/imageContainer"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:maxWidth="250dp"
-            android:maxHeight="300dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@android:color/transparent"
             android:visibility="gone"
             android:layout_marginBottom="4dp"
             app:layout_constraintTop_toBottomOf="@id/replyQuotedLayout"
-            app:layout_constraintStart_toStartOf="parent"/>
+            app:layout_constraintStart_toStartOf="parent">
+
+            <ImageView
+                android:id="@+id/chatAttachedImage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:adjustViewBounds="true"
+                android:maxWidth="250dp"
+                android:maxHeight="300dp"/>
+
+            <FrameLayout
+                android:id="@+id/uploadOverlay"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#80000000"
+                android:visibility="gone">
+
+                <ProgressBar
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="#FFFFFF"/>
+
+                <ImageView
+                    android:id="@+id/btnCancelUpload"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="16dp"
+                    android:layout_gravity="center"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    app:tint="#FFFFFF"
+                    android:background="?attr/selectableItemBackgroundBorderless"/>
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- МИНИМАЛИСТИЧНЫЙ ДИЗАЙН ГС БЕЗ ПОЛЗУНКА -->
+        <LinearLayout
+            android:id="@+id/voiceLayout"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:layout_marginBottom="4dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="4dp"
+            app:layout_constraintTop_toBottomOf="@id/imageContainer"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <ImageButton
+                android:id="@+id/btnPlayPause"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_play"
+                android:background="@drawable/circle_background"
+                android:backgroundTint="#1A3390EC"
+                app:tint="#3390EC"/>
+
+            <TextView
+                android:id="@+id/tvVoiceDuration"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Голосовое"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:textColor="#3390EC"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="16dp"/>
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/postLayout"
@@ -85,7 +154,7 @@
             android:orientation="vertical"
             android:visibility="gone"
             android:layout_marginBottom="4dp"
-            app:layout_constraintTop_toBottomOf="@id/chatAttachedImage"
+            app:layout_constraintTop_toBottomOf="@id/voiceLayout"
             app:layout_constraintStart_toStartOf="parent">
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="200dp"
@@ -127,8 +196,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="11sp"
+            android:layout_marginEnd="4dp"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
+            app:layout_constraintEnd_toStartOf="@id/ivReadStatus"/>
+
+        <ImageView
+            android:id="@+id/ivReadStatus"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -153,7 +231,6 @@
         android:textSize="14sp"
         android:visibility="gone"
         android:elevation="4dp"
-
         app:layout_constraintTop_toBottomOf="@id/contentLayout"
         app:layout_constraintBottom_toBottomOf="@id/contentLayout"
         app:layout_constraintEnd_toEndOf="@id/contentLayout"
